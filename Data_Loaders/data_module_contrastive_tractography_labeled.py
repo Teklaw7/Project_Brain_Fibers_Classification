@@ -154,7 +154,14 @@ class Bundles_Dataset_contrastive_tractography_labeled(Dataset):
         faces_brain = torch.load(f"brain_structures/faces_brain_{sample_id}.pt")
         face_features_brain = torch.load(f"brain_structures/face_features_brain_{sample_id}.pt")
         data_lab = torch.tensor([0])
+        # print(data_lab.shape)
         name_l = torch.tensor([name])
+        # print(name_l.shape)
+        data_lab = data_lab.unsqueeze(dim = 1)
+        # print(data_lab.shape)
+        T_infos = torch.cat((data_lab, name_l), 1)
+        # print(T_infos.shape)
+        # print(skjgfkg)
 
         return verts,faces,face_features,labels,verts_fiber,faces_fiber,face_features_fiber,labels_fiber, verts_brain, faces_brain, face_features_brain, verts_fiber_bounds, sample_min_max, data_lab, name_l
         # return verts,faces,face_features,labels,verts_fiber,faces_fiber,face_features_fiber,labels_fiber, self.verts_brain, self.faces_brain, self.face_features_brain
@@ -292,7 +299,7 @@ class Bundles_Dataset_test_contrastive_tractography_labeled(Dataset):
 
      
     def __len__(self):
-        print("len", self.fibers)
+        # print("len", self.fibers)
         return self.fibers
 
     def __getitem__(self, idx):
@@ -509,23 +516,23 @@ class Bundles_DataModule_tractography_labeled_fibers(pl.LightningDataModule):
         return self.weights
 
     def pad_verts_faces(self, batch):
-        print("len batch", len(batch))
-        print("len batch[0]", len(batch[0]))
-        print("batch[0]", len(batch[0][0]))
+        # print("len batch", len(batch))# tuple of 10 == bs
+        # print("len batch[0]", len(batch[0]))# tuple of 2 == 2 batchs
+        # print("batch[0]", len(batch[0][0]))# tuple of 15 == nb features
         labeled_fibers = ()
         tractography_fibers = ()
         for i in range(len(batch)):
             labeled_fibers += (batch[i][0],)
             tractography_fibers += (batch[i][1],)
 
-        print("len labeled_fibers", len(labeled_fibers))
-        print("len labeled_fibers", len(labeled_fibers[0]))
-        print("len tractography_fibers", len(tractography_fibers))
-        print("len tractography_fibers", len(tractography_fibers[0]))
+        # print("len labeled_fibers", len(labeled_fibers)) # tuple of 10 == bs
+        # print("len labeled_fibers", len(labeled_fibers[0])) # tuple of 15 == nb features
+        # print("len tractography_fibers", len(tractography_fibers)) # tuple of 10 == bs
+        # print("len tractography_fibers", len(tractography_fibers[0])) # tuple of 15 == nb features
         
-        print("len batch i ", len(batch[i]))
-        print("len labeled_fibers", len(labeled_fibers))
-        print("len tractography_fibers", len(tractography_fibers))
+        # print("len batch i ", len(batch[i]))
+        # print("len labeled_fibers", len(labeled_fibers)) # tuple of 10 == bs
+        # print("len tractography_fibers", len(tractography_fibers)) # tuple of 10 == bs
 
         verts_lf = [v for v, f, vdf, l, vfi, ffi, vdffi, lfi, vb, fb, ffb, vfb, smm, dl, nl in labeled_fibers]
         faces_lf = [f for v, f, vdf, l, vfi, ffi, vdffi, lfi, vb, fb, ffb, vfb, smm, dl, nl in labeled_fibers]
@@ -560,37 +567,55 @@ class Bundles_DataModule_tractography_labeled_fibers(pl.LightningDataModule):
         sample_min_max_tf = [smm for v, f, vdf, l, vfi, ffi, vdffi, lfi, vb, fb, ffb, vfb,smm, dl, nl in tractography_fibers]
         data_lab_tf = [dl for v, f, vdf, l, vfi, ffi, vdffi, lfi, vb, fb, ffb, vfb,smm,dl, nl in tractography_fibers]
         name_labels_tf = [nl for v, f, vdf, l, vfi, ffi, vdffi, lfi, vb, fb, ffb, vfb,smm,dl, nl in tractography_fibers]
-
-        print("verts", len(verts_lf))
-        print("verts", len(verts_tf))
-        print("faces", len(faces_lf))
-        print("faces", len(faces_tf))
-        print("verts_data_faces", len(verts_data_faces_lf))
-        print("verts_data_faces", len(verts_data_faces_tf))
-        print("labels", len(labels_lf))
-        print("labels", len(labels_tf))
-        print("verts_fiber", len(verts_fiber_lf))
-        print("verts_fiber", len(verts_fiber_tf))
-        print("faces_fiber", len(faces_fiber_lf))
-        print("faces_fiber", len(faces_fiber_tf))
-        print("verts_data_faces_fiber", len(verts_data_faces_fiber_lf))
-        print("verts_data_faces_fiber", len(verts_data_faces_fiber_tf))
-        print("labels_fiber", len(labels_fiber_lf))
-        print("labels_fiber", len(labels_fiber_tf))
-        print("verts_brain", len(verts_brain_lf))
-        print("verts_brain", len(verts_brain_tf))
-        print("faces_brain", len(faces_brain_lf))
-        print("faces_brain", len(faces_brain_tf))
-        print("verts_data_faces_brain", len(verts_data_faces_brain_lf))
-        print("verts_data_faces_brain", len(verts_data_faces_brain_tf))
-        print("verts_fiber_bounds", len(verts_fiber_bounds_lf))
-        print("verts_fiber_bounds", len(verts_fiber_bounds_tf))
-        print("sample_min_max", len(sample_min_max_lf))
-        print("sample_min_max", len(sample_min_max_tf))
-        print("data_lab", len(data_lab_lf))
-        print("data_lab", len(data_lab_tf))
-        print("name_labels", len(name_labels_lf))
-        print("name_labels", len(name_labels_tf))
+        
+        verts = verts_lf + verts_tf
+        faces = faces_lf + faces_tf
+        verts_data_faces = verts_data_faces_lf + verts_data_faces_tf
+        labels = labels_lf + labels_tf
+        verts_fiber = verts_fiber_lf + verts_fiber_tf
+        faces_fiber = faces_fiber_lf + faces_fiber_tf
+        verts_data_faces_fiber = verts_data_faces_fiber_lf + verts_data_faces_fiber_tf
+        labels_fiber = labels_fiber_lf + labels_fiber_tf
+        verts_brain = verts_brain_lf + verts_brain_tf
+        faces_brain = faces_brain_lf + faces_brain_tf
+        verts_data_faces_brain = verts_data_faces_brain_lf + verts_data_faces_brain_tf
+        verts_fiber_bounds = verts_fiber_bounds_lf + verts_fiber_bounds_tf
+        sample_min_max = sample_min_max_lf + sample_min_max_tf
+        data_lab = data_lab_lf + data_lab_tf
+        name_labels = name_labels_lf + name_labels_tf
+        
+        
+        # print("type", verts_lf[0].shape, verts_lf[1].shape, verts_lf[2].shape)
+        # print("verts", len(verts_lf))
+        # print("verts", len(verts_tf))
+        # print("faces", len(faces_lf))
+        # print("faces", len(faces_tf))
+        # print("verts_data_faces", len(verts_data_faces_lf))
+        # print("verts_data_faces", len(verts_data_faces_tf))
+        # print("labels", len(labels_lf))
+        # print("labels", len(labels_tf))
+        # print("verts_fiber", len(verts_fiber_lf))
+        # print("verts_fiber", len(verts_fiber_tf))
+        # print("faces_fiber", len(faces_fiber_lf))
+        # print("faces_fiber", len(faces_fiber_tf))
+        # print("verts_data_faces_fiber", len(verts_data_faces_fiber_lf))
+        # print("verts_data_faces_fiber", len(verts_data_faces_fiber_tf))
+        # print("labels_fiber", len(labels_fiber_lf))
+        # print("labels_fiber", len(labels_fiber_tf))
+        # print("verts_brain", len(verts_brain_lf))
+        # print("verts_brain", len(verts_brain_tf))
+        # print("faces_brain", len(faces_brain_lf))
+        # print("faces_brain", len(faces_brain_tf))
+        # print("verts_data_faces_brain", len(verts_data_faces_brain_lf))
+        # print("verts_data_faces_brain", len(verts_data_faces_brain_tf))
+        # print("verts_fiber_bounds", len(verts_fiber_bounds_lf))
+        # print("verts_fiber_bounds", len(verts_fiber_bounds_tf))
+        # print("sample_min_max", len(sample_min_max_lf))
+        # print("sample_min_max", len(sample_min_max_tf))
+        # print("data_lab", len(data_lab_lf))
+        # print("data_lab", len(data_lab_tf))
+        # print("name_labels", len(name_labels_lf))
+        # print("name_labels", len(name_labels_tf))
 
 
         # print(akjhdfkdsh)
@@ -620,86 +645,24 @@ class Bundles_DataModule_tractography_labeled_fibers(pl.LightningDataModule):
         # data_lab = [dl for v, f, vdf, l, vfi, ffi, vdffi, lfi, vb, fb, ffb, vfb, smm, dl, nl in batch]
         # name_labels = [nl for v, f, vdf, l, vfi, ffi, vdffi, lfi, vb, fb, ffb, vfb, smm, dl, nl in batch]
 
+        # print("verts", len(verts))
+        # print("faces", len(faces))
+        # print("verts_data_faces", len(verts_data_faces))
+        # print("labels", len(labels))
+        # print("verts_fiber", len(verts_fiber))
+        # print("faces_fiber", len(faces_fiber))
+        # print("verts_data_faces_fiber", len(verts_data_faces_fiber))
+        # print("labels_fiber", len(labels_fiber))
+        # print("verts_brain", len(verts_brain))
+        # print("faces_brain", len(faces_brain))
+        # print("verts_data_faces_brain", len(verts_data_faces_brain))
+        # print("verts_fiber_bounds", len(verts_fiber_bounds))
+        # print("sample_min_max", len(sample_min_max))
+        # print("data_lab", len(data_lab))
+        # print("name_labels", len(name_labels))
 
-
-
-        verts_lf = pad_sequence(verts_lf, batch_first=True, padding_value=0.0)
-        faces_lf = pad_sequence(faces_lf, batch_first=True, padding_value=-1)
-        # verts_data_faces_lf = torch.cat(verts_data_vertex_lf)
-        verts_data_faces_lf = torch.cat(verts_data_faces_lf)
-        labels_lf = torch.cat(labels_lf)
-        verts_fiber_lf = pad_sequence(verts_fiber_lf, batch_first=True, padding_value=0.0)
-        faces_fiber_lf = pad_sequence(faces_fiber_lf, batch_first=True, padding_value=-1)
-        verts_data_faces_fiber_lf = torch.cat(verts_data_faces_fiber_lf)
-        labels_fiber_lf = torch.cat(labels_fiber_lf)
-        verts_brain_lf = pad_sequence(verts_brain_lf, batch_first=True, padding_value=0.0)
-        faces_brain_lf = pad_sequence(faces_brain_lf, batch_first=True, padding_value=-1)
-        verts_data_faces_brain_lf = torch.cat(verts_data_faces_brain_lf)
-        # verts_fiber_bounds_lf = torch.cat(verts_fiber_bounds_lf)
-        # sample_min_max_lf = torch.cat(sample_min_max_lf)
-        # data_lab_lf = torch.cat(data_lab_lf)
-        # name_labels_lf = torch.cat(name_labels_lf)
-
-        verts_tf = pad_sequence(verts_tf, batch_first=True, padding_value=0.0)
-        faces_tf = pad_sequence(faces_tf, batch_first=True, padding_value=-1)
-        # verts_data_vertex_tf = torch.cat(verts_data_vertex_tf)
-        verts_data_faces_tf = torch.cat(verts_data_faces_tf)
-        labels_tf = torch.cat(labels_tf)
-        verts_fiber_tf = pad_sequence(verts_fiber_tf, batch_first=True, padding_value=0.0)
-        faces_fiber_tf = pad_sequence(faces_fiber_tf, batch_first=True, padding_value=-1)
-        verts_data_faces_fiber_tf = torch.cat(verts_data_faces_fiber_tf)
-        labels_fiber_tf = torch.cat(labels_fiber_tf)
-        verts_brain_tf = pad_sequence(verts_brain_tf, batch_first=True, padding_value=0.0)
-        faces_brain_tf = pad_sequence(faces_brain_tf, batch_first=True, padding_value=-1)
-        verts_data_faces_brain_tf = torch.cat(verts_data_faces_brain_tf)
-        # verts_fiber_bounds_tf = torch.cat(verts_fiber_bounds_tf)
-        # sample_min_max_tf = torch.cat(sample_min_max_tf)
-        # data_lab_tf = torch.cat(data_lab_tf)
-        # name_labels_tf = torch.cat(name_labels_tf)
-
-        print("verts_lf", verts_lf.shape)
-        print("faces_lf", faces_lf.shape)
-        print("verts_data_faces_lf", verts_data_faces_lf.shape)
-        print("labels_lf", labels_lf.shape)
-        print("verts_fiber_lf", verts_fiber_lf.shape)
-        print("faces_fiber_lf", faces_fiber_lf.shape)
-        print("verts_data_faces_fiber_lf", verts_data_faces_fiber_lf.shape)
-        print("labels_fiber_lf", labels_fiber_lf.shape)
-        print("verts_brain_lf", verts_brain_lf.shape)
-        print("faces_brain_lf", faces_brain_lf.shape)
-        print("verts_data_faces_brain_lf", verts_data_faces_brain_lf.shape)
-        # print("verts_fiber_bounds_lf", verts_fiber_bounds_lf.shape)
-        # print("sample_min_max_lf", sample_min_max_lf.shape)
-        # print("data_lab_lf", data_lab_lf.shape)
-        # print("name_labels_lf", name_labels_lf.shape)
-        print("verts_fiber_bounds_lf", verts_fiber_bounds_lf)
-        print("sample_min_max_lf", sample_min_max_lf)
-        print("data_lab_lf", data_lab_lf)
-        print("name_labels_lf", name_labels_lf)
-
-        print("verts_tf", verts_tf.shape)
-        print("faces_tf", faces_tf.shape)
-        print("verts_data_faces_tf", verts_data_faces_tf.shape)
-        print("labels_tf", labels_tf.shape)
-        print("verts_fiber_tf", verts_fiber_tf.shape)
-        print("faces_fiber_tf", faces_fiber_tf.shape)
-        print("verts_data_faces_fiber_tf", verts_data_faces_fiber_tf.shape)
-        print("labels_fiber_tf", labels_fiber_tf.shape)
-        print("verts_brain_tf", verts_brain_tf.shape)
-        print("faces_brain_tf", faces_brain_tf.shape)
-        print("verts_data_faces_brain_tf", verts_data_faces_brain_tf.shape)
-        print("verts_fiber_bounds_tf", verts_fiber_bounds_tf)
-        print("sample_min_max_tf", sample_min_max_tf)
-        print("data_lab_tf", data_lab_tf)
-        print("name_labels_tf", name_labels_tf)
-        # print("verts_fiber_bounds_tf", verts_fiber_bounds_tf.shape)
-        # print("sample_min_max_tf", sample_min_max_tf.shape)
-        # print("data_lab_tf", data_lab_tf.shape)
-        # print("name_labels_tf", name_labels_tf.shape)
-        
-        print(akjshksfajh)
-        verts = pad_sequence(verts, batch_first=True, padding_value=0.0)        
-        faces = pad_sequence(faces, batch_first=True, padding_value=-1)        
+        verts = pad_sequence(verts, batch_first=True, padding_value=0.0)
+        faces = pad_sequence(faces, batch_first=True, padding_value=-1)
         verts_data_faces = torch.cat(verts_data_faces)
         labels = torch.cat(labels)
         verts_fiber = pad_sequence(verts_fiber, batch_first=True, padding_value=0.0)
@@ -709,8 +672,112 @@ class Bundles_DataModule_tractography_labeled_fibers(pl.LightningDataModule):
         verts_brain = pad_sequence(verts_brain, batch_first=True, padding_value=0.0)
         faces_brain = pad_sequence(faces_brain, batch_first=True, padding_value=-1)
         verts_data_faces_brain = torch.cat(verts_data_faces_brain)
-        data_lab = torch.cat(data_lab)
-        name_labels = torch.cat(name_labels)
+
+        # print("verts", verts.shape)
+        # print("faces", faces.shape)
+        # print("verts_data_faces", verts_data_faces.shape)
+        # print("labels", labels.shape)
+        # print("verts_fiber", verts_fiber.shape)
+        # print("faces_fiber", faces_fiber.shape)
+        # print("verts_data_faces_fiber", verts_data_faces_fiber.shape)
+        # print("labels_fiber", labels_fiber.shape)
+        # print("verts_brain", verts_brain.shape)
+        # print("faces_brain", faces_brain.shape)
+        # print("verts_data_faces_brain", verts_data_faces_brain.shape)
+        # print("verts_fiber_bounds", verts_fiber_bounds)
+        # print("sample_min_max", sample_min_max)
+        # print("data_lab", data_lab)
+        # print("name_labels", name_labels)
+        # verts_lf = pad_sequence(verts_lf, batch_first=True, padding_value=0.0)
+        # faces_lf = pad_sequence(faces_lf, batch_first=True, padding_value=-1)
+        # verts_data_faces_lf = torch.cat(verts_data_vertex_lf)
+        # verts_data_faces_lf = torch.cat(verts_data_faces_lf)
+        # labels_lf = torch.cat(labels_lf)
+        # verts_fiber_lf = pad_sequence(verts_fiber_lf, batch_first=True, padding_value=0.0)
+        # faces_fiber_lf = pad_sequence(faces_fiber_lf, batch_first=True, padding_value=-1)
+        # verts_data_faces_fiber_lf = torch.cat(verts_data_faces_fiber_lf)
+        # labels_fiber_lf = torch.cat(labels_fiber_lf)
+        # verts_brain_lf = pad_sequence(verts_brain_lf, batch_first=True, padding_value=0.0)
+        # faces_brain_lf = pad_sequence(faces_brain_lf, batch_first=True, padding_value=-1)
+        # verts_data_faces_brain_lf = torch.cat(verts_data_faces_brain_lf)
+        # verts_fiber_bounds_lf = torch.cat(verts_fiber_bounds_lf)
+        # sample_min_max_lf = torch.cat(sample_min_max_lf)
+        # data_lab_lf = torch.cat(data_lab_lf)
+        # name_labels_lf = torch.cat(name_labels_lf)
+
+        # verts_tf = pad_sequence(verts_tf, batch_first=True, padding_value=0.0)
+        # faces_tf = pad_sequence(faces_tf, batch_first=True, padding_value=-1)
+        # verts_data_vertex_tf = torch.cat(verts_data_vertex_tf)
+        # verts_data_faces_tf = torch.cat(verts_data_faces_tf)
+        # labels_tf = torch.cat(labels_tf)
+        # verts_fiber_tf = pad_sequence(verts_fiber_tf, batch_first=True, padding_value=0.0)
+        # faces_fiber_tf = pad_sequence(faces_fiber_tf, batch_first=True, padding_value=-1)
+        # verts_data_faces_fiber_tf = torch.cat(verts_data_faces_fiber_tf)
+        # labels_fiber_tf = torch.cat(labels_fiber_tf)
+        # verts_brain_tf = pad_sequence(verts_brain_tf, batch_first=True, padding_value=0.0)
+        # faces_brain_tf = pad_sequence(faces_brain_tf, batch_first=True, padding_value=-1)
+        # verts_data_faces_brain_tf = torch.cat(verts_data_faces_brain_tf)
+        # verts_fiber_bounds_tf = torch.cat(verts_fiber_bounds_tf)
+        # sample_min_max_tf = torch.cat(sample_min_max_tf)
+        # data_lab_tf = torch.cat(data_lab_tf)
+        # name_labels_tf = torch.cat(name_labels_tf)
+
+        # print("verts_lf", verts_lf.shape)
+        # print("faces_lf", faces_lf.shape)
+        # print("verts_data_faces_lf", verts_data_faces_lf.shape)
+        # print("labels_lf", labels_lf.shape)
+        # print("verts_fiber_lf", verts_fiber_lf.shape)
+        # print("faces_fiber_lf", faces_fiber_lf.shape)
+        # print("verts_data_faces_fiber_lf", verts_data_faces_fiber_lf.shape)
+        # print("labels_fiber_lf", labels_fiber_lf.shape)
+        # print("verts_brain_lf", verts_brain_lf.shape)
+        # print("faces_brain_lf", faces_brain_lf.shape)
+        # print("verts_data_faces_brain_lf", verts_data_faces_brain_lf.shape)
+        # print("verts_fiber_bounds_lf", verts_fiber_bounds_lf.shape)
+        # print("sample_min_max_lf", sample_min_max_lf.shape)
+        # print("data_lab_lf", data_lab_lf.shape)
+        # print("name_labels_lf", name_labels_lf.shape)
+        # print("verts_fiber_bounds_lf", verts_fiber_bounds_lf)
+        # print("sample_min_max_lf", sample_min_max_lf)
+        # print("data_lab_lf", data_lab_lf)
+        # print("name_labels_lf", name_labels_lf)
+
+        # print("verts_tf", verts_tf.shape)
+        # print("faces_tf", faces_tf.shape)
+        # print("verts_data_faces_tf", verts_data_faces_tf.shape)
+        # print("labels_tf", labels_tf.shape)
+        # print("verts_fiber_tf", verts_fiber_tf.shape)
+        # print("faces_fiber_tf", faces_fiber_tf.shape)
+        # print("verts_data_faces_fiber_tf", verts_data_faces_fiber_tf.shape)
+        # print("labels_fiber_tf", labels_fiber_tf.shape)
+        # print("verts_brain_tf", verts_brain_tf.shape)
+        # print("faces_brain_tf", faces_brain_tf.shape)
+        # print("verts_data_faces_brain_tf", verts_data_faces_brain_tf.shape)
+        # print("verts_fiber_bounds_tf", verts_fiber_bounds_tf)
+        # print("sample_min_max_tf", sample_min_max_tf)
+        # print("data_lab_tf", data_lab_tf)
+        # print("name_labels_tf", name_labels_tf)
+        # print("verts_fiber_bounds_tf", verts_fiber_bounds_tf.shape)
+        # print("sample_min_max_tf", sample_min_max_tf.shape)
+        # print("data_lab_tf", data_lab_tf.shape)
+        # print("name_labels_tf", name_labels_tf.shape)
+        
+        # print(akjshksfajh)
+        # verts = pad_sequence(verts, batch_first=True, padding_value=0.0)        
+        # faces = pad_sequence(faces, batch_first=True, padding_value=-1)        
+        # verts_data_faces = torch.cat(verts_data_faces)
+        # labels = torch.cat(labels)
+        # verts_fiber = pad_sequence(verts_fiber, batch_first=True, padding_value=0.0)
+        # faces_fiber = pad_sequence(faces_fiber, batch_first=True, padding_value=-1)
+        # verts_data_faces_fiber = torch.cat(verts_data_faces_fiber)
+        # labels_fiber = torch.cat(labels_fiber)
+        # verts_brain = pad_sequence(verts_brain, batch_first=True, padding_value=0.0)
+        # faces_brain = pad_sequence(faces_brain, batch_first=True, padding_value=-1)
+        # verts_data_faces_brain = torch.cat(verts_data_faces_brain)
+        # data_lab = torch.cat(data_lab)
+        # name_labels = torch.cat(name_labels)
+
+        
 
 
         return verts, faces, verts_data_faces, labels, verts_fiber, faces_fiber, verts_data_faces_fiber, labels_fiber, verts_brain, faces_brain, verts_data_faces_brain, verts_fiber_bounds, sample_min_max, data_lab, name_labels

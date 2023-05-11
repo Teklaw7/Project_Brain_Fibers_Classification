@@ -6,7 +6,7 @@ import pytorch_lightning as pl
 import torchvision.models as models
 from torch.nn.functional import softmax
 import torchmetrics
-import utils
+from tools import utils
 import torch.nn.functional as F
 import torchvision.transforms as T
 from torchvision.models import resnet18, ResNet18_Weights

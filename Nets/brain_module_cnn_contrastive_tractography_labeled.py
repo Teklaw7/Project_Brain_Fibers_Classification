@@ -1136,9 +1136,6 @@ class Fly_by_CNN_contrastive_tractography_labeled(pl.LightningModule):
         # return x, PF, x_brain, PF_brain # with brain
 
     def training_step(self, train_batch, train_batch_idx):
-        
-        # train_batch_1 = train_batch[0]
-        # train_batch_2 = train_batch[1]
 
         V, F, FF, labels, VFI, FFI, FFFI, labelsFI, VB, FB, FFB, vfbounds, sample_min_max, data_lab, name_labels = train_batch
         # V2, F2, FF2, labels2, VFI2, FFI2, FFFI2, labelsFI2, VB2, FB2, FFB2, vfbounds2, sample_min_max2 = train_batch_2
@@ -1153,73 +1150,20 @@ class Fly_by_CNN_contrastive_tractography_labeled(pl.LightningModule):
         FFB = FFB.to(self.device)
         labels = labels.to(self.device)
         labelsFI = labelsFI.to(self.device)
+        data_lab = torch.tensor(data_lab)
         data_lab = data_lab.to(self.device)
-        print("data_lab", data_lab)
-        print("V", V.shape)
 
-        # V2 = V2.to(self.device)
-        # F2 = F2.to(self.device)
-        # FF2 = FF2.to(self.device)
-        # VFI2 = VFI2.to(self.device)
-        # FFI2 = FFI2.to(self.device)
-        # FFFI2 = FFFI2.to(self.device)
-        # VB2 = VB2.to(self.device)
-        # FB2 = FB2.to(self.device)
-        # FFB2 = FFB2.to(self.device)
-        # labels2 = labels2.to(self.device)
-        # labelsFI2 = labelsFI2.to(self.device)
-
-        # print("VFI", torch.sum(VFI!=0))
-        # print("V", torch.sum(V!=0))
-        # print("coucou")
-        # labels = labels.squeeze(dim=1)
-        # if self.contrastive:
-            # train_batch_1, train_batch_2 = self.augment(train_batch)
 
         ###
         # change fibers points with stretching, rotation, translation twices for the V and twices for the VFI
         V = transformation_verts(V, sample_min_max)
-        # V2 = transformation_verts(V2, sample_min_max2)
         VFI = transformation_verts_by_fiber(VFI, vfbounds)
-        # VFI2 = transformation_verts_by_fiber(VFI2, vfbounds2)
-        # V_c,F_c,FF_c, VFI_c, FFI_c, FFFI_c, VB_c, FB_c, FFB_c = pad_double_batch(V,F,FF,VFI,FFI,FFFI,VB,FB,FFB, V2,F2,FF2,VFI2,FFI2,FFFI2,VB2,FB2,FFB2)
-        # labels_c = torch.cat((labels,labels2),dim=0)
-        # print("V_c", V_c.shape)
-        # print("F_c", F_c.shape)
-        # print("FF_c", FF_c.shape)
-        # print("VFI_c", VFI_c.shape)
-        # print("FFI_c", FFI_c.shape)
-        # print("FFFI_c", FFFI_c.shape)
-        # print("VB_c", VB_c.shape)
-        # print("FB_c", FB_c.shape)
-        # print("FFB_c", FFB_c.shape)
-        # print("labels_c", labels_c.shape)
 
-        # V_c1 = V_c +torch.normal(0, 0.03, size=V_c.shape).to(self.device)
-        # V_c2 = V_c +torch.normal(0, 0.03, size=V_c.shape).to(self.device)
-        # VFI_c1 = VFI_c +torch.normal(0, 0.03, size=VFI_c.shape).to(self.device)
-        # VFI_c2 = VFI_c +torch.normal(0, 0.03, size=VFI_c.shape).to(self.device)
-        # V_c1 = V_c1.to(self.device)
-        # V_c2 = V_c2.to(self.device)
-        # VFI_c1 = VFI_c1.to(self.device)
-        # VFI_c2 = VFI_c2.to(self.device)
-        # VB_c = VB_c.to(self.device)
-        # FB_c = FB_c.to(self.device)
-        # FFB_c = FFB_c.to(self.device)
-# 
-        # for i in range(V_c1.shape[0]):
-            # V_c1[i] = randomrotation(V_c1[i])
-            # V_c2[i] = randomrotation(V_c2[i])
-            # VFI_c1[i] = randomrotation(VFI_c1[i])
-            # VFI_c2[i] = randomrotation(VFI_c2[i])
-        # V1 = stretch_verts(V)
         V1 = V +torch.normal(0, 0.03, size=V.shape).to(self.device)
         V2 = V +torch.normal(0, 0.03, size=V.shape).to(self.device)
         VFI1 = VFI +torch.normal(0, 0.03, size=VFI.shape).to(self.device)
         VFI2 = VFI +torch.normal(0, 0.03, size=VFI.shape).to(self.device)
-        # VFI1 = stretch_verts(VFI)
-        # V2 = stretch_verts(V)
-        # VFI2 = stretch_verts(VFI)  
+
         V1 = V1.to(self.device)
         V2 = V2.to(self.device)
         VFI1 = VFI1.to(self.device)
@@ -1230,7 +1174,6 @@ class Fly_by_CNN_contrastive_tractography_labeled(pl.LightningModule):
             VFI1[i] = randomrotation(VFI1[i])
             VFI2[i] = randomrotation(VFI2[i])
         condition = True
-        # x, proj_test, x1, x2 = self((V_c, V_c1, V_c2, F_c, FF_c, VFI_c, VFI_c1, VFI_c2, FFI_c, FFFI_c, VB, FB, FFB, condition))    #.shape = (batch_size, num classes)
         x, proj_test, x1, x2 = self((V, V1, V2, F, FF, VFI, VFI1, VFI2, FFI, FFFI, VB, FB, FFB, condition))
 
         # loss = self.loss_train(x, labels)
@@ -1244,28 +1187,9 @@ class Fly_by_CNN_contrastive_tractography_labeled(pl.LightningModule):
         return loss_contrastive
 
         
-    # def validation_step(self, val_batch, val_batch_2 , val_batch_idx):
     def validation_step(self, val_batch, val_batch_idx):
-        # print("val_batch", type(val_batch))
-        # print("val_batch", len(val_batch))
-        # print("val_dataloader_idx", type(val_dataloader_idx))
-        # print("val_batch_2", type(val_batch_2))
-        # print("val_batch_idx", type(val_batch_idx))
-        # print("val_batch_idx", val_batch_idx)
-        # print("zip",len(val_batch))
-        # print("zip",len(val_batch[0]))
-        # print("val_batch",type(val_batch))
-        # print("val_batch",len(val_batch))
-        # print("val_batch", len(val_batch[0][0]))
-        # print("val_batch",val_batch[0])
-        # print("val_batch",len(val_batch[0]))
-        # val_batch_1 = val_batch[0]
-        # val_batch_2 = val_batch[1]
-        # print("val_batch_1", len(val_batch_1))
-        # print("val_batch_2", len(val_batch_2))
+    
         V, F, FF, labels, VFI, FFI, FFFI, labelsFI, VB, FB, FFB, vfbounds, sample_min_max, data_lab, name_labels= val_batch
-        # print(ksjdhfkhg)
-        # V2, F2, FF2, labels2, VFI2, FFI2, FFFI2, labelsFI2, VB2, FB2, FFB2, vfbounds2, sample_min_max2= val_batch_1
         V = V.to(self.device)
         F = F.to(self.device)
         FF = FF.to(self.device)
@@ -1277,91 +1201,11 @@ class Fly_by_CNN_contrastive_tractography_labeled(pl.LightningModule):
         FFB = FFB.to(self.device)
         labels = labels.to(self.device)
         labelsFI = labelsFI.to(self.device)
+        data_lab = torch.tensor(data_lab)
         data_lab = data_lab.to(self.device)
-        print("labels",labels)
-        print("data_lab", data_lab)
-        # print(zjkhfdksjd)
-        print("V",V.shape)
-        # print("F", F.shape)
-        # print("FF", FF.shape)
-        # print("VFI",VFI.shape)
-        # print("FFI", FFI.shape)
-        # print("FFFI", FFFI.shape)
-        # print("VB",VB.shape)
-        # print("FB", FB.shape)
-        # print("FFB", FFB.shape)
-        # print("labels",labels.shape)
-        # print("labelsFI",labelsFI.shape)
-        # V2 = V2.to(self.device)
-        # F2 = F2.to(self.device)
-        # FF2 = FF2.to(self.device)
-        # VFI2 = VFI2.to(self.device)
-        # FFI2 = FFI2.to(self.device)
-        # FFFI2 = FFFI2.to(self.device)
-        # VB2 = VB2.to(self.device)
-        # FB2 = FB2.to(self.device)
-        # FFB2 = FFB2.to(self.device)
-        # labels2 = labels2.to(self.device)
-        # labelsFI2 = labelsFI2.to(self.device)
-        # print("V2",V2.shape)
-        # print("F2", F2.shape)
-        # print("FF2", FF2.shape)
-        # print("VFI2",VFI2.shape)
-        # print("FFI2", FFI2.shape)
-        # print("FFFI2", FFFI2.shape)
-        # print("VB2",VB2.shape)
-        # print("FB2", FB2.shape)
-        # print("FFB2", FFB2.shape)
-        # print("labels2",labels2.shape)
-        # print("labelsFI2",labelsFI2.shape)
-        # print("labels",labels.shape)
-        # max_verts = max(V.shape[1], V2.shape[1])
-        # i_max_verts = (V.shape[1], V2.shape[1]).index(max(V.shape[1], V2.shape[1]))
-        # print("max_verts", max_verts)
-        # print("i_max_verts", i_max_verts)
-        # print("VFI", torch.sum(VFI!=0))
-        # print("V", torch.sum(V!=0))
-        # print("coucou")
-        # labels = labels.squeeze(dim=1)
-        # if self.contrastive:
-            # train_batch_1, train_batch_2 = self.augment(train_batch)
+        
         V = transformation_verts(V, sample_min_max)
-        # V2 = transformation_verts(V2, sample_min_max2)
         VFI = transformation_verts_by_fiber(VFI, vfbounds)
-        # VFI2 = transformation_verts_by_fiber(VFI2, vfbounds2)
-        # V_c,F_c,FF_c, VFI_c, FFI_c, FFFI_c, VB_c, FB_c, FFB_c = pad_double_batch(V,F,FF,VFI,FFI,FFFI, VB,FB,FFB, V2,F2,FF2,VFI2,FFI2,FFFI2, VB2,FB2,FFB2)
-        # labels_c = torch.cat((labels, labels2), dim=0)
-        # pad_double_batch(V,F,FF,VFI,FFI,FFFI, V2,F2,FF2,VFI2,FFI2,FFFI2)
-        # print("V_c",V_c.shape)
-        # print("F_c", F_c.shape)
-        # print("FF_c", FF_c.shape)
-        # print("VFI_c",VFI_c.shape)
-        # print("FFI_c", FFI_c.shape)
-        # print("FFFI_c", FFFI_c.shape)
-        # print("VB_c",VB_c.shape)
-        # print("FB_c", FB_c.shape)
-        # print("FFB_c", FFB_c.shape)
-        # print(skhksdj)
-        # V_c1 = V_c +torch.normal(0, 0.03, size=V_c.shape).to(self.device)
-        # V_c2 = V_c +torch.normal(0, 0.03, size=V_c.shape).to(self.device)
-        # VFI_c1 = VFI_c +torch.normal(0, 0.03, size=VFI_c.shape).to(self.device)
-        # VFI_c2 = VFI_c +torch.normal(0, 0.03, size=VFI_c.shape).to(self.device)
-        # V_c1 = V_c1.to(self.device)
-        # V_c2 = V_c2.to(self.device)
-        # VFI_c1 = VFI_c1.to(self.device)
-        # VFI_c2 = VFI_c2.to(self.device)
-        # VB_c = VB_c.to(self.device)
-        # FB_c = FB_c.to(self.device)
-        # FFB_c = FFB_c.to(self.device)
-        # for i in range(V_c1.shape[0]):
-            # V_c1[i] = randomrotation(V_c1[i])
-            # V_c2[i] = randomrotation(V_c2[i])
-            # VFI_c1[i] = randomrotation(VFI_c1[i])
-            # VFI_c2[i] = randomrotation(VFI_c2[i])
-
-
-
-
 
         V1 = V +torch.normal(0, 0.03, size=V.shape).to(self.device)
         V2 = V +torch.normal(0, 0.03, size=V.shape).to(self.device)
@@ -1378,44 +1222,9 @@ class Fly_by_CNN_contrastive_tractography_labeled(pl.LightningModule):
             VFI1[i] = randomrotation(VFI1[i])
             VFI2[i] = randomrotation(VFI2[i])
         condition = True
-        # x, proj_test, x1, x2 = self((V_c, V_c1, V_c2, F_c, FF_c, VFI_c, VFI_c1, VFI_c2, FFI_c, FFFI_c, VB, FB, FFB, condition))    #.shape = (batch_size, num classes)
         x, proj_test, x1, x2 = self((V, V1, V2, F, FF, VFI, VFI1, VFI2, FFI, FFFI, VB, FB, FFB, condition))    #.shape = (batch_size, num classes)
-        # print("x", x.shape)
-        # print("val_batch", val_batch.shape)
-        # if self.contrastive:
-            # val_batch_i = val_batch[0:3]
-            # print("val_batch_1", val_batch_1)
-            # print("val_batch", val_batch[0:4])
-            # val_batch_1, val_batch_2 = self.augment(val_batch_i)
-            # print("val_batch_1", val_batch_1.shape)
-            # print("val_batch_2", val_batch_2.shape)
-        # x_fiber = self((VFI, F, FF)) #.shape = (batch_size, num classes)
-        # print("x", x.shape)
-        # print("x_fiber", x_fiber.shape)
-        # print(kjsfh)
-        # print("x2", x2.shape)
-        # if self.contrastive:
-            # x1 = torch.cat((x1,x1,x1),1)
-            # x2 = torch.cat((x2,x2,x2),1)
-        # print("x2 after", x2.shape)
-        # z1 = self.model(x1)
-        # z2 = self.model(x2)
-        # print("loss val")
-        # loss_contrastive = self.loss(z1, z2)
-        # x = self.Sigmoid(x).squeeze(dim=1)
-        # print("x", x.shape)
-        # print("labels", labels.shape)
-        # print("x", x)
-        # print("labels", labels)
-        # loss = self.loss_val(x, labels)
-        # taille = [240,24]
-        # x1 = x1.contiguous().view(taille)
-        # x2 = x2.contiguous().view(taille)
-        # print("x1", x1.shape) 
-        # print("x2", x2.shape)
-        # print("x_test", proj_test.shape)
+        
         loss_contrastive = self.loss_contrastive(x1, x2)
-        # print(kdjhg)
         
         self.log('val_loss', loss_contrastive.item(), batch_size=self.batch_size)
         predictions = torch.argmax(x, dim=1)
@@ -1427,11 +1236,7 @@ class Fly_by_CNN_contrastive_tractography_labeled(pl.LightningModule):
 
     def test_step(self, test_batch, test_batch_idx):
 
-        # test_batch_1 = test_batch[0]
-        # test_batch_2 = test_batch[1]
-
         V, F, FF, labels, VFI, FFI, FFFI, labelsFI, VB, FB, FFB, vfbounds, sample_min_max, data_lab, name_labels = test_batch
-        # V2, F2, FF2, labels2, VFI2, FFI2, FFFI2, labelsFI2, VB2, FB2, FFB2, vfbounds2, sample_min_max2 = test_batch_2
         V = V.to(self.device)
         F = F.to(self.device)
         FF = FF.to(self.device)
@@ -1443,48 +1248,12 @@ class Fly_by_CNN_contrastive_tractography_labeled(pl.LightningModule):
         FFB = FFB.to(self.device)
         labels = labels.to(self.device)
         labelsFI = labelsFI.to(self.device)
+        data_lab = torch.tensor(data_lab)
         data_lab = data_lab.to(self.device)
-        # V2 = V2.to(self.device)
-        # F2 = F2.to(self.device)
-        # FF2 = FF2.to(self.device)
-        # VFI2 = VFI2.to(self.device)
-        # FFI2 = FFI2.to(self.device)
-        # FFFI2 = FFFI2.to(self.device)
-        # VB2 = VB2.to(self.device)
-        # FB2 = FB2.to(self.device)
-        # FFB2 = FFB2.to(self.device)
-        # labels2 = labels2.to(self.device)
-        # labelsFI2 = labelsFI2.to(self.device)
-
-        # print("VFI", torch.sum(VFI!=0))
-        # print("V", torch.sum(V!=0))
-        # print("coucou")
-        # labels = labels.squeeze(dim=1)
-        # if self.contrastive:
-            # train_batch_1, train_batch_2 = self.augment(train_batch)
+        
         V = transformation_verts(V, sample_min_max)
-        # V2 = transformation_verts(V2, sample_min_max2)
         VFI = transformation_verts_by_fiber(VFI, vfbounds)
-        # VFI2 = transformation_verts_by_fiber(VFI2, vfbounds2)
-        # V_c,F_c,FF_c, VFI_c, FFI_c, FFFI_c, VB_c, FB_c, FFB_c = pad_double_batch(V,F,FF,VFI,FFI,FFFI, VB,FB,FFB, V2,F2,FF2,VFI2,FFI2,FFFI2, VB2,FB2,FFB2)
-        # V_c,F_c,FF_c, VFI_c, FFI_c, FFFI_c = pad_double_batch(V,F,FF,VFI,FFI,FFFI,VB,FB,FFB, V2,F2,FF2,VFI2,FFI2,FFFI2,VB2,FB2,FFB2)
-        # labels_c = torch.cat((labels, labels2),0)
-        # V_c1 = V_c +torch.normal(0, 0.03, size=V_c.shape).to(self.device)
-        # V_c2 = V_c +torch.normal(0, 0.03, size=V_c.shape).to(self.device)
-        # VFI_c1 = VFI_c +torch.normal(0, 0.03, size=VFI_c.shape).to(self.device)
-        # VFI_c2 = VFI_c +torch.normal(0, 0.03, size=VFI_c.shape).to(self.device)
-        # V_c1 = V_c1.to(self.device)
-        # V_c2 = V_c2.to(self.device)
-        # VFI_c1 = VFI_c1.to(self.device)
-        # VFI_c2 = VFI_c2.to(self.device)
-        # VB_c = VB_c.to(self.device)
-        # FB_c = FB_c.to(self.device)
-        # FFB_c = FFB_c.to(self.device)
-        # for i in range(V_c1.shape[0]):
-            # V_c1[i] = randomrotation(V_c1[i])
-            # V_c2[i] = randomrotation(V_c2[i])
-            # VFI_c1[i] = randomrotation(VFI_c1[i])
-            # VFI_c2[i] = randomrotation(VFI_c2[i])
+        
 
 
         V1 = V +torch.normal(0, 0.03, size=V.shape).to(self.device)
