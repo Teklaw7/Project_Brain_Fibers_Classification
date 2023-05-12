@@ -403,7 +403,7 @@ class Fly_by_CNN_contrastive_tractography_labeled(pl.LightningModule):
         self.dropout_lvl = dropout_lvl
         self.image_size = 224
         # self.augment = Augment(self.image_size)
-        self.batch_size = batch_size
+        self.batch_size = 2*batch_size
         self.weights = weights
         self.num_classes = num_classes
         self.verts_left = verts_left

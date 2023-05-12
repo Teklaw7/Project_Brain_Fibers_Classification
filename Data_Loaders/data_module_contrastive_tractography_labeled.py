@@ -551,18 +551,18 @@ class Bundles_DataModule_tractography_labeled_fibers(pl.LightningDataModule):
 
     def train_dataloader(self):
         # return DataLoader(self.train_dataset, batch_size=self.batch_size, collate_fn=self.pad_verts_faces_simple, shuffle=True, num_workers=self.num_workers, persistent_workers=self.persistent_workers)
-        return DataLoader(self.train_tractography_dataset, batch_size=self.batch_size, collate_fn=self.pad_verts_faces_simple, shuffle=True, num_workers=self.num_workers, persistent_workers=self.persistent_workers) 
-        # return DataLoader(self.concatenated_train_dataset, batch_size=self.batch_size, collate_fn=self.pad_verts_faces, shuffle=True, num_workers=self.num_workers, persistent_workers=self.persistent_workers)
+        # return DataLoader(self.train_tractography_dataset, batch_size=self.batch_size, collate_fn=self.pad_verts_faces_simple, shuffle=True, num_workers=self.num_workers, persistent_workers=self.persistent_workers) 
+        return DataLoader(self.concatenated_train_dataset, batch_size=self.batch_size, collate_fn=self.pad_verts_faces, shuffle=True, num_workers=self.num_workers, persistent_workers=self.persistent_workers)
 
     def val_dataloader(self):
         # return DataLoader(self.val_dataset, batch_size=self.batch_size, collate_fn=self.pad_verts_faces_simple, shuffle=False, num_workers=self.num_workers, persistent_workers=self.persistent_workers)
-        return DataLoader(self.val_tractography_dataset, batch_size=self.batch_size, collate_fn=self.pad_verts_faces_simple, shuffle=False, num_workers=self.num_workers, persistent_workers=self.persistent_workers)
-        # return DataLoader(self.concatenated_val_dataset, batch_size=self.batch_size, collate_fn=self.pad_verts_faces, shuffle=False, num_workers=self.num_workers, persistent_workers=self.persistent_workers)
+        # return DataLoader(self.val_tractography_dataset, batch_size=self.batch_size, collate_fn=self.pad_verts_faces_simple, shuffle=False, num_workers=self.num_workers, persistent_workers=self.persistent_workers)
+        return DataLoader(self.concatenated_val_dataset, batch_size=self.batch_size, collate_fn=self.pad_verts_faces, shuffle=False, num_workers=self.num_workers, persistent_workers=self.persistent_workers)
 
     def test_dataloader(self):
         # return DataLoader(self.test_dataset, batch_size=self.batch_size, collate_fn=self.pad_verts_faces_simple, shuffle=False, num_workers=self.num_workers, persistent_workers=self.persistent_workers)
-        return DataLoader(self.test_tractography_dataset, batch_size=self.batch_size, collate_fn=self.pad_verts_faces_simple, shuffle=False, num_workers=self.num_workers, persistent_workers=self.persistent_workers)
-        # return DataLoader(self.concatenated_test_dataset, batch_size=self.batch_size, collate_fn=self.pad_verts_faces, shuffle=False, num_workers=self.num_workers, persistent_workers=self.persistent_workers)
+        # return DataLoader(self.test_tractography_dataset, batch_size=self.batch_size, collate_fn=self.pad_verts_faces_simple, shuffle=False, num_workers=self.num_workers, persistent_workers=self.persistent_workers)
+        return DataLoader(self.concatenated_test_dataset, batch_size=self.batch_size, collate_fn=self.pad_verts_faces, shuffle=False, num_workers=self.num_workers, persistent_workers=self.persistent_workers)
     
     def get_weights(self):
         return self.weights

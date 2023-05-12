@@ -260,7 +260,7 @@ def adjust_edge_curvatures(source, curvature_name, epsilon=1.0e-08):
 
 num_classes = 57
 nb_epochs = 500
-batch_size= 5
+batch_size= 7
 dropout_lvl=0.1
 radius=1
 ico_lvl=1
