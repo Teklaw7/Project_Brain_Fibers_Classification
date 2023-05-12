@@ -260,7 +260,7 @@ def adjust_edge_curvatures(source, curvature_name, epsilon=1.0e-08):
 
 num_classes = 57
 nb_epochs = 500
-batch_size= 10
+batch_size= 5
 dropout_lvl=0.1
 radius=1
 ico_lvl=1
@@ -294,7 +294,18 @@ checkpoint_callback = ModelCheckpoint(
     save_top_k=3
 )
 
-
+tractography_list_vtk = []
+tractography_list_vtk.append(utils.ReadSurf("/CMF/data/timtey/tractography/all/tractogram_deterministic_102008_dg.vtp"))
+tractography_list_vtk.append(utils.ReadSurf("/CMF/data/timtey/tractography/all/tractogram_deterministic_103515_dg.vtp"))
+tractography_list_vtk.append(utils.ReadSurf("/CMF/data/timtey/tractography/all/tractogram_deterministic_108525_dg.vtp"))
+tractography_list_vtk.append(utils.ReadSurf("/CMF/data/timtey/tractography/all/tractogram_deterministic_113215_dg.vtp"))
+tractography_list_vtk.append(utils.ReadSurf("/CMF/data/timtey/tractography/all/tractogram_deterministic_119833_dg.vtp"))
+tractography_list_vtk.append(utils.ReadSurf("/CMF/data/timtey/tractography/all/tractogram_deterministic_121618_dg.vtp"))
+tractography_list_vtk.append(utils.ReadSurf("/CMF/data/timtey/tractography/all/tractogram_deterministic_124220_dg.vtp"))
+tractography_list_vtk.append(utils.ReadSurf("/CMF/data/timtey/tractography/all/tractogram_deterministic_124826_dg.vtp"))
+tractography_list_vtk.append(utils.ReadSurf("/CMF/data/timtey/tractography/all/tractogram_deterministic_139233_dg.vtp"))
+print("tractography_list_vtk", len(tractography_list_vtk))
+print("tractography_list_vtk", tractography_list_vtk)
 contrastive = True
 
 brain_standart = False
@@ -456,7 +467,7 @@ Acc_details = []
 
 
 
-brain_data=Bundles_DataModule_tractography_labeled_fibers(contrastive, 0,0,0,0,0,path_data, path_ico, batch_size, path_train_final, path_valid_final, path_test_final, verts_brain, faces_brain, face_features_brain, path_tractography_train, path_tractography_valid, path_tractography_test, num_workers=num_workers)
+brain_data=Bundles_DataModule_tractography_labeled_fibers(contrastive, 0,0,0,0,0,path_data, path_ico, batch_size, path_train_final, path_valid_final, path_test_final, verts_brain, faces_brain, face_features_brain, path_tractography_train, path_tractography_valid, path_tractography_test, tractography_list_vtk, num_workers=num_workers)
 
 weights = brain_data.get_weights()
 model= Fly_by_CNN_contrastive_tractography_labeled(contrastive, radius, ico_lvl, dropout_lvl, batch_size, weights, num_classes, verts_left, faces_left, verts_right, faces_right, learning_rate=0.001)
@@ -485,7 +496,7 @@ for index_csv in range(len(df)):
         # fibers = fibers_s
     # print(fibers)
 
-    brain_data=Bundles_DataModule_tractography_labeled_fibers(contrastive, bundle, L, fibers, 0, index_csv, path_data, path_ico, batch_size, path_train_final, path_valid_final, path_test_final, verts_brain, faces_brain, face_features_brain, path_tractography_train, path_tractography_valid, path_tractography_test, num_workers=num_workers)
+    brain_data=Bundles_DataModule_tractography_labeled_fibers(contrastive, bundle, L, fibers, 0, index_csv, path_data, path_ico, batch_size, path_train_final, path_valid_final, path_test_final, verts_brain, faces_brain, face_features_brain, path_tractography_train, path_tractography_valid, path_tractography_test, tractography_list_vtk, num_workers=num_workers)
 
     
 

@@ -458,8 +458,7 @@ class Bundles_Dataset_contrastive_labeled(pl.LightningDataModule):
 
     def pad_verts_faces(self, batch):
         # verts = [v for v, f, vdf, l, vfi in batch]
-        print("batch", len(batch))
-        print("batch[0]", len(batch[0]))
+        
         verts = [v for v, f, vdf, l, vfi, ffi, vdffi, lfi, vb, fb, ffb, vfb, smm in batch]
         # print("verts deb", len(verts))
         # faces = [f for v, f, vdf, l, vfi in batch]
@@ -479,20 +478,7 @@ class Bundles_Dataset_contrastive_labeled(pl.LightningDataModule):
         verts_data_faces_brain = [ffb for v, f, vdf, l, vfi, ffi, vdffi, lfi, vb, fb, ffb, vfb, smm in batch]
         verts_fiber_bounds = [vfb for v, f, vdf, l, vfi, ffi, vdffi, lfi, vb, fb, ffb, vfb, smm in batch]
         sample_min_max = [smm for v, f, vdf, l, vfi, ffi, vdffi, lfi, vb, fb, ffb, vfb, smm in batch]
-        print("verts", len(verts))
-        print("faces", len(faces))
-        print("verts_data_faces", len(verts_data_faces))
-        print("labels", len(labels))
-        print("verts_fiber", len(verts_fiber))
-        print("faces_fiber", len(faces_fiber))
-        print("verts_data_faces_fiber", len(verts_data_faces_fiber))
-        print("labels_fiber", len(labels_fiber))
-        print("verts_brain", len(verts_brain))
-        print("faces_brain", len(faces_brain))
-        print("verts_data_faces_brain", len(verts_data_faces_brain))
-        print("verts_fiber_bounds", len(verts_fiber_bounds))
-        print("sample_min_max", len(sample_min_max))
-        # print(lshjglkjshgkj)
+        
         verts = pad_sequence(verts, batch_first=True, padding_value=0.0)        
         faces = pad_sequence(faces, batch_first=True, padding_value=-1)        
         verts_data_faces = torch.cat(verts_data_faces)
@@ -504,23 +490,7 @@ class Bundles_Dataset_contrastive_labeled(pl.LightningDataModule):
         verts_brain = pad_sequence(verts_brain, batch_first=True, padding_value=0.0)
         faces_brain = pad_sequence(faces_brain, batch_first=True, padding_value=-1)
         verts_data_faces_brain = torch.cat(verts_data_faces_brain)
-        print("verts", verts.shape)
-        print("faces", faces.shape)
-        print("verts_data_faces", verts_data_faces.shape)
-        print("labels", labels.shape)
-        print("verts_fiber", verts_fiber.shape)
-        print("faces_fiber", faces_fiber.shape)
-        print("verts_data_faces_fiber", verts_data_faces_fiber.shape)
-        print("labels_fiber", labels_fiber.shape)
-        print("verts_brain", verts_brain.shape)
-        print("faces_brain", faces_brain.shape)
-        print("verts_data_faces_brain", verts_data_faces_brain.shape)
-        print("verts_fiber_bounds", len(verts_fiber_bounds))
-        print("verts_fiber_bounds", verts_fiber_bounds)
-        print("verts_fiber_bounds", verts_fiber_bounds[0])
-        print("verts_fiber_bounds", len(verts_fiber_bounds[0]))
-        print("sample_min_max", len(sample_min_max))
-        print(lshjglkjshgkj)
+        
         
 
 

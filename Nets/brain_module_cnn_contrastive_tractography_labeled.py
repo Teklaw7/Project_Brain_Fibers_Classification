@@ -29,6 +29,7 @@ from sklearn.manifold import TSNE
 from sklearn.cluster import KMeans
 # import MLP
 import random
+from torch.nn.utils.rnn import pad_sequence, pack_padded_sequence as pack_sequence, pad_packed_sequence as unpack_sequence
 
 
 class RotationTransform:
@@ -160,7 +161,7 @@ def GetView(meshes,phong_renderer,R,T):
     # print("T", T.get_device())
     # print("meshes", meshes)
     # print("phong_renderer", phong_renderer)
-    images = phong_renderer(meshes.clone(), R=R, T=T)  
+    images = phong_renderer(meshes.clone(), R=R, T=T)
     fragments = phong_renderer.rasterizer(meshes.clone(),R=R,T=T)
     # print(type(fragments))
     # print("fragemts", torch.sum(fragments!=-1))
@@ -402,7 +403,7 @@ class Fly_by_CNN_contrastive_tractography_labeled(pl.LightningModule):
         self.dropout_lvl = dropout_lvl
         self.image_size = 224
         # self.augment = Augment(self.image_size)
-        self.batch_size = 2*batch_size
+        self.batch_size = batch_size
         self.weights = weights
         self.num_classes = num_classes
         self.verts_left = verts_left
@@ -561,7 +562,17 @@ class Fly_by_CNN_contrastive_tractography_labeled(pl.LightningModule):
 
     def forward(self, x):
         V, V1, V2, F, FF, VFI, VFI1, VFI2, FFI, FFFI, VB, FB, FFB, condition = x
-
+        # print("V", V.shape)
+        # print("V1", V1.shape)
+        # print("V2", V2.shape)
+        # print("F", F.shape)
+        # print("FF", FF.shape)
+        # print("VFI", VFI.shape)
+        # print("VFI1", VFI1.shape)
+        # print("VFI2", VFI2.shape)
+        # print("FFI", FFI.shape)
+        # print("FFFI", FFFI.shape)
+        
         x, PF = self.render(V,F,FF)
         X1, PF1 = self.render(V1,F,FF)
         X2, PF2 = self.render(V2,F,FF)
@@ -997,6 +1008,8 @@ class Fly_by_CNN_contrastive_tractography_labeled(pl.LightningModule):
         # 
         V = V.to(self.device)
         F = F.to(self.device)
+        # print("V-render", torch.min(V), torch.max(V))
+        # print("F-render", torch.min(F), torch.max(F))
         textures = textures.to(self.device)
         meshes_fiber = Meshes(
             verts=V,   
@@ -1137,23 +1150,60 @@ class Fly_by_CNN_contrastive_tractography_labeled(pl.LightningModule):
 
     def training_step(self, train_batch, train_batch_idx):
 
-        V, F, FF, labels, VFI, FFI, FFFI, labelsFI, VB, FB, FFB, vfbounds, sample_min_max, data_lab, name_labels = train_batch
-        # V2, F2, FF2, labels2, VFI2, FFI2, FFFI2, labelsFI2, VB2, FB2, FFB2, vfbounds2, sample_min_max2 = train_batch_2
+        V, F, FF, labels, Fiber_infos = train_batch
         V = V.to(self.device)
         F = F.to(self.device)
         FF = FF.to(self.device)
+        VFI = torch.clone(V)
         VFI = VFI.to(self.device)
+        FFI = torch.clone(F)
         FFI = FFI.to(self.device)
+        FFFI = torch.clone(FF)
         FFFI = FFFI.to(self.device)
+        # VB = VB.to(self.device)
+        # FB = FB.to(self.device)
+        # FFB = FFB.to(self.device)
+        labels = labels.to(self.device)
+        labelsFI = torch.clone(labels)
+        labelsFI = labelsFI.to(self.device)
+        # data_lab = torch.tensor(data_lab)
+        # data_lab = data_lab.to(self.device)
+        vfbounds = []
+        sample_min_max = []
+        data_lab = []
+        name_labels = []
+        
+        for z in range(len(Fiber_infos)):
+            vfbounds += [Fiber_infos[z][0]]
+            sample_min_max += [Fiber_infos[z][1]]
+            data_lab += Fiber_infos[z][2]
+            name_labels += Fiber_infos[z][3]
+
+        sample_id = []
+        for w in range(len(name_labels)):
+            sample_id.append(name_labels[w][0])
+        # print("sample id",sample_id)
+        VB = []
+        FB = []
+        FFB = []
+        for i in range(len(sample_id)):
+            VBi = torch.load(f"brain_structures/verts_brain_{sample_id[i]}.pt")
+            FBi = torch.load(f"brain_structures/faces_brain_{sample_id[i]}.pt")
+            FFBi = torch.load(f"brain_structures/face_features_brain_{sample_id[i]}.pt")
+            VBi = VBi.to(self.device)
+            FBi = FBi.to(self.device)
+            FFBi = FFBi.to(self.device)
+            # VB = torch.cat((VB, VBi), 0)
+            VB.append(VBi)
+            FB.append(FBi)
+            FFB.append(FFBi)
+        
+        VB = pad_sequence(VB, batch_first=True, padding_value=0)
+        FB = pad_sequence(FB, batch_first=True, padding_value=-1)
+        FFB = torch.cat(FFB)
         VB = VB.to(self.device)
         FB = FB.to(self.device)
         FFB = FFB.to(self.device)
-        labels = labels.to(self.device)
-        labelsFI = labelsFI.to(self.device)
-        data_lab = torch.tensor(data_lab)
-        data_lab = data_lab.to(self.device)
-
-
         ###
         # change fibers points with stretching, rotation, translation twices for the V and twices for the VFI
         V = transformation_verts(V, sample_min_max)
@@ -1189,21 +1239,84 @@ class Fly_by_CNN_contrastive_tractography_labeled(pl.LightningModule):
         
     def validation_step(self, val_batch, val_batch_idx):
     
-        V, F, FF, labels, VFI, FFI, FFFI, labelsFI, VB, FB, FFB, vfbounds, sample_min_max, data_lab, name_labels= val_batch
+        V, F, FF, labels, Fiber_infos= val_batch
         V = V.to(self.device)
         F = F.to(self.device)
         FF = FF.to(self.device)
+        VFI = torch.clone(V)
         VFI = VFI.to(self.device)
+        FFI = torch.clone(F)
         FFI = FFI.to(self.device)
+        FFFI = torch.clone(FF)
         FFFI = FFFI.to(self.device)
+        # VB = VB.to(self.device)
+        # FB = FB.to(self.device)
+        # FFB = FFB.to(self.device)
+        # print("V", V.shape)
+        # print("F", F.shape)
+        # print("VFI", VFI.shape)
+
+        # print("FF", FF.shape)
+        # print("FFFI", FFFI.shape)
+        labels = labels.to(self.device)
+        labelsFI = torch.clone(labels)
+        labelsFI = labelsFI.to(self.device)
+        # data_lab = torch.tensor(data_lab)
+        # data_lab = data_lab.to(self.device)
+        # print(Fiber_infos)
+        vfbounds = []
+        sample_min_max = []
+        data_lab = []
+        name_labels = []
+        
+        for z in range(len(Fiber_infos)):
+            vfbounds += [Fiber_infos[z][0]]
+            sample_min_max += [Fiber_infos[z][1]]
+            data_lab += Fiber_infos[z][2]
+            name_labels += Fiber_infos[z][3]
+            # sample_id += name_labels[0]
+        # print(len(Fiber_infos))
+        # print(Fiber_infos[0])
+        # vfbounds = Fiber_infos[0]
+        # print("vf",vfbounds, len(vfbounds))
+        # sample_min_max = Fiber_infos[1]
+        # print("smm",sample_min_max, len(sample_min_max))
+        # data_lab = Fiber_infos[2]
+        # print("dl",data_lab, len(data_lab))
+        # name_labels = Fiber_infos[3]
+        # print("nl ",name_labels, len(name_labels))
+        # sample_id = name_labels[0]
+        sample_id = []
+        for w in range(len(name_labels)):
+            sample_id.append(name_labels[w][0])
+        # print("sample id",sample_id)
+        VB = []
+        FB = []
+        FFB = []
+        for i in range(len(sample_id)):
+            VBi = torch.load(f"brain_structures/verts_brain_{sample_id[i]}.pt")
+            FBi = torch.load(f"brain_structures/faces_brain_{sample_id[i]}.pt")
+            FFBi = torch.load(f"brain_structures/face_features_brain_{sample_id[i]}.pt")
+            VBi = VBi.to(self.device)
+            FBi = FBi.to(self.device)
+            FFBi = FFBi.to(self.device)
+            # VB = torch.cat((VB, VBi), 0)
+            VB.append(VBi)
+            FB.append(FBi)
+            FFB.append(FFBi)
+        
+        VB = pad_sequence(VB, batch_first=True, padding_value=0)
+        FB = pad_sequence(FB, batch_first=True, padding_value=-1)
+        FFB = torch.cat(FFB)
         VB = VB.to(self.device)
         FB = FB.to(self.device)
         FFB = FFB.to(self.device)
-        labels = labels.to(self.device)
-        labelsFI = labelsFI.to(self.device)
-        data_lab = torch.tensor(data_lab)
-        data_lab = data_lab.to(self.device)
-        
+        # print("VB",VB.shape)
+        # print("FB",FB.shape)
+        # print("FFB",FFB.shape)
+
+        # print(askjhksdfjhfk)
+
         V = transformation_verts(V, sample_min_max)
         VFI = transformation_verts_by_fiber(VFI, vfbounds)
 
@@ -1236,20 +1349,60 @@ class Fly_by_CNN_contrastive_tractography_labeled(pl.LightningModule):
 
     def test_step(self, test_batch, test_batch_idx):
 
-        V, F, FF, labels, VFI, FFI, FFFI, labelsFI, VB, FB, FFB, vfbounds, sample_min_max, data_lab, name_labels = test_batch
+        V, F, FF, labels, Fiber_infos = test_batch
         V = V.to(self.device)
         F = F.to(self.device)
         FF = FF.to(self.device)
+        VFI = torch.clone(V)
         VFI = VFI.to(self.device)
+        FFI = torch.clone(F)
         FFI = FFI.to(self.device)
+        FFFI = torch.clone(FF)
         FFFI = FFFI.to(self.device)
+        # VB = VB.to(self.device)
+        # FB = FB.to(self.device)
+        # FFB = FFB.to(self.device)
+        labels = labels.to(self.device)
+        labelsFI = torch.clone(labels)
+        labelsFI = labelsFI.to(self.device)
+        # data_lab = torch.tensor(data_lab)
+        # data_lab = data_lab.to(self.device)
+        vfbounds = []
+        sample_min_max = []
+        data_lab = []
+        name_labels = []
+        
+        for z in range(len(Fiber_infos)):
+            vfbounds += [Fiber_infos[z][0]]
+            sample_min_max += [Fiber_infos[z][1]]
+            data_lab += Fiber_infos[z][2]
+            name_labels += Fiber_infos[z][3]
+
+        sample_id = []
+        for w in range(len(name_labels)):
+            sample_id.append(name_labels[w][0])
+        # print("sample id",sample_id)
+        VB = []
+        FB = []
+        FFB = []
+        for i in range(len(sample_id)):
+            VBi = torch.load(f"brain_structures/verts_brain_{sample_id[i]}.pt")
+            FBi = torch.load(f"brain_structures/faces_brain_{sample_id[i]}.pt")
+            FFBi = torch.load(f"brain_structures/face_features_brain_{sample_id[i]}.pt")
+            VBi = VBi.to(self.device)
+            FBi = FBi.to(self.device)
+            FFBi = FFBi.to(self.device)
+            # VB = torch.cat((VB, VBi), 0)
+            VB.append(VBi)
+            FB.append(FBi)
+            FFB.append(FFBi)
+        
+        VB = pad_sequence(VB, batch_first=True, padding_value=0)
+        FB = pad_sequence(FB, batch_first=True, padding_value=-1)
+        FFB = torch.cat(FFB)
         VB = VB.to(self.device)
         FB = FB.to(self.device)
         FFB = FFB.to(self.device)
-        labels = labels.to(self.device)
-        labelsFI = labelsFI.to(self.device)
-        data_lab = torch.tensor(data_lab)
-        data_lab = data_lab.to(self.device)
         
         V = transformation_verts(V, sample_min_max)
         VFI = transformation_verts_by_fiber(VFI, vfbounds)
@@ -1279,7 +1432,9 @@ class Fly_by_CNN_contrastive_tractography_labeled(pl.LightningModule):
         e = random.randint(0,10)
         f = random.randint(0,10)
         tot = f*1+e*10+d*100+c*1000+b*10000+a*100000
-        
+        name_labels = torch.tensor(name_labels)
+        name_labels = name_labels.to(self.device)
+
         print("name.shape",name_labels.shape)
         print("labels.shape",labels.shape)
         labels2 = labels.unsqueeze(dim = 1)

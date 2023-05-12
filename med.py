@@ -1,4 +1,4 @@
-import utils
+from tools import utils
 import vtk
 import numpy as np
 import torch

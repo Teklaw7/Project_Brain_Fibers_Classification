@@ -5,6 +5,7 @@ import torch
 import torchvision.transforms as T
 import torchvision.transforms.functional as F
 import pytorch3d.transforms as T3d
+from torch.nn.utils.rnn import pad_sequence, pack_padded_sequence as pack_sequence, pad_packed_sequence as unpack_sequence
 
 
 
@@ -157,19 +158,56 @@ class BrainNetImageLogger_contrastive_tractography_labeled(Callback):
 
         if batch_idx % self.log_steps == 0:
 
-            V, F, FF, labels, VFI, FFI, FFFI, labelsFI, VB, FB, FFB, vfbounds, sample_min_max, data_lab, name_labels = batch
+            V, F, FF, labels, Fiber_infos = batch
             # V2, F2, FF2, labels2, VFI2, FFI2, FFFI2, labelsFI2, VB2, FB2, FFB2, vfbounds2, sample_min_max2 = batch[1]
             # print("on train batch",batch.shape)
             V = V.to(pl_module.device,non_blocking=True)
             F = F.to(pl_module.device,non_blocking=True)
-            # VF = VF.to(pl_module.device,non_blocking=True)
             FF = FF.to(pl_module.device,non_blocking=True)
+            VFI = torch.clone(V)
             VFI = VFI.to(pl_module.device,non_blocking=True)
+            FFI = torch.clone(F)
             FFI = FFI.to(pl_module.device,non_blocking=True)
+            FFFI = torch.clone(FF)
             FFFI = FFFI.to(pl_module.device,non_blocking=True)
+
+            vfbounds = []
+            sample_min_max = []
+            data_lab = []
+            name_labels = []
+
+            for z in range(len(Fiber_infos)):
+                vfbounds += [Fiber_infos[z][0]]
+                sample_min_max += [Fiber_infos[z][1]]
+                data_lab += Fiber_infos[z][2]
+                name_labels += Fiber_infos[z][3]
+
+            sample_id = []
+            for w in range(len(name_labels)):
+                sample_id.append(name_labels[w][0])
+            VB = []
+            FB = []
+            FFB = []
+            for i in range(len(sample_id)):
+                VBi = torch.load(f"brain_structures/verts_brain_{sample_id[i]}.pt")
+                FBi = torch.load(f"brain_structures/faces_brain_{sample_id[i]}.pt")
+                FFBi = torch.load(f"brain_structures/face_features_brain_{sample_id[i]}.pt")
+                VBi = VBi.to(pl_module.device,non_blocking=True)
+                FBi = FBi.to(pl_module.device,non_blocking=True)
+                FFBi = FFBi.to(pl_module.device,non_blocking=True)
+                VB.append(VBi)
+                FB.append(FBi)
+                FFB.append(FFBi)
+            VB = pad_sequence(VB, batch_first=True, padding_value=0)
+            FB = pad_sequence(FB, batch_first=True, padding_value=-1)
+            FFB = torch.cat(FFB)
             VB = VB.to(pl_module.device,non_blocking=True)
             FB = FB.to(pl_module.device,non_blocking=True)
             FFB = FFB.to(pl_module.device,non_blocking=True)
+
+            # VB = VB.to(pl_module.device,non_blocking=True)
+            # FB = FB.to(pl_module.device,non_blocking=True)
+            # FFB = FFB.to(pl_module.device,non_blocking=True)
             # V2 = V2.to(pl_module.device,non_blocking=True)
             # F2 = F2.to(pl_module.device,non_blocking=True)
             # VF = VF.to(pl_module.device,non_blocking=True)
@@ -295,19 +333,59 @@ class BrainNetImageLogger_contrastive_tractography_labeled(Callback):
 
         if batch_idx % self.log_steps == 0:
 
-            V, F, FF, labels, VFI, FFI, FFFI, labelsFI, VB, FB, FFB, vfbounds, sample_min_max, data_lab, name_labels = batch
+            V, F, FF, labels, Fiber_infos= batch
             # V2, F2, FF2, labels2, VFI2, FFI2, FFFI2, labelsFI2, VB2, FB2, FFB2, vfbounds2, sample_min_max2 = batch[1]
             # print("on val batch",batch.shape)
             V = V.to(pl_module.device,non_blocking=True)
             F = F.to(pl_module.device,non_blocking=True)
             # VF = VF.to(pl_module.device,non_blocking=True)
             FF = FF.to(pl_module.device,non_blocking=True)
+            VFI =torch.clone(V)
             VFI = VFI.to(pl_module.device,non_blocking=True)
+            FFI =torch.clone(F)
             FFI = FFI.to(pl_module.device,non_blocking=True)
+            FFFI =torch.clone(FF)
             FFFI = FFFI.to(pl_module.device,non_blocking=True)
+
+            vfbounds = []
+            sample_min_max = []
+            data_lab = []
+            name_labels = []
+
+            for z in range(len(Fiber_infos)):
+                vfbounds += [Fiber_infos[z][0]]
+                sample_min_max += [Fiber_infos[z][1]]
+                data_lab += Fiber_infos[z][2]
+                name_labels += Fiber_infos[z][3]
+            sample_id = []
+            for w in range(len(name_labels)):
+                sample_id.append(name_labels[w][0])
+
+
+            VB = []
+            FB = []
+            FFB = []
+            for i in range(len(sample_id)):
+                VBi = torch.load(f"brain_structures/verts_brain_{sample_id[i]}.pt")
+                FBi = torch.load(f"brain_structures/faces_brain_{sample_id[i]}.pt")
+                FFBi = torch.load(f"brain_structures/face_features_brain_{sample_id[i]}.pt")
+                VBi = VBi.to(pl_module.device,non_blocking=True)
+                FBi = FBi.to(pl_module.device,non_blocking=True)
+                FFBi = FFBi.to(pl_module.device,non_blocking=True)
+                VB.append(VBi)
+                FB.append(FBi)
+                FFB.append(FFBi)
+
+            VB = pad_sequence(VB, batch_first=True, padding_value=0)
+            FB = pad_sequence(FB, batch_first=True, padding_value=-1)
+            FFB = torch.cat(FFB)
             VB = VB.to(pl_module.device,non_blocking=True)
             FB = FB.to(pl_module.device,non_blocking=True)
             FFB = FFB.to(pl_module.device,non_blocking=True)
+
+            # VB = VB.to(pl_module.device,non_blocking=True)
+            # FB = FB.to(pl_module.device,non_blocking=True)
+            # FFB = FFB.to(pl_module.device,non_blocking=True)
             # V2 = V2.to(pl_module.device,non_blocking=True)
             # F2 = F2.to(pl_module.device,non_blocking=True)
             # VF2 = VF2.to(pl_module.device,non_blocking=True)
@@ -371,11 +449,11 @@ class BrainNetImageLogger_contrastive_tractography_labeled(Callback):
                 # print("images_fiber_2", images_fiber_2.shape)
                 images = torch.cat((images, images_fiber, images1, images2, images_fiber_1, images_fiber_2), dim=1)
                 # print("images", images.shape)
-                grid_images = torchvision.utils.make_grid(images[5, 0:self.num_images, 0:self.num_features, :, :])
+                grid_images = torchvision.utils.make_grid(images[0, 0:self.num_images, 0:self.num_features, :, :])
                 trainer.logger.experiment.add_image('Image val', grid_images, pl_module.global_step)
-                grid_images_const = torchvision.utils.make_grid(images[5, self.num_images:48, 0:self.num_features, :, :])
+                grid_images_const = torchvision.utils.make_grid(images[0, self.num_images:48, 0:self.num_features, :, :])
                 trainer.logger.experiment.add_image('Image val const', grid_images_const, pl_module.global_step)
-                grid_images_const_fiber = torchvision.utils.make_grid(images[5, 48:, 0:self.num_features, :, :])
+                grid_images_const_fiber = torchvision.utils.make_grid(images[0, 48:, 0:self.num_features, :, :])
                 trainer.logger.experiment.add_image('Image val const fiber', grid_images_const_fiber, pl_module.global_step)
 
                 # images_noiseM = pl_module.noise(images)
@@ -384,20 +462,53 @@ class BrainNetImageLogger_contrastive_tractography_labeled(Callback):
 
         if batch_idx % self.log_steps == 0:
             # print("lenght of batch", len(batch), len(batch[0]), len(batch[1]))
-            V, F, FF, labels, VFI, FFI, FFFI, labelsFI, VB, FB, FFB, vfbounds, sample_min_max, data_lab, name_labels = batch
+            V, F, FF, labels, Fiber_infos = batch
             # V2, F2, FF2, labels2, VFI2, FFI2, FFFI2, labelsFI2, VB2, FB2, FFB2, vfbounds2, sample_min_max2 = batch[1]
             
             V = V.to(pl_module.device,non_blocking=True)
             F = F.to(pl_module.device,non_blocking=True)
             # VF = VF.to(pl_module.device,non_blocking=True)
             FF = FF.to(pl_module.device,non_blocking=True)
+            VFI = torch.clone(V)
             VFI = VFI.to(pl_module.device,non_blocking=True)
+            FFI = torch.clone(F)
             FFI = FFI.to(pl_module.device,non_blocking=True)
+            FFFI = torch.clone(FF)
             FFFI = FFFI.to(pl_module.device,non_blocking=True)
+            # VB = VB.to(pl_module.device,non_blocking=True)
+            # FB = FB.to(pl_module.device,non_blocking=True)
+            # FFB = FFB.to(pl_module.device,non_blocking=True)
+            vfbounds  = []
+            sample_min_max = []
+            data_lab = []
+            name_labels = []    
+            for z in range(len(Fiber_infos)):
+                vfbounds += [Fiber_infos[z][0]]
+                sample_min_max += [Fiber_infos[z][1]]
+                data_lab += Fiber_infos[z][2]
+                name_labels += Fiber_infos[z][3]
+            sample_id = []
+            for w in range(len(name_labels)):
+                sample_id.append(name_labels[w][0])
+            VB =[]
+            FB = []
+            FFB = []
+            for i in range(len(sample_id)):
+                VBi = torch.load(f"brain_structures/verts_brain_{sample_id[i]}.pt")
+                FBi = torch.load(f"brain_structures/faces_brain_{sample_id[i]}.pt")
+                FFBi = torch.load(f"brain_structures/face_features_brain_{sample_id[i]}.pt")
+                VBi = VBi.to(pl_module.device,non_blocking=True)
+                FBi = FBi.to(pl_module.device,non_blocking=True)
+                FFBi = FFBi.to(pl_module.device,non_blocking=True)
+                VB.append(VBi)
+                FB.append(FBi)
+                FFB.append(FFBi)
+            VB = pad_sequence(VB, batch_first=True, padding_value=0)
+            FB = pad_sequence(FB, batch_first=True, padding_value=-1)
+            FFB = torch.cat(FFB)
             VB = VB.to(pl_module.device,non_blocking=True)
             FB = FB.to(pl_module.device,non_blocking=True)
             FFB = FFB.to(pl_module.device,non_blocking=True)
-
             # V2 = V2.to(pl_module.device,non_blocking=True)
             # F2 = F2.to(pl_module.device,non_blocking=True)
             # VF = VF.to(pl_module.device,non_blocking=True)

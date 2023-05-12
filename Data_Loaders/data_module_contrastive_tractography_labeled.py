@@ -150,20 +150,30 @@ class Bundles_Dataset_contrastive_tractography_labeled(Dataset):
         # face_features_brain = torch.cat((face_features_brain, complete), 1)
         ###
 
-        verts_brain = torch.load(f"brain_structures/verts_brain_{sample_id}.pt")
-        faces_brain = torch.load(f"brain_structures/faces_brain_{sample_id}.pt")
-        face_features_brain = torch.load(f"brain_structures/face_features_brain_{sample_id}.pt")
-        data_lab = torch.tensor([0])
+        # verts_brain = torch.load(f"brain_structures/verts_brain_{sample_id}.pt")
+        # faces_brain = torch.load(f"brain_structures/faces_brain_{sample_id}.pt")
+        # face_features_brain = torch.load(f"brain_structures/face_features_brain_{sample_id}.pt")
+        # data_lab = torch.tensor([0])
+
         # print(data_lab.shape)
-        name_l = torch.tensor([name])
+        # name_l = torch.tensor([name])
         # print(name_l.shape)
-        data_lab = data_lab.unsqueeze(dim = 1)
+        # data_lab = data_lab.unsqueeze(dim = 1)
         # print(data_lab.shape)
-        T_infos = torch.cat((data_lab, name_l), 1)
+        # T_infos = torch.cat((data_lab, name_l), 1)
+        data_lab = [0]
+        name_l = [name]
+        Fiber_infos = [verts_fiber_bounds, sample_min_max, data_lab, name_l]
+        # Fiber_infos.append(verts_fiber_bounds)
+        # Fiber_infos.append(sample_min_max)
+        # Fiber_infos.append(data_lab)
+        # Fiber_infos.append(name_l)
+        # print(T_infos)
+        # print(T_infos.shape)
         # print(T_infos.shape)
         # print(skjgfkg)
 
-        return verts,faces,face_features,labels,verts_fiber,faces_fiber,face_features_fiber,labels_fiber, verts_brain, faces_brain, face_features_brain, verts_fiber_bounds, sample_min_max, data_lab, name_l
+        return verts,faces,face_features,labels, Fiber_infos
         # return verts,faces,face_features,labels,verts_fiber,faces_fiber,face_features_fiber,labels_fiber, self.verts_brain, self.faces_brain, self.face_features_brain
         # return verts, faces, face_features, labels, verts_fiber     #24 images
         # return verts, faces, face_features, labels    #12images
@@ -171,7 +181,7 @@ class Bundles_Dataset_contrastive_tractography_labeled(Dataset):
 
 
 class Bundles_Dataset_tractography(Dataset):
-    def __init__(self, data, path_data, path_ico, verts_brain, faces_brain, face_features_brain, length, transform=True, column_surf='surf',column_class='class',column_id='id', column_label='label', column_x_min = 'x_min', column_x_max = 'x_max', column_y_min = 'y_min', column_y_max = 'y_max', column_z_min = 'z_min', column_z_max = 'z_max'):
+    def __init__(self, data, path_data, path_ico, verts_brain, faces_brain, face_features_brain, length, tractography_list_vtk, transform=True, column_surf='surf',column_class='class',column_id='id', column_label='label', column_x_min = 'x_min', column_x_max = 'x_max', column_y_min = 'y_min', column_y_max = 'y_max', column_z_min = 'z_min', column_z_max = 'z_max'):
         self.data = data
         self.transform = transform
         self.path_data = path_data
@@ -180,6 +190,7 @@ class Bundles_Dataset_tractography(Dataset):
         self.faces_brain = faces_brain
         self.face_features_brain = face_features_brain
         self.length = length
+        self.tractography_list_vtk = tractography_list_vtk
         self.column_surf = column_surf
         self.column_class = column_class
         self.column_id = column_id
@@ -205,8 +216,26 @@ class Bundles_Dataset_tractography(Dataset):
         sample_id, sample_class, sample_label = sample_row[self.column_id], sample_row[self.column_class], sample_row[self.column_label]
         sample_x_min, sample_x_max, sample_y_min, sample_y_max, sample_z_min, sample_z_max = sample_row[self.column_x_min], sample_row[self.column_x_max], sample_row[self.column_y_min], sample_row[self.column_y_max], sample_row[self.column_z_min], sample_row[self.column_z_max]
         
-        path_tracts = f"{sample_surf}"
-        tracts = utils.ReadSurf(path_tracts)
+        # path_tracts = f"{sample_surf}"
+        # tracts = utils.ReadSurf(path_tracts)
+        if sample_id == 102008:
+            tracts = self.tractography_list_vtk[0]
+        elif sample_id == 103515:
+            tracts = self.tractography_list_vtk[1]
+        elif sample_id == 108525:
+            tracts = self.tractography_list_vtk[2]
+        elif sample_id == 113215:
+            tracts = self.tractography_list_vtk[3]
+        elif sample_id == 119833:
+            tracts = self.tractography_list_vtk[4]
+        elif sample_id == 121618:
+            tracts = self.tractography_list_vtk[5]
+        elif sample_id == 124220:
+            tracts = self.tractography_list_vtk[6]
+        elif sample_id == 124826:
+            tracts = self.tractography_list_vtk[7]
+        elif sample_id == 139233:
+            tracts = self.tractography_list_vtk[8]
         n = randint(0,tracts.GetNumberOfCells()-1)
 
         tracts_extract = utils.ExtractFiber(tracts,n)
@@ -216,10 +245,12 @@ class Bundles_Dataset_tractography(Dataset):
         tracts_tf.Update()
         tracts_f = tracts_tf.GetOutput()
         verts, faces, edges = utils.PolyDataToTensors(tracts_f)
-
-        """
+        # print("verts.shape[0]", verts.shape[0])
+        
         # verts = torch.tensor([])
         while verts.shape[0] < 100:
+            print("change fiber", verts.shape[0])
+            n = randint(0,tracts.GetNumberOfCells()-1)
             tracts_extract = utils.ExtractFiber(tracts,n)
             name = [sample_id, sample_label, n]
             tracts_tf = vtk.vtkTriangleFilter()
@@ -227,7 +258,17 @@ class Bundles_Dataset_tractography(Dataset):
             tracts_tf.Update()
             tracts_f = tracts_tf.GetOutput()
             verts, faces, edges = utils.PolyDataToTensors(tracts_f)
-        """
+            print("verts.shape[0]", verts.shape[0])
+        # if verts.shape[0] < 100:
+        #     print("change fiber")
+        #     tracts_extract = utils.ExtractFiber(tracts,n)
+        #     name = [sample_id, sample_label, n]
+        #     tracts_tf = vtk.vtkTriangleFilter()
+        #     tracts_tf.SetInputData(tracts_extract)
+        #     tracts_tf.Update()
+        #     tracts_f = tracts_tf.GetOutput()
+        #     verts, faces, edges = utils.PolyDataToTensors(tracts_f)
+        
 
         verts_fiber = torch.clone(verts)
         faces_fiber = torch.clone(faces)
@@ -255,16 +296,19 @@ class Bundles_Dataset_tractography(Dataset):
         face_features = torch.take(vertex_features, faces_pid0_offset)
         face_features_fiber = torch.take(vertex_features, faces_pid0_offset_fiber)
 
-        verts_brain = torch.load(f"brain_structures/verts_brain_{sample_id}.pt")
-        faces_brain = torch.load(f"brain_structures/faces_brain_{sample_id}.pt")
-        face_features_brain = torch.load(f"brain_structures/face_features_brain_{sample_id}.pt")
+        # verts_brain = torch.load(f"brain_structures/verts_brain_{sample_id}.pt")
+        # faces_brain = torch.load(f"brain_structures/faces_brain_{sample_id}.pt")
+        # face_features_brain = torch.load(f"brain_structures/face_features_brain_{sample_id}.pt")
 
         labels = torch.tensor([sample_label])
         labels_fiber = torch.tensor([sample_label])
-        data_lab = torch.tensor([1])
-        name_l = torch.tensor([name])
+        # data_lab = torch.tensor([1])
+        # name_l = torch.tensor([name])
+        data_lab = [1]
+        name_l = [name]
+        Fiber_infos = [verts_fiber_bounds, sample_min_max, data_lab, name_l]
 
-        return verts,faces,face_features,labels,verts_fiber,faces_fiber,face_features_fiber,labels_fiber, verts_brain, faces_brain, face_features_brain, verts_fiber_bounds, sample_min_max, data_lab, name_l
+        return verts,faces,face_features,labels, Fiber_infos
 
         
 
@@ -404,13 +448,17 @@ class Bundles_Dataset_test_contrastive_tractography_labeled(Dataset):
         # face_features_brain = torch.cat((face_features_brain, complete), 1)
         ###
 
-        verts_brain = torch.load(f"brain_structures/verts_brain_{sample_id}.pt")
-        faces_brain = torch.load(f"brain_structures/faces_brain_{sample_id}.pt")
-        face_features_brain = torch.load(f"brain_structures/face_features_brain_{sample_id}.pt")
+        # verts_brain = torch.load(f"brain_structures/verts_brain_{sample_id}.pt")
+        # faces_brain = torch.load(f"brain_structures/faces_brain_{sample_id}.pt")
+        # face_features_brain = torch.load(f"brain_structures/face_features_brain_{sample_id}.pt")
 
-        data_lab = torch.tensor([2])
-        name_l = torch.tensor([name])
-        return verts,faces,face_features,labels,verts_fiber,faces_fiber,face_features_fiber,labels_fiber, verts_brain, faces_brain, face_features_brain, verts_fiber_bounds, sample_min_max, data_lab, name_l
+        # data_lab = torch.tensor([2])
+        # name_l = torch.tensor([name])
+        data_lab = [2]
+        name_l = [name]
+        Fiber_infos = [verts_fiber_bounds, sample_min_max, data_lab, name_l]
+
+        return verts,faces,face_features,labels,Fiber_infos
 
         # return verts, faces, face_features, labels, verts_fiber, faces_fiber, face_features_fiber, labels_fiber, self.verts_brain, self.faces_brain, self.face_features_brain   #24 images
         # return verts, faces, face_features, labels, verts_fiber   #24 images
@@ -419,7 +467,7 @@ class Bundles_Dataset_test_contrastive_tractography_labeled(Dataset):
 
 
 class Bundles_DataModule_tractography_labeled_fibers(pl.LightningDataModule):
-    def __init__(self, contrastive, bundle, L, fibers, fibers_valid, index_csv, path_data, path_ico, batch_size, train_path, val_path, test_path, verts_brain, faces_brain, face_features_brain, path_tractography_train, path_tractography_valid, path_tractography_test, num_workers=12, transform=True, persistent_workers=False):
+    def __init__(self, contrastive, bundle, L, fibers, fibers_valid, index_csv, path_data, path_ico, batch_size, train_path, val_path, test_path, verts_brain, faces_brain, face_features_brain, path_tractography_train, path_tractography_valid, path_tractography_test, tractography_list_vtk, num_workers=12, transform=True, persistent_workers=False):
         super().__init__()
         self.contrastive = contrastive
         self.bundle = bundle
@@ -439,6 +487,7 @@ class Bundles_DataModule_tractography_labeled_fibers(pl.LightningDataModule):
         self.path_tractography_train = path_tractography_train
         self.path_tractography_valid = path_tractography_valid
         self.path_tractography_test = path_tractography_test
+        self.tractography_list_vtk = tractography_list_vtk
         self.num_workers = num_workers
         self.transform = transform
         self.persistent_workers = persistent_workers
@@ -492,28 +541,47 @@ class Bundles_DataModule_tractography_labeled_fibers(pl.LightningDataModule):
         self.train_dataset = Bundles_Dataset_contrastive_tractography_labeled(list_train_data, self.path_data, self.path_ico, self.verts_brain, self.faces_brain, self.face_features_brain, self.transform)
         self.val_dataset = Bundles_Dataset_contrastive_tractography_labeled(list_val_data, self.path_data, self.path_ico, self.verts_brain, self.faces_brain, self.face_features_brain, self.transform)
         self.test_dataset = Bundles_Dataset_test_contrastive_tractography_labeled(self.contrastive, list_test_data, self.bundle, self.L, self.fibers, self.index_csv, self.path_data, self.path_ico, self.verts_brain, self.faces_brain, self.face_features_brain, self.transform)
-        self.train_tractography_dataset = Bundles_Dataset_tractography(list_train_tractography_data, self.path_data, self.path_ico, self.verts_brain, self.faces_brain, self.face_features_brain, len_train, self.transform)
-        self.val_tractography_dataset = Bundles_Dataset_tractography(list_val_tractography_data, self.path_data, self.path_ico, self.verts_brain, self.faces_brain, self.face_features_brain, len_val, self.transform)
-        self.test_tractography_dataset = Bundles_Dataset_tractography(list_test_tractography_data, self.path_data, self.path_ico, self.verts_brain, self.faces_brain, self.face_features_brain, len_test, self.transform)
+        self.train_tractography_dataset = Bundles_Dataset_tractography(list_train_tractography_data, self.path_data, self.path_ico, self.verts_brain, self.faces_brain, self.face_features_brain, len_train, self.tractography_list_vtk, self.transform)
+        self.val_tractography_dataset = Bundles_Dataset_tractography(list_val_tractography_data, self.path_data, self.path_ico, self.verts_brain, self.faces_brain, self.face_features_brain, len_val, self.tractography_list_vtk, self.transform)
+        self.test_tractography_dataset = Bundles_Dataset_tractography(list_test_tractography_data, self.path_data, self.path_ico, self.verts_brain, self.faces_brain, self.face_features_brain, len_test, self.tractography_list_vtk, self.transform)
 
         self.concatenated_train_dataset = ConcatDataset(self.train_dataset, self.train_tractography_dataset)
         self.concatenated_val_dataset = ConcatDataset(self.val_dataset, self.val_tractography_dataset)
         self.concatenated_test_dataset = ConcatDataset(self.test_dataset, self.test_tractography_dataset)
 
     def train_dataloader(self):
-        # return DataLoader(self.train_dataset, batch_size=self.batch_size, collate_fn=self.pad_verts_faces, shuffle=True, num_workers=self.num_workers, persistent_workers=self.persistent_workers)
-        return DataLoader(self.concatenated_train_dataset, batch_size=self.batch_size, collate_fn=self.pad_verts_faces, shuffle=True, num_workers=self.num_workers, persistent_workers=self.persistent_workers)
+        # return DataLoader(self.train_dataset, batch_size=self.batch_size, collate_fn=self.pad_verts_faces_simple, shuffle=True, num_workers=self.num_workers, persistent_workers=self.persistent_workers)
+        return DataLoader(self.train_tractography_dataset, batch_size=self.batch_size, collate_fn=self.pad_verts_faces_simple, shuffle=True, num_workers=self.num_workers, persistent_workers=self.persistent_workers) 
+        # return DataLoader(self.concatenated_train_dataset, batch_size=self.batch_size, collate_fn=self.pad_verts_faces, shuffle=True, num_workers=self.num_workers, persistent_workers=self.persistent_workers)
 
     def val_dataloader(self):
-        # return DataLoader(self.val_dataset, batch_size=self.batch_size, collate_fn=self.pad_verts_faces, shuffle=False, num_workers=self.num_workers, persistent_workers=self.persistent_workers)
-        return DataLoader(self.concatenated_val_dataset, batch_size=self.batch_size, collate_fn=self.pad_verts_faces, shuffle=True, num_workers=self.num_workers, persistent_workers=self.persistent_workers)
+        # return DataLoader(self.val_dataset, batch_size=self.batch_size, collate_fn=self.pad_verts_faces_simple, shuffle=False, num_workers=self.num_workers, persistent_workers=self.persistent_workers)
+        return DataLoader(self.val_tractography_dataset, batch_size=self.batch_size, collate_fn=self.pad_verts_faces_simple, shuffle=False, num_workers=self.num_workers, persistent_workers=self.persistent_workers)
+        # return DataLoader(self.concatenated_val_dataset, batch_size=self.batch_size, collate_fn=self.pad_verts_faces, shuffle=False, num_workers=self.num_workers, persistent_workers=self.persistent_workers)
 
     def test_dataloader(self):
-        # return DataLoader(self.test_dataset, batch_size=self.batch_size, collate_fn=self.pad_verts_faces, shuffle=False, num_workers=self.num_workers, persistent_workers=self.persistent_workers)
-        return DataLoader(self.concatenated_test_dataset, batch_size=self.batch_size, collate_fn=self.pad_verts_faces, shuffle=True, num_workers=self.num_workers, persistent_workers=self.persistent_workers)
+        # return DataLoader(self.test_dataset, batch_size=self.batch_size, collate_fn=self.pad_verts_faces_simple, shuffle=False, num_workers=self.num_workers, persistent_workers=self.persistent_workers)
+        return DataLoader(self.test_tractography_dataset, batch_size=self.batch_size, collate_fn=self.pad_verts_faces_simple, shuffle=False, num_workers=self.num_workers, persistent_workers=self.persistent_workers)
+        # return DataLoader(self.concatenated_test_dataset, batch_size=self.batch_size, collate_fn=self.pad_verts_faces, shuffle=False, num_workers=self.num_workers, persistent_workers=self.persistent_workers)
     
     def get_weights(self):
         return self.weights
+
+
+
+    def pad_verts_faces_simple(self, batch):
+        verts = [v for v, f, vdf, l ,f_infos in batch]
+        faces = [f for v, f, vdf, l ,f_infos in batch]
+        verts_data_faces = [vdf for v, f, vdf, l ,f_infos in batch]
+        labels = [l for v, f, vdf, l ,f_infos in batch]
+        faces_infos = [f_infos for v, f, vdf, l ,f_infos in batch]
+
+        verts = pad_sequence(verts, batch_first=True, padding_value=0)
+        faces = pad_sequence(faces, batch_first=True, padding_value=-1)
+        verts_data_faces = torch.cat(verts_data_faces)
+        labels = torch.cat(labels)
+        return verts, faces, verts_data_faces, labels, faces_infos
+
 
     def pad_verts_faces(self, batch):
         # print("len batch", len(batch))# tuple of 10 == bs
@@ -534,89 +602,72 @@ class Bundles_DataModule_tractography_labeled_fibers(pl.LightningDataModule):
         # print("len labeled_fibers", len(labeled_fibers)) # tuple of 10 == bs
         # print("len tractography_fibers", len(tractography_fibers)) # tuple of 10 == bs
 
-        verts_lf = [v for v, f, vdf, l, vfi, ffi, vdffi, lfi, vb, fb, ffb, vfb, smm, dl, nl in labeled_fibers]
-        faces_lf = [f for v, f, vdf, l, vfi, ffi, vdffi, lfi, vb, fb, ffb, vfb, smm, dl, nl in labeled_fibers]
-        verts_data_faces_lf = [vdf for v, f, vdf, l, vfi, ffi, vdffi, lfi, vb, fb, ffb, vfb, smm, dl, nl in labeled_fibers]
-        labels_lf = [l for v, f, vdf, l, vfi, ffi, vdffi, lfi, vb, fb, ffb, vfb, smm, dl, nl in labeled_fibers]
-        verts_fiber_lf = [vfi for v, f, vdf, l, vfi, ffi, vdffi, lfi, vb, fb, ffb, vfb, smm, dl, nl in labeled_fibers]
-        faces_fiber_lf = [ffi for v, f, vdf, l, vfi, ffi, vdffi, lfi, vb, fb, ffb, vfb, smm, dl, nl in labeled_fibers]
-        verts_data_faces_fiber_lf = [vdffi for v, f, vdf, l, vfi, ffi, vdffi, lfi, vb, fb, ffb, vfb, smm, dl, nl in labeled_fibers]
-        labels_fiber_lf = [lfi for v, f, vdf, l, vfi, ffi, vdffi, lfi, vb, fb, ffb, vfb, smm, dl, nl in labeled_fibers]
-        verts_brain_lf = [vb for v, f, vdf, l, vfi, ffi, vdffi, lfi, vb, fb, ffb, vfb, smm, dl, nl in labeled_fibers]
-        faces_brain_lf = [fb for v, f, vdf, l, vfi, ffi, vdffi, lfi, vb, fb, ffb, vfb, smm, dl, nl in labeled_fibers]
-        verts_data_faces_brain_lf = [ffb for v, f, vdf, l, vfi, ffi, vdffi, lfi, vb, fb, ffb, vfb, smm, dl, nl in labeled_fibers]
-        verts_fiber_bounds_lf = [vfb for v, f, vdf, l, vfi, ffi, vdffi, lfi, vb, fb, ffb, vfb, smm, dl, nl in labeled_fibers]
-        sample_min_max_lf = [smm for v, f, vdf, l, vfi, ffi, vdffi, lfi, vb, fb, ffb, vfb, smm, dl, nl in tractography_fibers]
-        data_lab_lf = [dl for v, f, vdf, l, vfi, ffi, vdffi, lfi, vb, fb, ffb, vfb, smm,dl, nl in labeled_fibers]
-        name_labels_lf = [nl for v, f, vdf, l, vfi, ffi, vdffi, lfi, vb, fb, ffb, vfb, smm,dl, nl in labeled_fibers]
+
+        verts_lf = [v for v, f, vdf, l, f_infos in labeled_fibers]
+        faces_lf = [f for v, f, vdf, l, f_infos in labeled_fibers]
+        verts_data_faces_lf = [vdf for v, f, vdf, l, f_infos in labeled_fibers]
+        labels_lf = [l for v, f, vdf, l, f_infos in labeled_fibers]
+        f_infos_lf = [f_infos for v, f, vdf, l, f_infos in labeled_fibers]
 
 
+        verts_tf = [v for v, f, vdf, l, f_infos in tractography_fibers]
+        faces_tf = [f for v, f, vdf, l, f_infos in tractography_fibers]
+        verts_data_faces_tf = [vdf for v, f, vdf, l, f_infos in tractography_fibers]
+        labels_tf = [l for v, f, vdf, l, f_infos in tractography_fibers]
+        f_infos_tf = [f_infos for v, f, vdf, l, f_infos in tractography_fibers]
+        # verts_lf = [v for v, f, vdf, l, vfi, ffi, vdffi, lfi, vb, fb, ffb, vfb, smm, dl, nl in labeled_fibers]
+        # faces_lf = [f for v, f, vdf, l, vfi, ffi, vdffi, lfi, vb, fb, ffb, vfb, smm, dl, nl in labeled_fibers]
+        # verts_data_faces_lf = [vdf for v, f, vdf, l, vfi, ffi, vdffi, lfi, vb, fb, ffb, vfb, smm, dl, nl in labeled_fibers]
+        # labels_lf = [l for v, f, vdf, l, vfi, ffi, vdffi, lfi, vb, fb, ffb, vfb, smm, dl, nl in labeled_fibers]
+        # verts_fiber_lf = [vfi for v, f, vdf, l, vfi, ffi, vdffi, lfi, vb, fb, ffb, vfb, smm, dl, nl in labeled_fibers]
+        # faces_fiber_lf = [ffi for v, f, vdf, l, vfi, ffi, vdffi, lfi, vb, fb, ffb, vfb, smm, dl, nl in labeled_fibers]
+        # verts_data_faces_fiber_lf = [vdffi for v, f, vdf, l, vfi, ffi, vdffi, lfi, vb, fb, ffb, vfb, smm, dl, nl in labeled_fibers]
+        # labels_fiber_lf = [lfi for v, f, vdf, l, vfi, ffi, vdffi, lfi, vb, fb, ffb, vfb, smm, dl, nl in labeled_fibers]
+        # verts_brain_lf = [vb for v, f, vdf, l, vfi, ffi, vdffi, lfi, vb, fb, ffb, vfb, smm, dl, nl in labeled_fibers]
+        # faces_brain_lf = [fb for v, f, vdf, l, vfi, ffi, vdffi, lfi, vb, fb, ffb, vfb, smm, dl, nl in labeled_fibers]
+        # verts_data_faces_brain_lf = [ffb for v, f, vdf, l, vfi, ffi, vdffi, lfi, vb, fb, ffb, vfb, smm, dl, nl in labeled_fibers]
+        # verts_fiber_bounds_lf = [vfb for v, f, vdf, l, vfi, ffi, vdffi, lfi, vb, fb, ffb, vfb, smm, dl, nl in labeled_fibers]
+        # sample_min_max_lf = [smm for v, f, vdf, l, vfi, ffi, vdffi, lfi, vb, fb, ffb, vfb, smm, dl, nl in tractography_fibers]
+        # data_lab_lf = [dl for v, f, vdf, l, vfi, ffi, vdffi, lfi, vb, fb, ffb, vfb, smm,dl, nl in labeled_fibers]
+        # name_labels_lf = [nl for v, f, vdf, l, vfi, ffi, vdffi, lfi, vb, fb, ffb, vfb, smm,dl, nl in labeled_fibers]
+        
 
-        verts_tf = [v for v, f, vdf, l, vfi, ffi, vdffi, lfi, vb, fb, ffb, vfb, smm, dl, nl in tractography_fibers]
-        faces_tf = [f for v, f, vdf, l, vfi, ffi, vdffi, lfi, vb, fb, ffb, vfb, smm, dl, nl in tractography_fibers]
-        verts_data_faces_tf = [vdf for v, f, vdf, l, vfi, ffi, vdffi, lfi, vb, fb, ffb, vfb, smm,dl, nl in tractography_fibers]
-        labels_tf = [l for v, f, vdf, l, vfi, ffi, vdffi, lfi, vb, fb, ffb, vfb,smm, dl, nl in tractography_fibers]
-        verts_fiber_tf = [vfi for v, f, vdf, l, vfi, ffi, vdffi, lfi, vb, fb, ffb, vfb,smm, dl, nl in tractography_fibers]
-        faces_fiber_tf = [ffi for v, f, vdf, l, vfi, ffi, vdffi, lfi, vb, fb, ffb, vfb,smm, dl, nl in tractography_fibers]
-        verts_data_faces_fiber_tf = [vdffi for v, f, vdf, l, vfi, ffi, vdffi, lfi, vb, fb, ffb, vfb,smm, dl, nl in tractography_fibers]
-        labels_fiber_tf = [lfi for v, f, vdf, l, vfi, ffi, vdffi, lfi, vb, fb, ffb, vfb,smm, dl, nl in tractography_fibers]
-        verts_brain_tf = [vb for v, f, vdf, l, vfi, ffi, vdffi, lfi, vb, fb, ffb, vfb,smm, dl, nl in tractography_fibers]
-        faces_brain_tf = [fb for v, f, vdf, l, vfi, ffi, vdffi, lfi, vb, fb, ffb, vfb,smm, dl, nl in tractography_fibers]
-        verts_data_faces_brain_tf = [ffb for v, f, vdf, l, vfi, ffi, vdffi, lfi, vb, fb, ffb, vfb,smm, dl, nl in tractography_fibers]
-        verts_fiber_bounds_tf = [vfb for v, f, vdf, l, vfi, ffi, vdffi, lfi, vb, fb, ffb, vfb,smm, dl, nl in tractography_fibers]
-        sample_min_max_tf = [smm for v, f, vdf, l, vfi, ffi, vdffi, lfi, vb, fb, ffb, vfb,smm, dl, nl in tractography_fibers]
-        data_lab_tf = [dl for v, f, vdf, l, vfi, ffi, vdffi, lfi, vb, fb, ffb, vfb,smm,dl, nl in tractography_fibers]
-        name_labels_tf = [nl for v, f, vdf, l, vfi, ffi, vdffi, lfi, vb, fb, ffb, vfb,smm,dl, nl in tractography_fibers]
+
+        # verts_tf = [v for v, f, vdf, l, vfi, ffi, vdffi, lfi, vb, fb, ffb, vfb, smm, dl, nl in tractography_fibers]
+        # faces_tf = [f for v, f, vdf, l, vfi, ffi, vdffi, lfi, vb, fb, ffb, vfb, smm, dl, nl in tractography_fibers]
+        # verts_data_faces_tf = [vdf for v, f, vdf, l, vfi, ffi, vdffi, lfi, vb, fb, ffb, vfb, smm,dl, nl in tractography_fibers]
+        # labels_tf = [l for v, f, vdf, l, vfi, ffi, vdffi, lfi, vb, fb, ffb, vfb,smm, dl, nl in tractography_fibers]
+        # verts_fiber_tf = [vfi for v, f, vdf, l, vfi, ffi, vdffi, lfi, vb, fb, ffb, vfb,smm, dl, nl in tractography_fibers]
+        # faces_fiber_tf = [ffi for v, f, vdf, l, vfi, ffi, vdffi, lfi, vb, fb, ffb, vfb,smm, dl, nl in tractography_fibers]
+        # verts_data_faces_fiber_tf = [vdffi for v, f, vdf, l, vfi, ffi, vdffi, lfi, vb, fb, ffb, vfb,smm, dl, nl in tractography_fibers]
+        # labels_fiber_tf = [lfi for v, f, vdf, l, vfi, ffi, vdffi, lfi, vb, fb, ffb, vfb,smm, dl, nl in tractography_fibers]
+        # verts_brain_tf = [vb for v, f, vdf, l, vfi, ffi, vdffi, lfi, vb, fb, ffb, vfb,smm, dl, nl in tractography_fibers]
+        # faces_brain_tf = [fb for v, f, vdf, l, vfi, ffi, vdffi, lfi, vb, fb, ffb, vfb,smm, dl, nl in tractography_fibers]
+        # verts_data_faces_brain_tf = [ffb for v, f, vdf, l, vfi, ffi, vdffi, lfi, vb, fb, ffb, vfb,smm, dl, nl in tractography_fibers]
+        # verts_fiber_bounds_tf = [vfb for v, f, vdf, l, vfi, ffi, vdffi, lfi, vb, fb, ffb, vfb,smm, dl, nl in tractography_fibers]
+        # sample_min_max_tf = [smm for v, f, vdf, l, vfi, ffi, vdffi, lfi, vb, fb, ffb, vfb,smm, dl, nl in tractography_fibers]
+        # data_lab_tf = [dl for v, f, vdf, l, vfi, ffi, vdffi, lfi, vb, fb, ffb, vfb,smm,dl, nl in tractography_fibers]
+        # name_labels_tf = [nl for v, f, vdf, l, vfi, ffi, vdffi, lfi, vb, fb, ffb, vfb,smm,dl, nl in tractography_fibers]
         
         verts = verts_lf + verts_tf
         faces = faces_lf + faces_tf
         verts_data_faces = verts_data_faces_lf + verts_data_faces_tf
         labels = labels_lf + labels_tf
-        verts_fiber = verts_fiber_lf + verts_fiber_tf
-        faces_fiber = faces_fiber_lf + faces_fiber_tf
-        verts_data_faces_fiber = verts_data_faces_fiber_lf + verts_data_faces_fiber_tf
-        labels_fiber = labels_fiber_lf + labels_fiber_tf
-        verts_brain = verts_brain_lf + verts_brain_tf
-        faces_brain = faces_brain_lf + faces_brain_tf
-        verts_data_faces_brain = verts_data_faces_brain_lf + verts_data_faces_brain_tf
-        verts_fiber_bounds = verts_fiber_bounds_lf + verts_fiber_bounds_tf
-        sample_min_max = sample_min_max_lf + sample_min_max_tf
-        data_lab = data_lab_lf + data_lab_tf
-        name_labels = name_labels_lf + name_labels_tf
+        f_infos = f_infos_lf + f_infos_tf
+        # verts_fiber = verts_fiber_lf + verts_fiber_tf
+        # faces_fiber = faces_fiber_lf + faces_fiber_tf
+        # verts_data_faces_fiber = verts_data_faces_fiber_lf + verts_data_faces_fiber_tf
+        # labels_fiber = labels_fiber_lf + labels_fiber_tf
+        # verts_brain = verts_brain_lf + verts_brain_tf
+        # faces_brain = faces_brain_lf + faces_brain_tf
+        # verts_data_faces_brain = verts_data_faces_brain_lf + verts_data_faces_brain_tf
+        # verts_fiber_bounds = verts_fiber_bounds_lf + verts_fiber_bounds_tf
+        # sample_min_max = sample_min_max_lf + sample_min_max_tf
+        # data_lab = data_lab_lf + data_lab_tf
+        # name_labels = name_labels_lf + name_labels_tf
         
         
-        # print("type", verts_lf[0].shape, verts_lf[1].shape, verts_lf[2].shape)
-        # print("verts", len(verts_lf))
-        # print("verts", len(verts_tf))
-        # print("faces", len(faces_lf))
-        # print("faces", len(faces_tf))
-        # print("verts_data_faces", len(verts_data_faces_lf))
-        # print("verts_data_faces", len(verts_data_faces_tf))
-        # print("labels", len(labels_lf))
-        # print("labels", len(labels_tf))
-        # print("verts_fiber", len(verts_fiber_lf))
-        # print("verts_fiber", len(verts_fiber_tf))
-        # print("faces_fiber", len(faces_fiber_lf))
-        # print("faces_fiber", len(faces_fiber_tf))
-        # print("verts_data_faces_fiber", len(verts_data_faces_fiber_lf))
-        # print("verts_data_faces_fiber", len(verts_data_faces_fiber_tf))
-        # print("labels_fiber", len(labels_fiber_lf))
-        # print("labels_fiber", len(labels_fiber_tf))
-        # print("verts_brain", len(verts_brain_lf))
-        # print("verts_brain", len(verts_brain_tf))
-        # print("faces_brain", len(faces_brain_lf))
-        # print("faces_brain", len(faces_brain_tf))
-        # print("verts_data_faces_brain", len(verts_data_faces_brain_lf))
-        # print("verts_data_faces_brain", len(verts_data_faces_brain_tf))
-        # print("verts_fiber_bounds", len(verts_fiber_bounds_lf))
-        # print("verts_fiber_bounds", len(verts_fiber_bounds_tf))
-        # print("sample_min_max", len(sample_min_max_lf))
-        # print("sample_min_max", len(sample_min_max_tf))
-        # print("data_lab", len(data_lab_lf))
-        # print("data_lab", len(data_lab_tf))
-        # print("name_labels", len(name_labels_lf))
-        # print("name_labels", len(name_labels_tf))
-
+        
 
         # print(akjhdfkdsh)
         # verts = [v for v, f, vdf, l, vfi in labeled_fibers]
@@ -645,33 +696,22 @@ class Bundles_DataModule_tractography_labeled_fibers(pl.LightningDataModule):
         # data_lab = [dl for v, f, vdf, l, vfi, ffi, vdffi, lfi, vb, fb, ffb, vfb, smm, dl, nl in batch]
         # name_labels = [nl for v, f, vdf, l, vfi, ffi, vdffi, lfi, vb, fb, ffb, vfb, smm, dl, nl in batch]
 
-        # print("verts", len(verts))
-        # print("faces", len(faces))
-        # print("verts_data_faces", len(verts_data_faces))
-        # print("labels", len(labels))
-        # print("verts_fiber", len(verts_fiber))
-        # print("faces_fiber", len(faces_fiber))
-        # print("verts_data_faces_fiber", len(verts_data_faces_fiber))
-        # print("labels_fiber", len(labels_fiber))
-        # print("verts_brain", len(verts_brain))
-        # print("faces_brain", len(faces_brain))
-        # print("verts_data_faces_brain", len(verts_data_faces_brain))
-        # print("verts_fiber_bounds", len(verts_fiber_bounds))
-        # print("sample_min_max", len(sample_min_max))
-        # print("data_lab", len(data_lab))
-        # print("name_labels", len(name_labels))
-
         verts = pad_sequence(verts, batch_first=True, padding_value=0.0)
         faces = pad_sequence(faces, batch_first=True, padding_value=-1)
+        # print("verts_data_faces", verts_data_faces.shape)
+        # for i in range(len(verts_data_faces)):
+            # print("verts_data_faces[i]", verts_data_faces[i].shape)
+
+        # print(ksdjdhfldskjf)
         verts_data_faces = torch.cat(verts_data_faces)
         labels = torch.cat(labels)
-        verts_fiber = pad_sequence(verts_fiber, batch_first=True, padding_value=0.0)
-        faces_fiber = pad_sequence(faces_fiber, batch_first=True, padding_value=-1)
-        verts_data_faces_fiber = torch.cat(verts_data_faces_fiber)
-        labels_fiber = torch.cat(labels_fiber)
-        verts_brain = pad_sequence(verts_brain, batch_first=True, padding_value=0.0)
-        faces_brain = pad_sequence(faces_brain, batch_first=True, padding_value=-1)
-        verts_data_faces_brain = torch.cat(verts_data_faces_brain)
+        # verts_fiber = pad_sequence(verts_fiber, batch_first=True, padding_value=0.0)
+        # faces_fiber = pad_sequence(faces_fiber, batch_first=True, padding_value=-1)
+        # verts_data_faces_fiber = torch.cat(verts_data_faces_fiber)
+        # labels_fiber = torch.cat(labels_fiber)
+        # verts_brain = pad_sequence(verts_brain, batch_first=True, padding_value=0.0)
+        # faces_brain = pad_sequence(faces_brain, batch_first=True, padding_value=-1)
+        # verts_data_faces_brain = torch.cat(verts_data_faces_brain)
 
         # print("verts", verts.shape)
         # print("faces", faces.shape)
@@ -780,6 +820,6 @@ class Bundles_DataModule_tractography_labeled_fibers(pl.LightningDataModule):
         
 
 
-        return verts, faces, verts_data_faces, labels, verts_fiber, faces_fiber, verts_data_faces_fiber, labels_fiber, verts_brain, faces_brain, verts_data_faces_brain, verts_fiber_bounds, sample_min_max, data_lab, name_labels
+        return verts, faces, verts_data_faces, labels, f_infos
 
 
