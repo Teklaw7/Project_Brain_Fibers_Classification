@@ -15,7 +15,7 @@ from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.strategies.ddp import DDPStrategy
 
 from pytorch_lightning.loggers import NeptuneLogger, TensorBoardLogger
-
+from sklearn.manifold import TSNE
 import pickle
 
 import matplotlib.pyplot as plt
@@ -49,17 +49,61 @@ def main(args):
     # trainer.fit(model, ckpt_path=args.model)
 
     # light_house = model.light_house.detach().cpu().numpy()
-    fig = plt.figure()
-    ax = fig.add_subplot(projection='3d')
+    tsne = TSNE(n_components=3, perplexity=205)
+    
     lights = np.random.normal(loc=0, scale=1, size=(args.init_points, args.emb_dim))
+    # fig1 = plt.figure()
+    b = 0
+    print("lights.shape",lights.shape)
+    for i in range(lights.shape[0]):
+        # print("point :", lights[i])
+        if np.linalg.norm(lights[i]) == 1:
+            b+=1
+    print("b",lights.shape[0])
+    print("b",b)
+    # print("lights", lights[0])
+    # print("lights", lights[0][1])
+    # print("lights", lights[0][1]**2)
+    # for i in range(lights.shape[0]):
+    #     norm = 0 
+    #     for j in range(128):
+    #         norm += lights[i][j]**2
+    #     print("norm", norm)
+    #     norm = np.sqrt(norm)
+    #     # print("norm", norm)
+    # print(askjhfdkjh)
     lights = np.abs(lights/np.linalg.norm(lights, axis=1, keepdims=True))
+    # lights2 = tsne.fit_transform(lights)
+    # ax1 = fig1.add_subplot(projection='3d')
+    # ax1.scatter(lights2[:,0], lights2[:,1], lights2[:,2], linewidths=5)
+    # ax1.set_xlim([-150,150])
+    # ax1.set_ylim([-150,150])
+    # ax1.set_zlim([-150,150])
+    # plt.show()
+    print("lights.shape",lights.shape)
+    a = 0
+    for i in range(lights.shape[0]):
+        # print("point :", lights[i])
+        if np.linalg.norm(lights[i]) == 1:
+            a+=1
+    print("a",lights.shape[0])
+    print("a",a)
 
 
     # fit KMeans++ model to the data
     kmeans = KMeans(n_clusters=args.n_lights, init='k-means++').fit(lights)
 
     # get the cluster centroids
+    # fig2 = plt.figure()
     centroids = kmeans.cluster_centers_
+    # ax2 = fig2.add_subplot(projection='3d')
+    # ax2.scatter(centroids[:,0], centroids[:,1], centroids[:,2], linewidths=5)
+    # ax2.set_xlim([-150,150])
+    # plt.show()
+    print("centroids.shape",centroids.shape)
+    for i in range(centroids.shape[0]):
+        # print("point :", centroids[i])
+        print("norme :", np.linalg.norm(centroids[i]))
     print("centroids.shape",centroids.shape)
     lights = np.abs(centroids/np.linalg.norm(centroids, axis=1, keepdims=True))    
     print("lights.shape",lights.shape)
@@ -69,22 +113,93 @@ def main(args):
         min_l = min(min_l, np.min(np.sum(np.square(l - lights_ex), axis=1)))
 
     print(min_l)
-    centroids = np.abs(centroids/np.linalg.norm(centroids, axis=1, keepdims=True))
-    print("centroids.shape",centroids.shape)
-    
-    ax.scatter(centroids[:,0], centroids[:,1], centroids[:,2], linewidths=5)
-    for i in range(centroids.shape[0]):
-        ax.text(centroids[i,0], centroids[i,1], centroids[i,2], str("C"+f"{i}"), size=10, zorder=1, color='k')
+    # print("centroids", centroids)
+
+    # centroids = np.abs(centroids/np.linalg.norm(centroids, axis=1, keepdims=True))
+    # print("centroids.shape",centroids.shape)
+    # print("centroids", centroids[0], centroids[1], centroids[2])
+    # centroids =np.abs(centroids)
+    # print("centroids", centroids)
+
+    centroids2 = tsne.fit_transform(centroids)
+    print("centroids2.shape",centroids2.shape)
+    for i in range(centroids2.shape[0]):
+        # print("point :", centroids[i])
+        print("norme :", np.linalg.norm(centroids2[i]))
+        norm = np.linalg.norm(centroids2[i])
+        centroids2[i] = centroids2[i]/norm
+        print("norme :", np.linalg.norm(centroids2[i]))
+    # print("centroids", centroids)
+
+    fig = plt.figure()
+    ax = fig.add_subplot(projection='3d')
+    r=1
+    pi = np.pi
+    cos = np.cos
+    sin = np.sin
+    phi, theta = np.mgrid[0.0:pi/2:100j, 0.0:pi/2:100j]
+    x = r*sin(phi)*cos(theta)
+    y = r*sin(phi)*sin(theta)
+    z = r*cos(phi)
+    ax.plot_surface(
+        x, y, z,  rstride=1, cstride=1, color='c', alpha=0.1, linewidth=0)
+    ax.scatter(centroids2[:,0], centroids2[:,1], centroids2[:,2], linewidths=5)
+    for i in range(centroids2.shape[0]):
+        ax.text(centroids2[i,0], centroids2[i,1], centroids2[i,2], str("C"+f"{i}"), size=8, zorder=1, color='k')
+    phi = 0
+    theta = 0
+    ax.scatter(np.sin(theta)*np.cos(phi), np.sin(theta)*np.sin(phi), cos(theta), linewidths=5)
+    ax.text(np.sin(theta)*np.cos(phi), np.sin(theta)*np.sin(phi), cos(theta), str("Cr"), size=8, zorder=1, color='r')
     ax.set_xlabel('X Label')
     ax.set_ylabel('Y Label')
     ax.set_zlabel('Z Label')
+    ax.set_aspect('equal')
+    # plt.show()
+
+
+    for i in range(centroids2.shape[0]):
+        centroids2[i,0] = (centroids2[i,0] - np.min(centroids2[:,0]))/(np.max(centroids2[:,0]) - np.min(centroids2[:,0]))
+        centroids2[i,1] = (centroids2[i,1] - np.min(centroids2[:,1]))/(np.max(centroids2[:,1]) - np.min(centroids2[:,1]))
+        centroids2[i,2] = (centroids2[i,2] - np.min(centroids2[:,2]))/(np.max(centroids2[:,2]) - np.min(centroids2[:,2]))
+    for i in range(centroids2.shape[0]):
+        # print("point :", centroids[i])
+        print("norme :", np.linalg.norm(centroids2[i]))
+        norm = np.linalg.norm(centroids2[i])
+        centroids2[i] = centroids2[i]/norm
+        print("norme :", np.linalg.norm(centroids2[i]))
+    fig = plt.figure()
+    ax = fig.add_subplot(projection='3d')
+    r = 1
+    pi = np.pi
+    cos = np.cos
+    sin = np.sin
+    # to get positive quadrant of the sphere between 0 and pi/2 for both, phi and theta
+    phi, theta = np.mgrid[0.0:pi/2:100j, 0.0:pi/2:100j]
+    x = r*sin(phi)*cos(theta)
+    y = r*sin(phi)*sin(theta)
+    z = r*cos(phi)
+    ax.plot_surface(
+        x, y, z,  rstride=1, cstride=1, color='c', alpha=0.1, linewidth=0)
+    ax.scatter(centroids2[:,0], centroids2[:,1], centroids2[:,2], linewidths=5)
+    for i in range(centroids2.shape[0]):
+        ax.text(centroids2[i,0], centroids2[i,1], centroids2[i,2], str("C"+f"{i}"), size=8, zorder=1, color='k')
+    phi = 0
+    theta = 0
+    ax.scatter(np.sin(theta)*np.cos(phi), np.sin(theta)*np.sin(phi), cos(theta), linewidths=5)
+    ax.text(np.sin(theta)*np.cos(phi), np.sin(theta)*np.sin(phi), cos(theta), str("Cr"), size=8, zorder=1, color='r')
+    ax.set_xlabel('X Label')
+    ax.set_ylabel('Y Label')
+    ax.set_zlabel('Z Label')
+    ax.set_aspect("equal")
 
     plt.show()
+
+    
 
     if not os.path.exists(args.out):
         os.makedirs(args.out)
 
-    with open(os.path.join(args.out, "lights.pickle"), 'wb') as f:
+    with open(os.path.join(args.out, "Lights.pickle"), 'wb') as f:
         pickle.dump(lights, f)
 
 
@@ -109,3 +224,4 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     main(args)
+

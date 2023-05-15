@@ -1434,15 +1434,19 @@ class Fly_by_CNN_contrastive_tractography_labeled(pl.LightningModule):
         tot = f*1+e*10+d*100+c*1000+b*10000+a*100000
         name_labels = torch.tensor(name_labels)
         name_labels = name_labels.to(self.device)
-
-        print("name.shape",name_labels.shape)
-        print("labels.shape",labels.shape)
+        data_lab = torch.tensor(data_lab)
+        data_lab = data_lab.to(self.device)
+        # print("data_lab",data_lab.shape)
+# 
+        # print("name.shape",name_labels.shape)
+        # print("labels.shape",labels.shape)
         labels2 = labels.unsqueeze(dim = 1)
-        print("labels", labels2.shape)
-        print("proj_test", proj_test.shape)
+        # print("labels", labels2.shape)
+        # print("proj_test", proj_test.shape)
+        data_lab = data_lab.unsqueeze(dim = 1)
 
-        proj_test = torch.cat((proj_test, labels2, name_labels), dim=1)
-        print("proj_test", proj_test.shape)
+        proj_test = torch.cat((proj_test, labels2, name_labels, data_lab), dim=1)
+        # print("proj_test", proj_test.shape)
         
         lab = torch.unique(labels)
         lab = lab.cpu()
