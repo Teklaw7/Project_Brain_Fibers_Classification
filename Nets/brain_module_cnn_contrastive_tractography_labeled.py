@@ -40,23 +40,14 @@ class RotationTransform:
         verts = torch.transpose(torch.mm(rotation_matrix,torch.transpose(verts,0,1)),0,1)
         return verts
 
-# class RandomRotationTransform:
-#     def __call__(self, verts):
-#         rotation_matrix = T3d.random_rotation()
-#         rotation_transform = RotationTransform()
-#         verts = rotation_transform(verts,rotation_matrix)
-#         return verts
     
 def randomrotation(verts):
     verts_device = verts.get_device()
     rotation_matrix = T3d.random_rotation().to(verts_device)
     rotation_transform = RotationTransform()
-    # print("verts", verts.shape)
-    # print("rotation_matrix", rotation_matrix.shape)
-    # print("rotation_matrix", type(rotation_matrix))
     verts = rotation_transform(verts,rotation_matrix)
     return verts
-
+'''
 def pad_double_batch(V,F,FF,VFI,FFI,FFFI,VB,FB,FFB, V2,F2,FF2,VFI2,FFI2,FFFI2,VB2,FB2,FFB2):
     # V_max = max(V.shape[1],V2.shape[1])
     # i_V_max = (V.shape[1], V2.shape[1]).index(max(V.shape[1], V2.shape[1]))
@@ -151,32 +142,18 @@ def pad_double_batch(V,F,FF,VFI,FFI,FFFI,VB,FB,FFB, V2,F2,FF2,VFI2,FFI2,FFFI2,VB
         FFB_c = torch.cat((FFB,FFB2), dim=0)
     # FFB_c = torch.cat((FFB,FFB2), dim=0)
     return V_c,F_c,FF_c,VFI_c,FFI_c,FFFI_c,VB_c,FB_c,FFB_c
-
+'''
 
 
 def GetView(meshes,phong_renderer,R,T):
     R = R.to(torch.float32)
     T = T.to(torch.float32)
-    # print("R", R.get_device())
-    # print("T", T.get_device())
-    # print("meshes", meshes)
-    # print("phong_renderer", phong_renderer)
     images = phong_renderer(meshes.clone(), R=R, T=T)
     fragments = phong_renderer.rasterizer(meshes.clone(),R=R,T=T)
-    # print(type(fragments))
-    # print("fragemts", torch.sum(fragments!=-1))
-    # print("images", torch.sum(images!=-1))
-    # print("images", images[0,0,0,0:3])
-    # print("images", images)
-    # print("fragments", fragments)
     pix_to_face = fragments.pix_to_face
     zbuf = fragments.zbuf #shape == (batchsize, image_size, image_size, faces_per_pixel) 
-    # print("zbuf", type(zbuf))
-    # print("images", images[:,:,:,0:3].shape)
     images = torch.cat([images[:,:,:,0:3], zbuf], dim=-1)
-    # print("fragments", torch.sum(fragments!=-1))
     images = images.permute(0,3,1,2)
-    # print("pix_to_face", torch.sum(pix_to_face!=-1))
     pix_to_face = pix_to_face.permute(0,3,1,2)
     return pix_to_face, images
 
@@ -230,8 +207,6 @@ class TimeDistributed(nn.Module):
         size_reshape = [batch_size*time_steps] + list(size[2:])
         reshaped_input = input_seq.contiguous().view(size_reshape)
         reshaped_input = reshaped_input.to(torch.float32)
-        # print("pute", reshaped_input.size())
-        # print("grosse", type(reshaped_input))
         output = self.module(reshaped_input)
         
         output_size = output.size()
@@ -254,9 +229,7 @@ class SelfAttention(nn.Module):
     
     def forward(self, query, values):        
         score = self.Sigmoid(self.V(self.Tanh(self.W1(query))))
-        # print("score", score.shape)
         attention_weights = score/torch.sum(score, dim=1,keepdim=True)
-        # print("attention_weights", attention_weights.shape)
 
         context_vector = attention_weights * values
         context_vector = torch.sum(context_vector, dim=1)
@@ -354,16 +327,12 @@ class IcosahedronConv2d(nn.Module):
         x = x.permute(0,2,1)
         size_reshape = [batch_size*nbr_features,nbr_cam]
         x = x.contiguous().view(size_reshape)
-        # print("x", x.shape)
         x_fiber = x[:,0:12]
         # x_brain = x[:,12:]    # with brain
         x_fiber = torch.mm(x_fiber,self.mat_neighbors)
         # x_brain = torch.mm(x_brain,self.mat_neighbors) # with brain
-        # print("x_fiber", x_fiber.shape)
-        # print("x_brain", x_brain.shape)
         # x = torch.cat((x_fiber,x_brain),dim=1) # with brain
         x = x_fiber
-        # print("x", x.shape)
         size_reshape2 = [batch_size,nbr_features,nbr_cam,3,3]
         x = x.contiguous().view(size_reshape2)
         x = x.permute(0,2,1,3,4)
@@ -565,16 +534,6 @@ class Fly_by_CNN_contrastive_tractography_labeled(pl.LightningModule):
 
     def forward(self, x):
         V, V1, V2, F, FF, VFI, VFI1, VFI2, FFI, FFFI, VB, FB, FFB, condition = x
-        # print("V", V.shape)
-        # print("V1", V1.shape)
-        # print("V2", V2.shape)
-        # print("F", F.shape)
-        # print("FF", FF.shape)
-        # print("VFI", VFI.shape)
-        # print("VFI1", VFI1.shape)
-        # print("VFI2", VFI2.shape)
-        # print("FFI", FFI.shape)
-        # print("FFFI", FFFI.shape)
         
         x, PF = self.render(V,F,FF)
         X1, PF1 = self.render(V1,F,FF)
@@ -1002,17 +961,12 @@ class Fly_by_CNN_contrastive_tractography_labeled(pl.LightningModule):
         return optimizer
 
     def render(self, V, F, FF):
-        # print("V ",V.shape)
+
         textures = TexturesVertex(verts_features=torch.ones(V.shape))
         V = V.to(torch.float32)
         F = F.to(torch.float32)
-        # print("V ",V.shape)
-        # print("F ",F.shape)
-        # 
         V = V.to(self.device)
         F = F.to(self.device)
-        # print("V-render", torch.min(V), torch.max(V))
-        # print("F-render", torch.min(F), torch.max(F))
         textures = textures.to(self.device)
         meshes_fiber = Meshes(
             verts=V,   
@@ -1021,49 +975,24 @@ class Fly_by_CNN_contrastive_tractography_labeled(pl.LightningModule):
         )
 
         # t_left = [0]*self.verts_left.shape[0] # with brain
-        # print(len(t_left))
         # self.verts_left = self.verts_left.to(self.device) # with brain
         # self.verts_right = self.verts_right.to(self.device) # with brain
-        # print(self.verts_left.shape[0])
         # t_left[:] = np.sqrt(self.verts_left[:,0]**2 + self.verts_left[:,1]**2 + self.verts_left[:,2]**2) # with brain
-        # print("done")
         # for i in range(self.verts_left.shape[0]): # with brain
-            # print(i)
             # t_left.append(np.sqrt(self.verts_left[i,0]**2 + self.verts_left[i,1]**2 + self.verts_left[i,2]**2)) # with brain
         # t_right = [0]*self.verts_right.shape[0] # with brain
         # t_right[:] = np.sqrt(self.verts_right[:,0]**2 + self.verts_right[:,1]**2 + self.verts_right[:,2]**2) # with brain
-        # print("done")
         # for i in range(self.verts_right.shape[0]): # with brain
-            # print(i)
             # t_right.append(np.sqrt(self.verts_right[i,0]**2 + self.verts_right[i,1]**2 + self.verts_right[i,2]**2)) # with brain
         # t_left = torch.tensor(t_left).unsqueeze(1) # with brain
-        # print("coucou")
         # t_right = torch.tensor(t_right).unsqueeze(1) # with brain
         # t_left = t_left.unsqueeze(0) # with brain
-        # print("coucou2")
         # t_right = t_right.unsqueeze(0) # with brain
         # t_left = t_left.to(self.device) # with brain
         # t_right = t_right.to(self.device) # with brain
-        
         # texture_left = TexturesVertex(verts_features= t_left) # with brain
         # texture_right = TexturesVertex(verts_features= t_right) # with brain
-        
-        # print(self.mesh_left)
-        # print(self.mesh_right)
-        
-        # print("len_faces_brain ",len_faces_brain)
-        # len_faces_fiber = meshes_fiber.GetNumberOfFaces()
-        # print("len_faces_fiber ",len_faces_fiber)
-        # print("len_faces_brain ",len_faces_brain)
-        # sigmoid_alpha_blend()
-        # fig2 = plot_scene({
-        #            "display of all fibers": {
-        #             #    "mesh": meshes_fiber,
-        #                "mesh2": meshes_fiber,
-        #            }
-        #        })
-        # fig2.show()
-        
+
         phong_renderer = self.phong_renderer.to(self.device)
         # phong_renderer_brain = self.phong_renderer_brain.to(self.device)
         meshes_fiber = meshes_fiber.to(self.device)
@@ -1073,12 +1002,8 @@ class Fly_by_CNN_contrastive_tractography_labeled(pl.LightningModule):
         for i in range(len(self.R)):
             R = self.R[i][None].to(self.device)
             T = self.T[i][None].to(self.device)
-            # print("R.shape", R)
-            # print("T.shape", T)
             pixel_to_face, images = GetView(meshes_fiber,phong_renderer,R,T)
-            # print("pixel_to_face.shape", pixel_to_face)
             # pixel_to_face_brain = GetView(meshes_brain,phong_renderer_brain,R,T) # with brain
-            # print("pixel_to_face.shape", torch.sum(pixel_to_face!=-1))
             images = images.to(self.device)
             PF.append(pixel_to_face.unsqueeze(dim=1))
             X.append(images.unsqueeze(dim=1))
@@ -1089,28 +1014,20 @@ class Fly_by_CNN_contrastive_tractography_labeled(pl.LightningModule):
         X = X[:,:,3,:,:] # the last one who has the picture in black and white of depth
         # torch.save(X, "X.pt")
         X = X.unsqueeze(dim=2)
-        # print("X", X.shape)
-        # print(klshdksj)
-        # print("max X", torch.max(X))
-        # print("min X", torch.min(X))
-        # print("X", torch.mean(X>0))
+        
         # print("PF", PF.shape) # (batch_size, nb_views, 1, 224, 224)
         # print("X", X.shape) # (batch_size, nb_views, 4, 224, 224)
         # PF_brain = torch.cat(PF_brain,dim=1) # with brain
 
         l_features = []
         # l_features_brain = [] # with brain
-        # print("FF.shape", FF.shape)
 
         # FF_brain = torch.ones(len_faces_brain,8) # with brain
         # FF_brain = FF_brain.to(self.device) # with brain
-        
-        # print("FF_brain.shape", FF_brain.shape)
-        # print("FF_brain", FF_brain[0].shape)
+
         for index in range(FF.shape[-1]):
             l_features.append(torch.take(FF[:,index],PF)*(PF >= 0)) # take each feature
             # a = torch.take(FF[:,index],PF)*(PF >= 0)
-            # print("ca",)
         # for index in range(FF_brain.shape[-1]): # with brain
             # l_features_brain.append(torch.take(FF_brain[:,index],PF_brain)*(PF_brain >= 0)) # take each feature # with brain
 
@@ -1119,35 +1036,16 @@ class Fly_by_CNN_contrastive_tractography_labeled(pl.LightningModule):
         # print("x.shape", x.shape) # (batch_size, nb_views, 8, 224, 224)  sans depthmap infos
         # print("x.shape", x.shape) # (batch_size, nb_views, 12, 224, 224)  avec depthmap infos
         # x_brain = torch.cat(l_features_brain,dim=2) # with brain
-
         # x === mes 12 images de 224*224*8
         #x.shape(batch_size,nb_cameras,8,224,224)
-        # print("self.batch_size", self.batch_size)
         # x_brain_f = torch.tile(x_brain,(x.shape[0],1,1,1,1)) # with brain
-        # print("x_brain_f.shape", x_brain_f.shape)
-        # print("x.shape", x.shape)
-        # print(x.shape)
         
         # x = torch.cat((x,x_brain_f),dim=1) # with brain
-        # print("x.shape final", x.shape)
         # x_photo = x[:,0,:3]
         # if self.contrastive:
             # x_photo = x[:,0,:1]
-        # print(x_photo.shape)
-        # print(ksdhg)
         # x_photo = x[0,:,:3]
         # torch.save(x_photo, "x_photo_new.pt")
-        # print(dkjfhs)
-        # print(adkjfhsguh)
-        # print(jsfgrkjfh)adkjfhsguh
-        # print(skjhsfd)
-        # torch.save(x, "x.pt")
-        # torch.save(PF, "PF.pt")
-        # torch.save(x_brain, "x_brain.pt")
-        # torch.save(PF_brain, "PF_brain.pt")
-        # print(kjhd)
-        # print("x.shape", x.shape) # (batch_size, nb_views, nb_features, 224, 224)
-        # print("x", x)
         return x, PF
         # return x, PF, x_brain, PF_brain # with brain
 
@@ -1185,7 +1083,6 @@ class Fly_by_CNN_contrastive_tractography_labeled(pl.LightningModule):
         sample_id = []
         for w in range(len(name_labels)):
             sample_id.append(name_labels[w][0])
-        # print("sample id",sample_id)
         VB = []
         FB = []
         FFB = []
@@ -1196,7 +1093,6 @@ class Fly_by_CNN_contrastive_tractography_labeled(pl.LightningModule):
             VBi = VBi.to(self.device)
             FBi = FBi.to(self.device)
             FFBi = FFBi.to(self.device)
-            # VB = torch.cat((VB, VBi), 0)
             VB.append(VBi)
             FB.append(FBi)
             FFB.append(FFBi)
@@ -1235,12 +1131,9 @@ class Fly_by_CNN_contrastive_tractography_labeled(pl.LightningModule):
         proj_test_b = torch.tensor([]).to(self.device)
         proj_test_t = torch.tensor([]).to(self.device)
 
-        # print(len(data_lab))
         labels_b = []
         for i in range(len(data_lab)):
             if data_lab[i] == 0 :
-                # print("x1", (x1[i].unsqueeze(0)).shape)
-                # print("x1", x1[i])
                 x1_b = torch.cat((x1_b, x1[i].unsqueeze(0)))
                 x2_b = torch.cat((x2_b, x2[i].unsqueeze(0)))
                 proj_test_b = torch.cat((proj_test_b, proj_test[i].unsqueeze(0)))
@@ -1256,32 +1149,19 @@ class Fly_by_CNN_contrastive_tractography_labeled(pl.LightningModule):
         lights = torch.tensor(self.lights).to(self.device)
         
         for i in range(x1_b.shape[0]):
-            # print("labels_b[i]", labels_b[i])
-            # print("lights[labels_b[i]]", lights[labels_b[i]].shape)
-            # print("proj_test_b[i]", proj_test_b[i].unsqueeze(0).shape)
-            # print("labels_b[i]", labels_b[i], i )
             loss_contrastive_bundle += 1-self.loss_cossine(lights[labels_b[i]], x1_b[i].unsqueeze(0)) + 1 - self.loss_cossine(lights[labels_b[i]], x2_b[i].unsqueeze(0)) + 1 - self.loss_cossine(x1_b[i].unsqueeze(0), x2_b[i].unsqueeze(0))
-        #     print("loss_contrastive_bundle", loss_contrastive_bundle)
-        # print("loss_contrastive_bundle", loss_contrastive_bundle)
-        # print("int", int(self.batch_size/2))
-        print("x2_t", x2_t.shape)
         r = torch.randperm(int(x2_t.shape[0]))
         x2_t_r = x2_t[r].to(self.device)
         
         loss_contrastive_tractography = 1 - self.loss_cossine(x1_t, x2_t)
         loss_contrastive_shuffle = self.loss_cossine(x1_t, x2_t_r)
-        # print("loss_contrastive_tractography", loss_contrastive_tractography)
         loss_contrastive_tractography = torch.sum(loss_contrastive_tractography)
         loss_contrastive_shuffle = torch.sum(loss_contrastive_shuffle)
-        # print("loss_contrastive_tractography", loss_contrastive_tractography.shape)
-        # print("loss_contrastive_tractography", loss_contrastive_tractography)
-
 
         # if self.current_epoch == 0: #to add the loss for the rejection class only after the fifth epoch
             # print("coucou")
         Loss_combine = loss_contrastive_bundle + loss_contrastive_tractography + loss_contrastive_shuffle
         print("Loss_combine", Loss_combine, Loss_combine.item())
-        # print(ksdjhfkjdhf)
         self.log('train_loss', Loss_combine.item(), batch_size=self.batch_size)
         # self.log('train_loss', loss_contrastive, batch_size=self.batch_size)
         # print("accuracy", self.train_accuracy(x, labels))
@@ -1292,9 +1172,7 @@ class Fly_by_CNN_contrastive_tractography_labeled(pl.LightningModule):
 
         
     def validation_step(self, val_batch, val_batch_idx):
-        # val_batch_1, val_batch_2 = torch.split(torch.tensor(val_batch), self.batch_size)
-        # print("val_batch_1", len(val_batch_1))
-        # print("val_batch_2", len(val_batch_2))
+        
         V, F, FF, labels, Fiber_infos= val_batch
         V = V.to(self.device)
         F = F.to(self.device)
@@ -1305,21 +1183,11 @@ class Fly_by_CNN_contrastive_tractography_labeled(pl.LightningModule):
         FFI = FFI.to(self.device)
         FFFI = torch.clone(FF)
         FFFI = FFFI.to(self.device)
-        # VB = VB.to(self.device)
-        # FB = FB.to(self.device)
-        # FFB = FFB.to(self.device)
-        # print("V", V.shape)
-        # print("F", F.shape)
-        # print("VFI", VFI.shape)
-
-        # print("FF", FF.shape)
-        # print("FFFI", FFFI.shape)
+        
         labels = labels.to(self.device)
         labelsFI = torch.clone(labels)
         labelsFI = labelsFI.to(self.device)
-        # data_lab = torch.tensor(data_lab)
-        # data_lab = data_lab.to(self.device)
-        # print(Fiber_infos)
+        
         vfbounds = []
         sample_min_max = []
         data_lab = []
@@ -1330,22 +1198,10 @@ class Fly_by_CNN_contrastive_tractography_labeled(pl.LightningModule):
             sample_min_max += [Fiber_infos[z][1]]
             data_lab += Fiber_infos[z][2]
             name_labels += Fiber_infos[z][3]
-            # sample_id += name_labels[0]
-        # print(len(Fiber_infos))
-        # print(Fiber_infos[0])
-        # vfbounds = Fiber_infos[0]
-        # print("vf",vfbounds, len(vfbounds))
-        # sample_min_max = Fiber_infos[1]
-        # print("smm",sample_min_max, len(sample_min_max))
-        # data_lab = Fiber_infos[2]
-        # print("dl",data_lab, len(data_lab))
-        # name_labels = Fiber_infos[3]
-        # print("nl ",name_labels, len(name_labels))
-        # sample_id = name_labels[0]
+        
         sample_id = []
         for w in range(len(name_labels)):
             sample_id.append(name_labels[w][0])
-        # print("sample id",sample_id)
         VB = []
         FB = []
         FFB = []
@@ -1356,7 +1212,6 @@ class Fly_by_CNN_contrastive_tractography_labeled(pl.LightningModule):
             VBi = VBi.to(self.device)
             FBi = FBi.to(self.device)
             FFBi = FFBi.to(self.device)
-            # VB = torch.cat((VB, VBi), 0)
             VB.append(VBi)
             FB.append(FBi)
             FFB.append(FFBi)
@@ -1367,11 +1222,6 @@ class Fly_by_CNN_contrastive_tractography_labeled(pl.LightningModule):
         VB = VB.to(self.device)
         FB = FB.to(self.device)
         FFB = FFB.to(self.device)
-        # print("VB",VB.shape)
-        # print("FB",FB.shape)
-        # print("FFB",FFB.shape)
-
-        # print(askjhksdfjhfk)
 
         V = transformation_verts(V, sample_min_max)
         VFI = transformation_verts_by_fiber(VFI, vfbounds)
@@ -1384,7 +1234,6 @@ class Fly_by_CNN_contrastive_tractography_labeled(pl.LightningModule):
         V2 = V2.to(self.device)
         VFI1 = VFI1.to(self.device)
         VFI2 = VFI2.to(self.device)
-        # print("V1[:]", V1[:].shape)
         for i in range(V1.shape[0]):
             V1[i] = randomrotation(V1[i])
             V2[i] = randomrotation(V2[i])
@@ -1392,8 +1241,8 @@ class Fly_by_CNN_contrastive_tractography_labeled(pl.LightningModule):
             VFI2[i] = randomrotation(VFI2[i])
         condition = True
         x, proj_test, x1, x2 = self((V, V1, V2, F, FF, VFI, VFI1, VFI2, FFI, FFFI, VB, FB, FFB, condition))    #.shape = (batch_size, num classes)
-        # print("x1", x1.shape)
-        # print("x2", x2.shape)
+        # print("x1", x1.shape) #(batch_size, 128)
+        # print("x2", x2.shape) #(batch_size, 128)
         x1_b = torch.tensor([]).to(self.device)
         x1_t = torch.tensor([]).to(self.device)
         x2_b = torch.tensor([]).to(self.device)
@@ -1401,20 +1250,12 @@ class Fly_by_CNN_contrastive_tractography_labeled(pl.LightningModule):
         proj_test_b = torch.tensor([]).to(self.device)
         proj_test_t = torch.tensor([]).to(self.device)
         labels_b = []
-        # print(len(data_lab))
+
         for i in range(len(data_lab)):
             if data_lab[i] == 0 :
-                # print("x1", (x1[i].unsqueeze(0)).shape)
-                # print("x1", x1[i])
                 x1_b = torch.cat((x1_b, x1[i].unsqueeze(0)))
                 x2_b = torch.cat((x2_b, x2[i].unsqueeze(0)))
-                # print("proj_test[i]", proj_test[i].shape)
-                # print("proj_test_b", proj_test_b.shape)
-                # print("proj_test[i].unsqueeze(0)", proj_test[i].unsqueeze(0).shape)
-                # print("proj_test[i]", proj_test[i].shape)
                 proj_test_b = torch.cat((proj_test_b, proj_test[i].unsqueeze(0)))
-                # print("proj_test_b", proj_test_b.shape)
-                # labels_b = torch.cat((labels_b, labels[i].unsqueeze(0)))
                 labels_b.append(labels[i])
             else:
                 x1_t = torch.cat((x1_t, x1[i].unsqueeze(0)))
@@ -1427,15 +1268,7 @@ class Fly_by_CNN_contrastive_tractography_labeled(pl.LightningModule):
         lights = torch.tensor(self.lights).to(self.device)
         
         for i in range(x1_b.shape[0]):
-            # print("labels_b[i]", labels_b[i])
-            # print("lights[labels_b[i]]", lights[labels_b[i]].shape)
-            # print("proj_test_b[i]", proj_test_b[i].unsqueeze(0).shape)
-            # print("labels_b[i]", labels_b[i], i )
             loss_contrastive_bundle += 1-self.loss_cossine(lights[labels_b[i]], x1_b[i].unsqueeze(0)) + 1 - self.loss_cossine(lights[labels_b[i]], x2_b[i].unsqueeze(0)) + 1 - self.loss_cossine(x1_b[i].unsqueeze(0), x2_b[i].unsqueeze(0))
-        #     print("loss_contrastive_bundle", loss_contrastive_bundle)
-        # print("loss_contrastive_bundle", loss_contrastive_bundle)
-        # print("int", int(self.batch_size/2))
-        print("x2_t", x2_t.shape)
         r = torch.randperm(int(x2_t.shape[0]))
         x2_t_r = x2_t[r].to(self.device)
         
@@ -1448,15 +1281,7 @@ class Fly_by_CNN_contrastive_tractography_labeled(pl.LightningModule):
             # print("coucou")
         Loss_combine = loss_contrastive_bundle + loss_contrastive_tractography + loss_contrastive_shuffle
         print("Loss_combine", Loss_combine, Loss_combine.item())
-        # print("loss_contrastive", loss_contrastive, loss_contrastive.item())
-        # print(jshdgjhg)
-        # print(skjfhdkjhfd)
-
-        # if data_lab == 0:
-            # loss_cossine_bundle = 1 - self.loss_cossine(self.lights[labels], proj_test)
-        # else:
-            # loss_cossine_tractography = 1 - self.loss_cossine(x1, x2)
-        # loss_cossine = self.loss_cossine(x, labels)
+       
         self.log('val_loss', Loss_combine.item(), batch_size=self.batch_size)
         # self.log('val_loss', loss_contrastive.item(), batch_size=self.batch_size)
         predictions = torch.argmax(x, dim=1)
@@ -1500,7 +1325,6 @@ class Fly_by_CNN_contrastive_tractography_labeled(pl.LightningModule):
         sample_id = []
         for w in range(len(name_labels)):
             sample_id.append(name_labels[w][0])
-        # print("sample id",sample_id)
         VB = []
         FB = []
         FFB = []
@@ -1511,7 +1335,6 @@ class Fly_by_CNN_contrastive_tractography_labeled(pl.LightningModule):
             VBi = VBi.to(self.device)
             FBi = FBi.to(self.device)
             FFBi = FFBi.to(self.device)
-            # VB = torch.cat((VB, VBi), 0)
             VB.append(VBi)
             FB.append(FBi)
             FFB.append(FFBi)
@@ -1552,11 +1375,9 @@ class Fly_by_CNN_contrastive_tractography_labeled(pl.LightningModule):
         proj_test_b = torch.tensor([]).to(self.device)
         proj_test_t = torch.tensor([]).to(self.device)
         labels_b = []
-        # print(len(data_lab))
         for i in range(len(data_lab)):
             if data_lab[i] == 0 :
-                # print("x1", (x1[i].unsqueeze(0)).shape)
-                # print("x1", x1[i])
+
                 x1_b = torch.cat((x1_b, x1[i].unsqueeze(0)))
                 x2_b = torch.cat((x2_b, x2[i].unsqueeze(0)))
                 proj_test_b = torch.cat((proj_test_b, proj_test[i].unsqueeze(0)))
@@ -1579,90 +1400,24 @@ class Fly_by_CNN_contrastive_tractography_labeled(pl.LightningModule):
         name_labels = name_labels.to(self.device)
         data_lab = torch.tensor(data_lab)
         data_lab = data_lab.to(self.device)
-        # print("data_lab",data_lab.shape)
-# 
-        # print("name.shape",name_labels.shape)
-        # print("labels.shape",labels.shape)
         labels2 = labels.unsqueeze(dim = 1)
-        # print("labels", labels2.shape)
-        # print("proj_test", proj_test.shape)
         data_lab = data_lab.unsqueeze(dim = 1)
 
         proj_test = torch.cat((proj_test, labels2, name_labels, data_lab), dim=1)
-        # print("proj_test", proj_test.shape)
         
         lab = torch.unique(labels)
         lab = lab.cpu()
         lab = np.array(lab)
     
         torch.save(proj_test, f"/CMF/data/timtey/results_contrastive_loss_combine/proj_test_{lab[0]}_{tot}.pt")
-        # print(ksjhf)
-
-        # if self.contrastive:
-            # test_batch_1, test_batch_2 = self.augment(test_batch)
-
-        # x_fiber = self((VFI, F, FF))
-        # x = self.Sigmoid(x).squeeze(dim=1)
-        # print("x1", x1.shape)
-        # if self.contrastive:
-            # x1 = torch.cat((x1,x1,x1),1)
-            # x2 = torch.cat((x2,x2,x2),1)
-        # x1 = torch.cat((x1,x1,x1),1)
-        # x2 = torch.cat((x2,x2,x2),1)
-        # print("x1 after", x1.shape)
-        # z1 = self.model(x1)
-        # z2 = self.model(x2)
-
-        # loss_contrastive = self.loss(z1, z2, labels)
-        # loss = self.loss_test(x, labels)
-        # tsne = TSNE(n_components=2)
-        # tsne = tsne.to(self.device)
-        # x1 = x1.to(self.device)
-        # print("x1", x1.shape)
-        # print("x1", x1.get_device())
-        # print("x2", x2.shape)
-        # print("x2", x2.get_device())
-        # print("tsne", tsne.get_device())
-        # x1 = x1.cpu()
-        # x2 = x2.cpu()
-        # proj_test = proj_test.cpu()
-        # print("x1", x1.get_device())
-        # print("x2", x2.get_device())
-        # tsne_results1 = tsne.fit_transform(x1)
-        # tsne_results2 = tsne.fit_transform(x2)
-        # tsne_results_test = tsne.fit_transform(proj_test)
-        # print("labels", labels)
-        # se = set(labels.tolist())
-        # nb_clusters = len(se)
-        # print("nb_clusters", nb_clusters)
-        # kmeans = KMeans(n_clusters=nb_clusters, random_state=0).fit(tsne_results_test)
-        # print("kmeans", kmeans)
-        # y_kmeans = kmeans.predict(tsne_results_test)
-        # centers = kmeans.cluster_centers_
-        # print("tsne_results1", tsne_results1.shape) #(bs,2)
-        # print("tsne_results2", tsne_results2.shape) #(bs,2)
-        # print("tsne_results_test", tsne_results_test.shape) #(bs,2)
-        # plt.scatter(tsne_results_test[:, 0], tsne_results_test[:, 1], c=y_kmeans, s=50, cmap='viridis')
-        # plt.show()
-
-        # x1 = x1.to(self.device)
-        # x2 = x2.to(self.device)
-        # proj_test = proj_test.to(self.device)
+        
         loss_contrastive = self.loss_contrastive(x1, x2)
 
         loss_contrastive_bundle = 0
         lights = torch.tensor(self.lights).to(self.device)
         
         for i in range(x1_b.shape[0]):
-            # print("labels_b[i]", labels_b[i])
-            # print("lights[labels_b[i]]", lights[labels_b[i]].shape)
-            # print("proj_test_b[i]", proj_test_b[i].unsqueeze(0).shape)
-            # print("labels_b[i]", labels_b[i], i )
             loss_contrastive_bundle += 1-self.loss_cossine(lights[labels_b[i]], x1_b[i].unsqueeze(0)) + 1 - self.loss_cossine(lights[labels_b[i]], x2_b[i].unsqueeze(0)) + 1 - self.loss_cossine(x1_b[i].unsqueeze(0), x2_b[i].unsqueeze(0))
-        #     print("loss_contrastive_bundle", loss_contrastive_bundle)
-        # print("loss_contrastive_bundle", loss_contrastive_bundle)
-        # print("int", int(self.batch_size/2))
-        print("x2_t", x2_t.shape)
         r = torch.randperm(int(x2_t.shape[0]))
         x2_t_r = x2_t[r].to(self.device)
         
@@ -1671,18 +1426,9 @@ class Fly_by_CNN_contrastive_tractography_labeled(pl.LightningModule):
         loss_contrastive_tractography = torch.sum(loss_contrastive_tractography)
         loss_contrastive_shuffle = torch.sum(loss_contrastive_shuffle)
         Loss_combine = loss_contrastive_bundle + loss_contrastive_tractography + loss_contrastive_shuffle
-        print("Loss_combine", Loss_combine)
         self.log('test_loss', Loss_combine, batch_size=self.batch_size)
-        # self.log('test_loss', loss_contrastive, batch_size=self.batch_size)
-        # torch.save(tsne_results_test, f"/CMF/data/timtey/tsne/tsne_results_test_{loss_contrastive}.pt")
-        # print("x", x.shape)
         predictions = torch.argmax(x, dim=1)
-        # print("predictions", predictions)
-        #for i in range(len(predictions)):
-            #print("x[i][predictions[i]]", x[i][predictions[i]])
-            #if x[i][predictions[i]]<0.5:
-            #    predictions[i] = 0
-        #print("predictions", predictions)
+        
         self.log('test_accuracy', self.val_accuracy, batch_size=self.batch_size)
         output = [predictions, labels]
         return output
@@ -1690,20 +1436,13 @@ class Fly_by_CNN_contrastive_tractography_labeled(pl.LightningModule):
     def test_epoch_end(self, outputs):
         self.y_pred = []
         self.y_true = []
-        # print("outputs", outputs)
 
         for output in outputs:
             self.y_pred.append(output[0].tolist())
             self.y_true.append(output[1].tolist())
-
         self.y_pred = [ele for sousliste in self.y_pred for ele in sousliste]
         self.y_true = [ele for sousliste in self.y_true for ele in sousliste]
-        
-        
         self.y_pred = [[int(ele)] for ele in self.y_pred]
-        
-        # print("y_pred", self.y_pred)
-        # print("y_true", self.y_true)
         self.accuracy = accuracy_score(self.y_true, self.y_pred)
         # print("accuracy", self.accuracy)
         # print(classification_report(self.y_true, self.y_pred))
@@ -1762,55 +1501,3 @@ class ContrastiveLoss(nn.Module):
         all_losses = -torch.log(nominator / torch.sum(denominator, dim=1))
         loss = torch.sum(all_losses) / (2 * self.batch_size)
         return loss
-    
-# class LinearLayer(nn.Module):
-#     def __init__(self,
-#                  in_features,
-#                  out_features,
-#                  use_bias = True,
-#                  use_bn = False,
-#                  **kwargs):
-#         super(LinearLayer, self).__init__(**kwargs)
-
-#         self.in_features = in_features
-#         self.out_features = out_features
-#         self.use_bias = use_bias
-#         self.use_bn = use_bn
-        
-#         self.linear = nn.Linear(self.in_features, 
-#                                 self.out_features, 
-#                                 bias = self.use_bias and not self.use_bn)
-#         if self.use_bn:
-#              self.bn = nn.BatchNorm1d(self.out_features)
-
-#     def forward(self,x):
-#         x = self.linear(x)
-#         if self.use_bn:
-#             x = self.bn(x)
-#         return x
-
-# class ProjectionHead(nn.Module):
-#     def __init__(self,
-#                  in_features,
-#                  hidden_features,
-#                  out_features,
-#                  head_type = 'nonlinear',
-#                  **kwargs):
-#         super(ProjectionHead,self).__init__(**kwargs)
-#         self.in_features = in_features
-#         self.out_features = out_features
-#         self.hidden_features = hidden_features
-#         self.head_type = head_type
-
-#         if self.head_type == 'linear':
-#             self.layers = LinearLayer(self.in_features,self.out_features,False, True)
-#         elif self.head_type == 'nonlinear':
-#             self.layers = nn.Sequential(
-#                 LinearLayer(self.in_features,self.hidden_features,True, True),
-#                 nn.ReLU(),
-#                 LinearLayer(self.hidden_features,self.out_features,False,True))
-        
-#     def forward(self,x):
-#         x = self.layers(x)
-#         return x
-    
