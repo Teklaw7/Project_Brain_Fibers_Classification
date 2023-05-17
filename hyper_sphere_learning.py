@@ -20,7 +20,7 @@ import pickle
 
 import matplotlib.pyplot as plt
 from sklearn.cluster import KMeans
-
+from sklearn.decomposition import PCA
 def main(args):
 
     # checkpoint_callback = ModelCheckpoint(
@@ -105,8 +105,29 @@ def main(args):
         # print("point :", centroids[i])
         print("norme :", np.linalg.norm(centroids[i]))
     print("centroids.shape",centroids.shape)
-    lights = np.abs(centroids/np.linalg.norm(centroids, axis=1, keepdims=True))    
+    lights = np.abs(centroids/np.linalg.norm(centroids, axis=1, keepdims=True))    #shape (57,128), on est normalises
     print("lights.shape",lights.shape)
+
+    if not os.path.exists(args.out):
+        os.makedirs(args.out)
+
+    with open(os.path.join(args.out, "Lights.pickle"), 'wb') as f:
+        pickle.dump(lights, f)
+    pca = PCA(n_components=3)
+    lights_2 = pca.fit_transform(lights)
+    print("lights_2.shape",lights_2.shape)
+    fig3 = plt.figure()
+    ax3 = fig3.add_subplot(projection='3d')
+    ax3.scatter(lights_2[:,0], lights_2[:,1], lights_2[:,2], linewidths=5)
+    plt.show()
+    print(dkfjhkdfjh)
+    # for i in range(lights.shape[0]):
+    #     norm = 0
+    #     for j in range(lights.shape[1]):
+    #         norm+=lights[i][j]**2
+    #     norm = np.sqrt(norm)
+    #     print("norm", norm)
+    # print(dkjhfkdjh)
     min_l = 999999999
     for idx, l in enumerate(lights):
         lights_ex = np.concatenate([lights[:idx], lights[idx+1:]])
@@ -119,9 +140,24 @@ def main(args):
     # print("centroids.shape",centroids.shape)
     # print("centroids", centroids[0], centroids[1], centroids[2])
     # centroids =np.abs(centroids)
-    # print("centroids", centroids)
+    print("centroids", type(centroids))
+    centroids_f =centroids
+    for i in range(centroids.shape[0]):
+        norm = 0
+        for j in range(centroids.shape[1]):
+            norm += centroids[i][j]**2
+        centroids_f[i] = centroids[i]/norm
+    print("centroids_f : ",centroids_f.shape)
+    # print("centroids_f", centroids_f[0], centroids_f[1], centroids_f[2])
+    # for i in range(centroids_f.shape[0]):
+    #     norm = 0
+    #     for j in range(centroids_f.shape[1]):
+    #         norm += centroids_f[i][j]**2
+    #     print("norme :", np.sqrt(norm))
 
-    centroids2 = tsne.fit_transform(centroids)
+    # print(lkdfhkjsdgh)
+
+    centroids2 = tsne.fit_transform(centroids) # use pca instead of tsne
     print("centroids2.shape",centroids2.shape)
     for i in range(centroids2.shape[0]):
         # print("point :", centroids[i])
@@ -167,6 +203,7 @@ def main(args):
         norm = np.linalg.norm(centroids2[i])
         centroids2[i] = centroids2[i]/norm
         print("norme :", np.linalg.norm(centroids2[i]))
+    
     fig = plt.figure()
     ax = fig.add_subplot(projection='3d')
     r = 1
@@ -193,14 +230,30 @@ def main(args):
     ax.set_aspect("equal")
 
     plt.show()
+    complete = torch.tensor([])
+    for z in range(125):
+        con = torch.tensor([0])
+        complete = torch.cat((complete, con))
+    print("complete.shape", complete.shape)
+    # print(sdkfhfkjh)
+    pn = torch.tensor([np.sin(theta)*np.cos(phi), np.sin(theta)*np.sin(phi), cos(theta)])
+    pn = torch.cat((pn, complete))
+    print("pn.shape", pn.shape)
+    pn = pn.unsqueeze(0)
+    print("pn.shape", pn.shape)
+    print("pn", pn)
+    lights = torch.tensor(lights)
+    print("lights.shape", lights.shape)
+    Lights = torch.cat((lights,pn ))
+    print("Lights.shape", Lights.shape)
+    # print(ksdjhfkdjh)
 
+    # Cr = np.array([np.sin(theta)*np.cos(phi), np.sin(theta)*np.sin(phi), cos(theta)])
+    # print("Cr.shape", Cr.shape)
+    # tsne2 = TSNE(n_components=128, perplexity=205)
+    # Cr2 = tsne2.fit_transform(Cr)
+    # print("Cr2.shape", Cr2.shape)
     
-
-    if not os.path.exists(args.out):
-        os.makedirs(args.out)
-
-    with open(os.path.join(args.out, "Lights.pickle"), 'wb') as f:
-        pickle.dump(lights, f)
 
 
 

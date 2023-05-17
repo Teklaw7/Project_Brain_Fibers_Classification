@@ -205,9 +205,9 @@ class Bundles_Dataset_tractography(Dataset):
     
     def __len__(self):
         # print("len", self.fibers)
-        # return len(self.data)
+        return len(self.data)
         # print("self.length", self.length)
-        return self.length
+        # return self.length
         # return 10
 
     def __getitem__(self, idx):

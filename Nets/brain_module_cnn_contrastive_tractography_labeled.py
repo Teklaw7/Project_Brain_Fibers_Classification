@@ -30,7 +30,7 @@ from sklearn.cluster import KMeans
 # import MLP
 import random
 from torch.nn.utils.rnn import pad_sequence, pack_padded_sequence as pack_sequence, pad_packed_sequence as unpack_sequence
-
+import pandas as pd
 
 class RotationTransform:
     def __call__(self, verts, rotation_matrix):
@@ -547,6 +547,9 @@ class Fly_by_CNN_contrastive_tractography_labeled(pl.LightningModule):
         self.loss_val = nn.CrossEntropyLoss(weight = self.weights[1])
         self.loss_test = nn.CrossEntropyLoss(weight = self.weights[2])
 
+        self.lights = pd.read_pickle(r'Lights.pickle')
+        # print("lighst",self.lights)
+        self.loss_cossine = nn.CosineSimilarity()
         # mesh_left = Meshes(verts=[self.verts_left], faces=[self.faces_left]) # with brain
         # mesh_right = Meshes(verts=[self.verts_right], faces=[self.faces_right]) # with brain
         # mesh_left = mesh_left.to(self.device) # with brain
@@ -1225,20 +1228,73 @@ class Fly_by_CNN_contrastive_tractography_labeled(pl.LightningModule):
             VFI2[i] = randomrotation(VFI2[i])
         condition = True
         x, proj_test, x1, x2 = self((V, V1, V2, F, FF, VFI, VFI1, VFI2, FFI, FFFI, VB, FB, FFB, condition))
+        x1_b = torch.tensor([]).to(self.device)
+        x1_t = torch.tensor([]).to(self.device)
+        x2_b = torch.tensor([]).to(self.device)
+        x2_t = torch.tensor([]).to(self.device)
+        proj_test_b = torch.tensor([]).to(self.device)
+        proj_test_t = torch.tensor([]).to(self.device)
 
+        # print(len(data_lab))
+        labels_b = []
+        for i in range(len(data_lab)):
+            if data_lab[i] == 0 :
+                # print("x1", (x1[i].unsqueeze(0)).shape)
+                # print("x1", x1[i])
+                x1_b = torch.cat((x1_b, x1[i].unsqueeze(0)))
+                x2_b = torch.cat((x2_b, x2[i].unsqueeze(0)))
+                proj_test_b = torch.cat((proj_test_b, proj_test[i].unsqueeze(0)))
+                labels_b.append(labels[i])
+            else:
+                x1_t = torch.cat((x1_t, x1[i].unsqueeze(0)))
+                x2_t = torch.cat((x2_t, x2[i].unsqueeze(0)))
+                proj_test_t = torch.cat((proj_test_t, proj_test[i].unsqueeze(0)))
         # loss = self.loss_train(x, labels)
     
         loss_contrastive = self.loss_contrastive(x1, x2)
+        loss_contrastive_bundle = 0
+        lights = torch.tensor(self.lights).to(self.device)
+        
+        for i in range(x1_b.shape[0]):
+            # print("labels_b[i]", labels_b[i])
+            # print("lights[labels_b[i]]", lights[labels_b[i]].shape)
+            # print("proj_test_b[i]", proj_test_b[i].unsqueeze(0).shape)
+            # print("labels_b[i]", labels_b[i], i )
+            loss_contrastive_bundle += 1-self.loss_cossine(lights[labels_b[i]], x1_b[i].unsqueeze(0)) + 1 - self.loss_cossine(lights[labels_b[i]], x2_b[i].unsqueeze(0)) + 1 - self.loss_cossine(x1_b[i].unsqueeze(0), x2_b[i].unsqueeze(0))
+        #     print("loss_contrastive_bundle", loss_contrastive_bundle)
+        # print("loss_contrastive_bundle", loss_contrastive_bundle)
+        # print("int", int(self.batch_size/2))
+        print("x2_t", x2_t.shape)
+        r = torch.randperm(int(x2_t.shape[0]))
+        x2_t_r = x2_t[r].to(self.device)
+        
+        loss_contrastive_tractography = 1 - self.loss_cossine(x1_t, x2_t)
+        loss_contrastive_shuffle = self.loss_cossine(x1_t, x2_t_r)
+        # print("loss_contrastive_tractography", loss_contrastive_tractography)
+        loss_contrastive_tractography = torch.sum(loss_contrastive_tractography)
+        loss_contrastive_shuffle = torch.sum(loss_contrastive_shuffle)
+        # print("loss_contrastive_tractography", loss_contrastive_tractography.shape)
+        # print("loss_contrastive_tractography", loss_contrastive_tractography)
 
-        self.log('train_loss', loss_contrastive, batch_size=self.batch_size)
+
+        # if self.current_epoch == 0: #to add the loss for the rejection class only after the fifth epoch
+            # print("coucou")
+        Loss_combine = loss_contrastive_bundle + loss_contrastive_tractography + loss_contrastive_shuffle
+        print("Loss_combine", Loss_combine, Loss_combine.item())
+        # print(ksdjhfkjdhf)
+        self.log('train_loss', Loss_combine.item(), batch_size=self.batch_size)
+        # self.log('train_loss', loss_contrastive, batch_size=self.batch_size)
         # print("accuracy", self.train_accuracy(x, labels))
         self.log('train_accuracy', self.train_accuracy, batch_size=self.batch_size)
 
-        return loss_contrastive
+        # return loss_contrastive
+        return Loss_combine
 
         
     def validation_step(self, val_batch, val_batch_idx):
-    
+        # val_batch_1, val_batch_2 = torch.split(torch.tensor(val_batch), self.batch_size)
+        # print("val_batch_1", len(val_batch_1))
+        # print("val_batch_2", len(val_batch_2))
         V, F, FF, labels, Fiber_infos= val_batch
         V = V.to(self.device)
         F = F.to(self.device)
@@ -1336,10 +1392,73 @@ class Fly_by_CNN_contrastive_tractography_labeled(pl.LightningModule):
             VFI2[i] = randomrotation(VFI2[i])
         condition = True
         x, proj_test, x1, x2 = self((V, V1, V2, F, FF, VFI, VFI1, VFI2, FFI, FFFI, VB, FB, FFB, condition))    #.shape = (batch_size, num classes)
-        
+        # print("x1", x1.shape)
+        # print("x2", x2.shape)
+        x1_b = torch.tensor([]).to(self.device)
+        x1_t = torch.tensor([]).to(self.device)
+        x2_b = torch.tensor([]).to(self.device)
+        x2_t = torch.tensor([]).to(self.device)
+        proj_test_b = torch.tensor([]).to(self.device)
+        proj_test_t = torch.tensor([]).to(self.device)
+        labels_b = []
+        # print(len(data_lab))
+        for i in range(len(data_lab)):
+            if data_lab[i] == 0 :
+                # print("x1", (x1[i].unsqueeze(0)).shape)
+                # print("x1", x1[i])
+                x1_b = torch.cat((x1_b, x1[i].unsqueeze(0)))
+                x2_b = torch.cat((x2_b, x2[i].unsqueeze(0)))
+                # print("proj_test[i]", proj_test[i].shape)
+                # print("proj_test_b", proj_test_b.shape)
+                # print("proj_test[i].unsqueeze(0)", proj_test[i].unsqueeze(0).shape)
+                # print("proj_test[i]", proj_test[i].shape)
+                proj_test_b = torch.cat((proj_test_b, proj_test[i].unsqueeze(0)))
+                # print("proj_test_b", proj_test_b.shape)
+                # labels_b = torch.cat((labels_b, labels[i].unsqueeze(0)))
+                labels_b.append(labels[i])
+            else:
+                x1_t = torch.cat((x1_t, x1[i].unsqueeze(0)))
+                x2_t = torch.cat((x2_t, x2[i].unsqueeze(0)))
+                proj_test_t = torch.cat((proj_test_t, proj_test[i].unsqueeze(0)))
+
         loss_contrastive = self.loss_contrastive(x1, x2)
         
-        self.log('val_loss', loss_contrastive.item(), batch_size=self.batch_size)
+        loss_contrastive_bundle = 0
+        lights = torch.tensor(self.lights).to(self.device)
+        
+        for i in range(x1_b.shape[0]):
+            # print("labels_b[i]", labels_b[i])
+            # print("lights[labels_b[i]]", lights[labels_b[i]].shape)
+            # print("proj_test_b[i]", proj_test_b[i].unsqueeze(0).shape)
+            # print("labels_b[i]", labels_b[i], i )
+            loss_contrastive_bundle += 1-self.loss_cossine(lights[labels_b[i]], x1_b[i].unsqueeze(0)) + 1 - self.loss_cossine(lights[labels_b[i]], x2_b[i].unsqueeze(0)) + 1 - self.loss_cossine(x1_b[i].unsqueeze(0), x2_b[i].unsqueeze(0))
+        #     print("loss_contrastive_bundle", loss_contrastive_bundle)
+        # print("loss_contrastive_bundle", loss_contrastive_bundle)
+        # print("int", int(self.batch_size/2))
+        print("x2_t", x2_t.shape)
+        r = torch.randperm(int(x2_t.shape[0]))
+        x2_t_r = x2_t[r].to(self.device)
+        
+        loss_contrastive_tractography = 1 - self.loss_cossine(x1_t, x2_t)
+        loss_contrastive_shuffle = self.loss_cossine(x1_t, x2_t_r)
+        loss_contrastive_tractography = torch.sum(loss_contrastive_tractography)
+        loss_contrastive_shuffle = torch.sum(loss_contrastive_shuffle)
+
+        # if self.current_epoch ==0:
+            # print("coucou")
+        Loss_combine = loss_contrastive_bundle + loss_contrastive_tractography + loss_contrastive_shuffle
+        print("Loss_combine", Loss_combine, Loss_combine.item())
+        # print("loss_contrastive", loss_contrastive, loss_contrastive.item())
+        # print(jshdgjhg)
+        # print(skjfhdkjhfd)
+
+        # if data_lab == 0:
+            # loss_cossine_bundle = 1 - self.loss_cossine(self.lights[labels], proj_test)
+        # else:
+            # loss_cossine_tractography = 1 - self.loss_cossine(x1, x2)
+        # loss_cossine = self.loss_cossine(x, labels)
+        self.log('val_loss', Loss_combine.item(), batch_size=self.batch_size)
+        # self.log('val_loss', loss_contrastive.item(), batch_size=self.batch_size)
         predictions = torch.argmax(x, dim=1)
         self.val_accuracy(predictions.reshape(-1,1), labels.reshape(-1,1))
         
@@ -1425,6 +1544,30 @@ class Fly_by_CNN_contrastive_tractography_labeled(pl.LightningModule):
         condition = False
         # x, proj_test, x1, x2 = self((V_c, V_c1, V_c2, F_c, FF_c, VFI_c, VFI_c1, VFI_c2, FFI_c, FFFI_c, VB, FB, FFB, condition))    #.shape = (batch_size, num classes)
         x,  proj_test, x1, x2 = self((V, V1, V2, F, FF, VFI, VFI1, VFI2, FFI, FFFI, VB, FB, FFB, condition))
+
+        x1_b = torch.tensor([]).to(self.device)
+        x1_t = torch.tensor([]).to(self.device)
+        x2_b = torch.tensor([]).to(self.device)
+        x2_t = torch.tensor([]).to(self.device)
+        proj_test_b = torch.tensor([]).to(self.device)
+        proj_test_t = torch.tensor([]).to(self.device)
+        labels_b = []
+        # print(len(data_lab))
+        for i in range(len(data_lab)):
+            if data_lab[i] == 0 :
+                # print("x1", (x1[i].unsqueeze(0)).shape)
+                # print("x1", x1[i])
+                x1_b = torch.cat((x1_b, x1[i].unsqueeze(0)))
+                x2_b = torch.cat((x2_b, x2[i].unsqueeze(0)))
+                proj_test_b = torch.cat((proj_test_b, proj_test[i].unsqueeze(0)))
+                labels_b.append(labels[i])
+            else:
+                x1_t = torch.cat((x1_t, x1[i].unsqueeze(0)))
+                x2_t = torch.cat((x2_t, x2[i].unsqueeze(0)))
+                proj_test_t = torch.cat((proj_test_t, proj_test[i].unsqueeze(0)))
+
+
+
         a = random.randint(0,10)
         b = random.randint(0,10)
         c = random.randint(0,10)
@@ -1452,7 +1595,7 @@ class Fly_by_CNN_contrastive_tractography_labeled(pl.LightningModule):
         lab = lab.cpu()
         lab = np.array(lab)
     
-        torch.save(proj_test, f"/CMF/data/timtey/results_contrastive_learning_double_batch_V2/results2_pretrained_true_t_04/proj_test_{lab[0]}_{tot}.pt")
+        torch.save(proj_test, f"/CMF/data/timtey/results_contrastive_loss_combine/proj_test_{lab[0]}_{tot}.pt")
         # print(ksjhf)
 
         # if self.contrastive:
@@ -1506,7 +1649,31 @@ class Fly_by_CNN_contrastive_tractography_labeled(pl.LightningModule):
         # x2 = x2.to(self.device)
         # proj_test = proj_test.to(self.device)
         loss_contrastive = self.loss_contrastive(x1, x2)
-        self.log('test_loss', loss_contrastive, batch_size=self.batch_size)
+
+        loss_contrastive_bundle = 0
+        lights = torch.tensor(self.lights).to(self.device)
+        
+        for i in range(x1_b.shape[0]):
+            # print("labels_b[i]", labels_b[i])
+            # print("lights[labels_b[i]]", lights[labels_b[i]].shape)
+            # print("proj_test_b[i]", proj_test_b[i].unsqueeze(0).shape)
+            # print("labels_b[i]", labels_b[i], i )
+            loss_contrastive_bundle += 1-self.loss_cossine(lights[labels_b[i]], x1_b[i].unsqueeze(0)) + 1 - self.loss_cossine(lights[labels_b[i]], x2_b[i].unsqueeze(0)) + 1 - self.loss_cossine(x1_b[i].unsqueeze(0), x2_b[i].unsqueeze(0))
+        #     print("loss_contrastive_bundle", loss_contrastive_bundle)
+        # print("loss_contrastive_bundle", loss_contrastive_bundle)
+        # print("int", int(self.batch_size/2))
+        print("x2_t", x2_t.shape)
+        r = torch.randperm(int(x2_t.shape[0]))
+        x2_t_r = x2_t[r].to(self.device)
+        
+        loss_contrastive_tractography = 1 - self.loss_cossine(x1_t, x2_t)
+        loss_contrastive_shuffle = self.loss_cossine(x1_t, x2_t_r)
+        loss_contrastive_tractography = torch.sum(loss_contrastive_tractography)
+        loss_contrastive_shuffle = torch.sum(loss_contrastive_shuffle)
+        Loss_combine = loss_contrastive_bundle + loss_contrastive_tractography + loss_contrastive_shuffle
+        print("Loss_combine", Loss_combine)
+        self.log('test_loss', Loss_combine, batch_size=self.batch_size)
+        # self.log('test_loss', loss_contrastive, batch_size=self.batch_size)
         # torch.save(tsne_results_test, f"/CMF/data/timtey/tsne/tsne_results_test_{loss_contrastive}.pt")
         # print("x", x.shape)
         predictions = torch.argmax(x, dim=1)
