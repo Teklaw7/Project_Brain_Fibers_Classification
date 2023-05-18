@@ -35,11 +35,9 @@ import pandas as pd
 class RotationTransform:
     def __call__(self, verts, rotation_matrix):
         b = torch.transpose(verts,0,1)
-        # print("b", b.shape)
         a= torch.mm(rotation_matrix,torch.transpose(verts,0,1))
         verts = torch.transpose(torch.mm(rotation_matrix,torch.transpose(verts,0,1)),0,1)
         return verts
-
     
 def randomrotation(verts):
     verts_device = verts.get_device()
@@ -47,6 +45,7 @@ def randomrotation(verts):
     rotation_transform = RotationTransform()
     verts = rotation_transform(verts,rotation_matrix)
     return verts
+
 '''
 def pad_double_batch(V,F,FF,VFI,FFI,FFFI,VB,FB,FFB, V2,F2,FF2,VFI2,FFI2,FFFI2,VB2,FB2,FFB2):
     # V_max = max(V.shape[1],V2.shape[1])
@@ -143,7 +142,6 @@ def pad_double_batch(V,F,FF,VFI,FFI,FFFI,VB,FB,FFB, V2,F2,FF2,VFI2,FFI2,FFFI2,VB
     # FFB_c = torch.cat((FFB,FFB2), dim=0)
     return V_c,F_c,FF_c,VFI_c,FFI_c,FFFI_c,VB_c,FB_c,FFB_c
 '''
-
 
 def GetView(meshes,phong_renderer,R,T):
     R = R.to(torch.float32)
@@ -1158,9 +1156,20 @@ class Fly_by_CNN_contrastive_tractography_labeled(pl.LightningModule):
         loss_contrastive_tractography = torch.sum(loss_contrastive_tractography)
         loss_contrastive_shuffle = torch.sum(loss_contrastive_shuffle)
 
+        loss_tract_cluster = 0
+        for j in range(x1_t.shape[0]):
+            loss_tract_cluster_i = torch.tensor([]).to(self.device)
+            for i in range(lights.shape[0]):
+                loss_tract_cluster_i = torch.cat((loss_tract_cluster_i, self.loss_cossine(lights[i], x1_t[j].unsqueeze(0))))
+            topk = torch.topk(loss_tract_cluster_i, 5)
+            # loss_tract_cluster = torch.argsort(loss_tract_cluster)
+            topk_indices = topk.indices
+            n = random.randint(-5,-1)
+            cluster_k_indices = topk_indices[n].item()
+            loss_tract_cluster += 1-self.loss_cossine(lights[cluster_k_indices], x1_t[j].unsqueeze(0))
         # if self.current_epoch == 0: #to add the loss for the rejection class only after the fifth epoch
             # print("coucou")
-        Loss_combine = loss_contrastive_bundle + loss_contrastive_tractography + loss_contrastive_shuffle
+        Loss_combine = loss_contrastive_bundle + loss_contrastive_tractography + loss_contrastive_shuffle + loss_tract_cluster
         print("Loss_combine", Loss_combine, Loss_combine.item())
         self.log('train_loss', Loss_combine.item(), batch_size=self.batch_size)
         # self.log('train_loss', loss_contrastive, batch_size=self.batch_size)
@@ -1276,10 +1285,20 @@ class Fly_by_CNN_contrastive_tractography_labeled(pl.LightningModule):
         loss_contrastive_shuffle = self.loss_cossine(x1_t, x2_t_r)
         loss_contrastive_tractography = torch.sum(loss_contrastive_tractography)
         loss_contrastive_shuffle = torch.sum(loss_contrastive_shuffle)
-
-        # if self.current_epoch ==0:
-            # print("coucou")
-        Loss_combine = loss_contrastive_bundle + loss_contrastive_tractography + loss_contrastive_shuffle
+        
+        loss_tract_cluster = 0
+        for j in range(x1_t.shape[0]):
+            loss_tract_cluster_i = torch.tensor([]).to(self.device)
+            for i in range(lights.shape[0]):
+                loss_tract_cluster_i = torch.cat((loss_tract_cluster_i, self.loss_cossine(lights[i], x1_t[j].unsqueeze(0))))
+            topk = torch.topk(loss_tract_cluster_i, 5)
+            n = random.randint(-5,-1)
+            topk_indices = topk.indices
+            cluster_k_indices = topk_indices[n].item()
+            loss_tract_cluster += 1-self.loss_cossine(lights[cluster_k_indices], x1_t[j].unsqueeze(0))
+            # if self.current_epoch ==0:
+                # print("coucou")
+        Loss_combine = loss_contrastive_bundle + loss_contrastive_tractography + loss_contrastive_shuffle + loss_tract_cluster
         print("Loss_combine", Loss_combine, Loss_combine.item())
        
         self.log('val_loss', Loss_combine.item(), batch_size=self.batch_size)
@@ -1409,7 +1428,7 @@ class Fly_by_CNN_contrastive_tractography_labeled(pl.LightningModule):
         lab = lab.cpu()
         lab = np.array(lab)
     
-        torch.save(proj_test, f"/CMF/data/timtey/results_contrastive_loss_combine/proj_test_{lab[0]}_{tot}.pt")
+        torch.save(proj_test, f"/CMF/data/timtey/results_contrastive_loss_combine_loss_tract_cluster/proj_test_{lab[1]}_{tot}.pt")
         
         loss_contrastive = self.loss_contrastive(x1, x2)
 
@@ -1425,7 +1444,21 @@ class Fly_by_CNN_contrastive_tractography_labeled(pl.LightningModule):
         loss_contrastive_shuffle = self.loss_cossine(x1_t, x2_t_r)
         loss_contrastive_tractography = torch.sum(loss_contrastive_tractography)
         loss_contrastive_shuffle = torch.sum(loss_contrastive_shuffle)
-        Loss_combine = loss_contrastive_bundle + loss_contrastive_tractography + loss_contrastive_shuffle
+
+        
+        loss_tract_cluster = 0
+        for j in range(x1_t.shape[0]):
+            loss_tract_cluster_i = torch.tensor([]).to(self.device)
+            for i in range(lights.shape[0]):
+                loss_tract_cluster_i = torch.cat((loss_tract_cluster_i, self.loss_cossine(lights[i], x1_t[j].unsqueeze(0))))
+            topk = torch.topk(loss_tract_cluster_i, 5)
+            topk_indices = topk.indices
+            # loss_tract_cluster = torch.argsort(loss_tract_cluster)
+            n = random.randint(-5,-1)
+            cluster_k_indices = topk_indices[n].item()
+            loss_tract_cluster += 1-self.loss_cossine(lights[cluster_k_indices], x1_t[j].unsqueeze(0))
+        # loss_tract_cluster = loss_tract_cluster[n]
+        Loss_combine = loss_contrastive_bundle + loss_contrastive_tractography + loss_contrastive_shuffle + loss_tract_cluster
         self.log('test_loss', Loss_combine, batch_size=self.batch_size)
         predictions = torch.argmax(x, dim=1)
         
