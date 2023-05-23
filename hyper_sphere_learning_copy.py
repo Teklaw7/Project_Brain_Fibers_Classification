@@ -51,60 +51,29 @@ def main(args):
     # light_house = model.light_house.detach().cpu().numpy()
 
     lights = np.random.normal(loc=0, scale=1, size=(args.init_points, args.emb_dim))
-    print(lights.shape)
-    pca = PCA(n_components=3)
-    lights = pca.fit_transform(lights)
-    print(lights.shape)
-
-    fig = plt.figure()
-    ax = fig.add_subplot(projection='3d')
-    ax.scatter(lights[:,0], lights[:,1], lights[:,2], linewidths=10)
-    ax.set_xlabel('X Label')
-    ax.set_ylabel('Y Label')
-    ax.set_zlabel('Z Label')
-    plt.title("lights avant normalisation")
-    plt.show()
 
     lights = np.abs(lights/np.linalg.norm(lights, axis=1, keepdims=True))
     
-    print(lights.shape)
-    fig = plt.figure()
-    ax = fig.add_subplot(projection='3d')
-    ax.scatter(lights[:,0], lights[:,1], lights[:,2], linewidths=10)
-    ax.set_xlabel('X Label')
-    ax.set_ylabel('Y Label')
-    ax.set_zlabel('Z Label')
-    plt.title("lights apres normalisation")
-    plt.show()
+
 
     # fit KMeans++ model to the data
     kmeans = KMeans(n_clusters=args.n_lights, init='k-means++').fit(lights)
 
     # get the cluster centroids
     centroids = kmeans.cluster_centers_
-    
-    print(centroids.shape)
-    fig = plt.figure()
-    ax = fig.add_subplot(projection='3d')
-    ax.scatter(centroids[:,0], centroids[:,1], centroids[:,2], linewidths=10)
-    ax.set_xlabel('X Label')
-    ax.set_ylabel('Y Label')
-    ax.set_zlabel('Z Label')
-    plt.title("centroids")
-    plt.show()
 
     lights = np.abs(centroids/np.linalg.norm(centroids, axis=1, keepdims=True))    
-
+    pca = PCA(n_components=3)
+    lights = pca.fit_transform(lights)
     print(lights.shape)
     fig = plt.figure()
     ax = fig.add_subplot(projection='3d')
-    ax.scatter(lights[:,0], lights[:,1], lights[:,2], linewidths=10)
+    ax.scatter(lights[:, 0], lights[:, 1], lights[:, 2])
     ax.set_xlabel('X Label')
     ax.set_ylabel('Y Label')
     ax.set_zlabel('Z Label')
-    plt.title("centroids apres normalisation")
     plt.show()
-
+    
     min_l = 999999999
     for idx, l in enumerate(lights):
         lights_ex = np.concatenate([lights[:idx], lights[idx+1:]])

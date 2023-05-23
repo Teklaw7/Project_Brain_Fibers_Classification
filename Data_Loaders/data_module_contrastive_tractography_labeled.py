@@ -308,6 +308,8 @@ class Bundles_Dataset_tractography(Dataset):
         name_l = [name]
         Fiber_infos = [verts_fiber_bounds, sample_min_max, data_lab, name_l]
 
+        brain_bounds = torch.tensor([sample_x_min, sample_x_max, sample_y_min, sample_y_max, sample_z_min, sample_z_max])
+
         return verts,faces,face_features,labels, Fiber_infos
 
         

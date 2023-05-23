@@ -1,0 +1,93 @@
+import numpy as np
+import torch
+from torch import nn
+import torch.optim as optim
+import pytorch_lightning as pl 
+import torchvision.models as models
+from torch.nn.functional import softmax
+import torchmetrics
+from tools import utils
+import torch.nn.functional as F
+import torchvision.transforms as T
+from torchvision.models import resnet18, ResNet18_Weights
+# rendering components
+from pytorch3d.renderer import (
+    FoVPerspectiveCameras, look_at_view_transform, look_at_rotation, 
+    RasterizationSettings, MeshRenderer, MeshRasterizer, BlendParams,
+    SoftSilhouetteShader, HardPhongShader, SoftPhongShader, AmbientLights, PointLights, TexturesUV, TexturesVertex,
+)
+from pytorch3d.renderer.blending import sigmoid_alpha_blend, hard_rgb_blend
+from pytorch3d.structures import Meshes, join_meshes_as_scene
+
+from sklearn.metrics import classification_report, confusion_matrix, accuracy_score
+from pytorch3d.vis.plotly_vis import plot_scene
+import os
+os.environ['CUDA_LAUNCH_BLOCKING'] = "1"
+from sklearn.utils.class_weight import compute_class_weight
+import random
+import pytorch3d.transforms as T3d
+import matplotlib.pyplot as plt
+from sklearn.decomposition import PCA
+from sklearn.manifold import TSNE
+from sklearn.cluster import KMeans
+# import MLP
+import random
+import os
+from sklearn import metrics
+# import random
+import matplotlib.colors as colors
+import umap
+import pandas as pd
+
+lights = pd.read_pickle(r'Lights_good.pickle')
+# liste = os.listdir("/CMF/data/timtey/results_contrastive_loss_combine_loss_tract_cluster_bundle")
+liste = os.listdir("/CMF/data/timtey/results_contrastive_loss_combine_loss_tract_cluster_bundle")
+l_colors = colors.ListedColormap ( np.random.rand (57,3))
+l_colors1 = colors.ListedColormap ( np.random.rand (20,3))
+l_colors2 = colors.ListedColormap ( np.random.rand (20,3))
+l_colors3 = colors.ListedColormap ( np.random.rand (17,3))
+
+lights = torch.tensor(lights)
+print(lights.shape)
+matrix2 = [] #should be shape = (56*100,128)
+
+for i in range(len(liste)):
+    matrix = torch.load(f"/CMF/data/timtey/results_contrastive_loss_combine_loss_tract_cluster_bundle/{liste[i]}")
+    matrix2.append(matrix)
+MATR2 = torch.cat(matrix2, dim=0)
+print(MATR2.shape)
+Data_lab = MATR2[:,-1]
+print(Data_lab.shape)
+d_unique = torch.unique(Data_lab)
+print(d_unique)
+LAB = MATR2[:,-3]
+print(LAB.shape)
+print(LAB)
+MATR = MATR2[:,:128]
+MATR = MATR.cpu()
+LAB = LAB.cpu()
+LIGHTS = lights.cpu()
+threedtsne = TSNE(n_components=3, perplexity=500)
+tsne = TSNE(n_components=2, perplexity=500)
+tsne_results = tsne.fit_transform(MATR)
+tsne_results_lights = tsne.fit_transform(LIGHTS)
+uniq_lab = torch.unique(LAB)
+threedtsne_results = threedtsne.fit_transform(MATR)
+threedtsne_results_lights = threedtsne.fit_transform(LIGHTS)
+plt.scatter(tsne_results[:,0], tsne_results[:,1], c=LAB, cmap=l_colors)
+# plt.scatter(tsne_results_lights[:,0], tsne_results_lights[:,1])
+for i in range(len(tsne_results_lights)):
+    plt.text(tsne_results_lights[i, 0], tsne_results_lights[i, 1], str(i), fontsize=12)
+plt.colorbar(ticks = uniq_lab)
+plt.show()
+
+threedtsne_results = threedtsne_results/np.linalg.norm(threedtsne_results, axis=1, keepdims=True)
+threedtsne_results_lights = threedtsne_results_lights/np.linalg.norm(threedtsne_results_lights, axis=1, keepdims=True)
+ax = plt.axes(projection='3d')
+ax.scatter(threedtsne_results[:,0], threedtsne_results[:,1], threedtsne_results[:,2], c=LAB, cmap=l_colors)
+plt.show()
+
+ax = plt.axes(projection='3d')
+ax.scatter(threedtsne_results_lights[:,0], threedtsne_results_lights[:,1], threedtsne_results_lights[:,2])
+ax.scatter(threedtsne_results[:,0], threedtsne_results[:,1], threedtsne_results[:,2], c=LAB, cmap=l_colors)
+plt.show()
