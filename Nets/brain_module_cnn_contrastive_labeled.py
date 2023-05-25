@@ -32,15 +32,16 @@ from sklearn.manifold import TSNE
 from sklearn.cluster import KMeans
 # import MLP
 import random
+from  Transformations.transformations import *
 
 
-class RotationTransform:
-    def __call__(self, verts, rotation_matrix):
-        b = torch.transpose(verts,0,1)
-        # print("b", b.shape)
-        a= torch.mm(rotation_matrix,torch.transpose(verts,0,1))
-        verts = torch.transpose(torch.mm(rotation_matrix,torch.transpose(verts,0,1)),0,1)
-        return verts
+# class RotationTransform:
+#     def __call__(self, verts, rotation_matrix):
+#         b = torch.transpose(verts,0,1)
+#         # print("b", b.shape)
+#         a= torch.mm(rotation_matrix,torch.transpose(verts,0,1))
+#         verts = torch.transpose(torch.mm(rotation_matrix,torch.transpose(verts,0,1)),0,1)
+#         return verts
 
 # class RandomRotationTransform:
 #     def __call__(self, verts):
@@ -49,15 +50,15 @@ class RotationTransform:
 #         verts = rotation_transform(verts,rotation_matrix)
 #         return verts
     
-def randomrotation(verts):
-    verts_device = verts.get_device()
-    rotation_matrix = T3d.random_rotation().to(verts_device)
-    rotation_transform = RotationTransform()
-    # print("verts", verts.shape)
-    # print("rotation_matrix", rotation_matrix.shape)
-    # print("rotation_matrix", type(rotation_matrix))
-    verts = rotation_transform(verts,rotation_matrix)
-    return verts
+# def randomrotation(verts):
+#     verts_device = verts.get_device()
+#     rotation_matrix = T3d.random_rotation().to(verts_device)
+#     rotation_transform = RotationTransform()
+#     # print("verts", verts.shape)
+#     # print("rotation_matrix", rotation_matrix.shape)
+#     # print("rotation_matrix", type(rotation_matrix))
+#     verts = rotation_transform(verts,rotation_matrix)
+#     return verts
 
 
 
@@ -88,31 +89,31 @@ def GetView(meshes,phong_renderer,R,T):
     pix_to_face = pix_to_face.permute(0,3,1,2)
     return pix_to_face, images
 
-def transformation_verts_by_fiber(verts, verts_fiber_bounds):
-    for i in range (verts.shape[0]):
-        verts[i,:,0] = (0.8*(verts[i,:,0] - verts_fiber_bounds[i][0])/(verts_fiber_bounds[i][1] - verts_fiber_bounds[i][0])) - 0.4
-        verts[i,:,1] = (0.8*(verts[i,:,1] - verts_fiber_bounds[i][2])/(verts_fiber_bounds[i][3] - verts_fiber_bounds[i][2])) - 0.4
-        verts[i,:,2] = (0.8*(verts[i,:,2] - verts_fiber_bounds[i][4])/(verts_fiber_bounds[i][5] - verts_fiber_bounds[i][4])) - 0.4
-    return verts
+# def transformation_verts_by_fiber(verts, verts_fiber_bounds):
+#     for i in range (verts.shape[0]):
+#         verts[i,:,0] = (0.8*(verts[i,:,0] - verts_fiber_bounds[i][0])/(verts_fiber_bounds[i][1] - verts_fiber_bounds[i][0])) - 0.4
+#         verts[i,:,1] = (0.8*(verts[i,:,1] - verts_fiber_bounds[i][2])/(verts_fiber_bounds[i][3] - verts_fiber_bounds[i][2])) - 0.4
+#         verts[i,:,2] = (0.8*(verts[i,:,2] - verts_fiber_bounds[i][4])/(verts_fiber_bounds[i][5] - verts_fiber_bounds[i][4])) - 0.4
+#     return verts
 
-def transformation_verts(verts, sample_min_max):
-    for i in range (verts.shape[0]):
-        verts[i,:,0] = ((verts[i,:,0] - sample_min_max[i][0])/(sample_min_max[i][1] - sample_min_max[i][0])) - 0.5
-        verts[i,:,1] = ((verts[i,:,1] - sample_min_max[i][2])/(sample_min_max[i][3] - sample_min_max[i][2])) - 0.5
-        verts[i,:,2] = ((verts[i,:,2] - sample_min_max[i][4])/(sample_min_max[i][5] - sample_min_max[i][4])) - 0.5
-    return verts
+# def transformation_verts(verts, sample_min_max):
+#     for i in range (verts.shape[0]):
+#         verts[i,:,0] = ((verts[i,:,0] - sample_min_max[i][0])/(sample_min_max[i][1] - sample_min_max[i][0])) - 0.5
+#         verts[i,:,1] = ((verts[i,:,1] - sample_min_max[i][2])/(sample_min_max[i][3] - sample_min_max[i][2])) - 0.5
+#         verts[i,:,2] = ((verts[i,:,2] - sample_min_max[i][4])/(sample_min_max[i][5] - sample_min_max[i][4])) - 0.5
+#     return verts
 
-def stretch_verts(verts):
-    val = 0.03
-    for i in range (verts.shape[0]):
-        for j in range (verts.shape[1]):
-            rng = random.randrange(-10,11)
-            verts[i,j,0] = verts[i,j,0]+(rng*val)
-            rng = random.randrange(-10,11)
-            verts[i,j,1] = verts[i,j,1]+(rng*val)
-            rng = random.randrange(-10,11)
-            verts[i,j,2] = verts[i,j,2]+(rng*val)
-    return verts
+# def stretch_verts(verts):
+#     val = 0.03
+#     for i in range (verts.shape[0]):
+#         for j in range (verts.shape[1]):
+#             rng = random.randrange(-10,11)
+#             verts[i,j,0] = verts[i,j,0]+(rng*val)
+#             rng = random.randrange(-10,11)
+#             verts[i,j,1] = verts[i,j,1]+(rng*val)
+#             rng = random.randrange(-10,11)
+#             verts[i,j,2] = verts[i,j,2]+(rng*val)
+#     return verts
 
 class Identity(nn.Module):
     def __init__(self):

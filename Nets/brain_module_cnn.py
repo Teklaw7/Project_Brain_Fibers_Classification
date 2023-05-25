@@ -25,7 +25,7 @@ import os
 os.environ['CUDA_LAUNCH_BLOCKING'] = "1"
 from sklearn.utils.class_weight import compute_class_weight
 from monai.networks.nets import TorchVisionFCModel, FullyConnectedNet, SEResNet50
-
+from Transformations.transformations import *
 
 def GetView(meshes,phong_renderer,R,T):
     R = R.to(torch.float32)
@@ -39,19 +39,19 @@ def GetView(meshes,phong_renderer,R,T):
     pix_to_face = pix_to_face.permute(0,3,1,2)
     return pix_to_face, images
 
-def transformation_verts_by_fiber(verts, verts_fiber_bounds):
-    for i in range (verts.shape[0]):
-        verts[i,:,0] = (0.8*(verts[i,:,0] - verts_fiber_bounds[i][0])/(verts_fiber_bounds[i][1] - verts_fiber_bounds[i][0])) - 0.4
-        verts[i,:,1] = (0.8*(verts[i,:,1] - verts_fiber_bounds[i][2])/(verts_fiber_bounds[i][3] - verts_fiber_bounds[i][2])) - 0.4
-        verts[i,:,2] = (0.8*(verts[i,:,2] - verts_fiber_bounds[i][4])/(verts_fiber_bounds[i][5] - verts_fiber_bounds[i][4])) - 0.4
-    return verts
+# def transformation_verts_by_fiber(verts, verts_fiber_bounds):
+#     for i in range (verts.shape[0]):
+#         verts[i,:,0] = (0.8*(verts[i,:,0] - verts_fiber_bounds[i][0])/(verts_fiber_bounds[i][1] - verts_fiber_bounds[i][0])) - 0.4
+#         verts[i,:,1] = (0.8*(verts[i,:,1] - verts_fiber_bounds[i][2])/(verts_fiber_bounds[i][3] - verts_fiber_bounds[i][2])) - 0.4
+#         verts[i,:,2] = (0.8*(verts[i,:,2] - verts_fiber_bounds[i][4])/(verts_fiber_bounds[i][5] - verts_fiber_bounds[i][4])) - 0.4
+#     return verts
 
-def transformation_verts(verts, sample_min_max):
-    for i in range (verts.shape[0]):
-        verts[i,:,0] = ((verts[i,:,0] - sample_min_max[i][0])/(sample_min_max[i][1] - sample_min_max[i][0])) - 0.5
-        verts[i,:,1] = ((verts[i,:,1] - sample_min_max[i][2])/(sample_min_max[i][3] - sample_min_max[i][2])) - 0.5
-        verts[i,:,2] = ((verts[i,:,2] - sample_min_max[i][4])/(sample_min_max[i][5] - sample_min_max[i][4])) - 0.5
-    return verts
+# def transformation_verts(verts, sample_min_max):
+#     for i in range (verts.shape[0]):
+#         verts[i,:,0] = ((verts[i,:,0] - sample_min_max[i][0])/(sample_min_max[i][1] - sample_min_max[i][0])) - 0.5
+#         verts[i,:,1] = ((verts[i,:,1] - sample_min_max[i][2])/(sample_min_max[i][3] - sample_min_max[i][2])) - 0.5
+#         verts[i,:,2] = ((verts[i,:,2] - sample_min_max[i][4])/(sample_min_max[i][5] - sample_min_max[i][4])) - 0.5
+#     return verts
 
 class Identity(nn.Module):
     def __init__(self):
