@@ -85,12 +85,12 @@ from Transformations.transformations import *
 
 num_classes = 57
 nb_epochs = 500
-batch_size= 7
+batch_size= 3
 dropout_lvl=0.1
 radius=1
 ico_lvl=1
 min_delta_early_stopping = 0.00
-patience_early_stopping= 15
+patience_early_stopping= 10
 num_workers=12
 path_data="/CMF/data/timtey/tracts/archives"
 path_ico = "/NIRAL/tools/atlas/Surface/Sphere_Template/sphere_f327680_v163842.vtk"
@@ -109,146 +109,17 @@ checkpoint_callback = ModelCheckpoint(
 )
 
 tractography_list_vtk = []
-tractography_list_vtk.append(utils.ReadSurf("/CMF/data/timtey/tractography/all/tractogram_deterministic_102008_dg.vtp"))
-tractography_list_vtk.append(utils.ReadSurf("/CMF/data/timtey/tractography/all/tractogram_deterministic_103515_dg.vtp"))
-tractography_list_vtk.append(utils.ReadSurf("/CMF/data/timtey/tractography/all/tractogram_deterministic_108525_dg.vtp"))
-tractography_list_vtk.append(utils.ReadSurf("/CMF/data/timtey/tractography/all/tractogram_deterministic_113215_dg.vtp"))
-tractography_list_vtk.append(utils.ReadSurf("/CMF/data/timtey/tractography/all/tractogram_deterministic_119833_dg.vtp"))
-tractography_list_vtk.append(utils.ReadSurf("/CMF/data/timtey/tractography/all/tractogram_deterministic_121618_dg.vtp"))
-tractography_list_vtk.append(utils.ReadSurf("/CMF/data/timtey/tractography/all/tractogram_deterministic_124220_dg.vtp"))
-tractography_list_vtk.append(utils.ReadSurf("/CMF/data/timtey/tractography/all/tractogram_deterministic_124826_dg.vtp"))
-tractography_list_vtk.append(utils.ReadSurf("/CMF/data/timtey/tractography/all/tractogram_deterministic_139233_dg.vtp"))
+# tractography_list_vtk.append(utils.ReadSurf("/CMF/data/timtey/tractography/all/tractogram_deterministic_102008_dg.vtp"))
+# tractography_list_vtk.append(utils.ReadSurf("/CMF/data/timtey/tractography/all/tractogram_deterministic_103515_dg.vtp"))
+# tractography_list_vtk.append(utils.ReadSurf("/CMF/data/timtey/tractography/all/tractogram_deterministic_108525_dg.vtp"))
+# tractography_list_vtk.append(utils.ReadSurf("/CMF/data/timtey/tractography/all/tractogram_deterministic_113215_dg.vtp"))
+# tractography_list_vtk.append(utils.ReadSurf("/CMF/data/timtey/tractography/all/tractogram_deterministic_119833_dg.vtp"))
+# tractography_list_vtk.append(utils.ReadSurf("/CMF/data/timtey/tractography/all/tractogram_deterministic_121618_dg.vtp"))
+# tractography_list_vtk.append(utils.ReadSurf("/CMF/data/timtey/tractography/all/tractogram_deterministic_124220_dg.vtp"))
+# tractography_list_vtk.append(utils.ReadSurf("/CMF/data/timtey/tractography/all/tractogram_deterministic_124826_dg.vtp"))
+# tractography_list_vtk.append(utils.ReadSurf("/CMF/data/timtey/tractography/all/tractogram_deterministic_139233_dg.vtp"))
 
 contrastive = True
-
-# brain_standart = False
-# if brain_standart:
-#     standart_right_brain_path = "/tools/atlas/Surface/CIVET_160K/icbm_surface/icbm_avg_mid_sym_mc_right_hires.vtk"
-#     standart_left_brain_path = "/tools/atlas/Surface/CIVET_160K/icbm_surface/icbm_avg_mid_sym_mc_left_hires.vtk"
-#     standart_right_brain = utils.ReadSurf(standart_right_brain_path)
-#     standart_left_brain = utils.ReadSurf(standart_left_brain_path)
-#     bundle_tf=vtk.vtkTriangleFilter()
-#     bundle_tf.SetInputData(standart_right_brain)
-#     bundle_tf.Update()
-#     bundle_extract_tf_right = bundle_tf.GetOutput()
-#     # print(bundle_extract_tf)
-#     # verts, faces, edges = utils.PolyDataToTensors(bundle_extract_tf)
-
-#     bundle_tf=vtk.vtkTriangleFilter()
-#     bundle_tf.SetInputData(standart_left_brain)
-#     bundle_tf.Update()
-#     bundle_extract_tf_left = bundle_tf.GetOutput()
-#     # print(bundle_extract_tf_left)
-#     # print(bundle_extract_tf_left.GetBounds())
-#     # print(bundle_extract_tf_right.GetBounds())
-#     bundle_extract_tf_left, mean, f = utils.ScaleSurf(bundle_extract_tf_left, mean_arr=[-0.3,0,0], scale_factor=0.005)
-#     bundle_extract_tf_right, mean, f = utils.ScaleSurf(bundle_extract_tf_right, mean_arr=[0.3,0,0], scale_factor=0.005)
-#     # print(bundle_extract_tf_left.GetBounds())
-#     # print(bundle_extract_tf_right.GetBounds())
-#     # print(kjdshf)
-#     normals_left = utils.ComputeNormals(bundle_extract_tf_left)
-#     normals_right = utils.ComputeNormals(bundle_extract_tf_right)
-#     cc = vtkCurvatures()
-#     cc_r = vtkCurvatures()
-#     cc.SetInputData(normals_left)
-#     cc_r.SetInputData(normals_right)
-#     # print(cc)
-#     cc.SetCurvatureTypeToGaussian()
-#     # cc.SetCurvatureTypeToMean()
-#     cc_r.SetCurvatureTypeToGaussian()
-#     # cc_r.SetCurvatureTypeToMean()
-#     cc.Update()
-#     cc_r.Update()
-#     # print(cc)
-#     # adjust_edge_curvatures(cc.GetOutput(), 'Gauss_Curvature')
-#     # adjust_edge_curvatures(cc.GetOutput(), 'Mean_Curvature')
-#     # adjust_edge_curvatures(cc_r.GetOutput(), 'Gauss_Curvature')
-#     # adjust_edge_curvatures(cc_r.GetOutput(), 'Mean_Curvature')
-#     # normals_left.GetPointData().AddArray(cc.GetOutput().GetPointData().GetAbstractArray('Gauss_Curvature'))
-#     # normals_left.GetPointData().AddArray(cc.GetOutput().GetPointData().GetAbstractArray('Mean_Curvature'))
-#     # normals_right.GetPointData().AddArray(cc_r.GetOutput().GetPointData().GetAbstractArray('Gauss_Curvature'))
-#     # normals_right.GetPointData().AddArray(cc_r.GetOutput().GetPointData().GetAbstractArray('Mean_Curvature'))
-#     # print(normals_left)
-#     # print(kjhfdskjg)
-#     verts_left, faces_left, edges_left = utils.PolyDataToTensors(normals_left)
-#     verts_right, faces_right, edges_right = utils.PolyDataToTensors(normals_right)
-#     # normals_left = utils.ComputeNormals(bundle_extract_tf_left)
-#     # print(bundle_extract_tf_left)
-#     # print(normals_left)
-#     # print(normals_left.shape)
-#     # print(bundle_extract_tf_left.GetBounds())
-#     # print(bundle_extract_tf_right.GetBounds())
-#     # print(faces1.shape)
-#     # print(faces2.shape)
-#     def normalize(verts, bounds):
-#         verts[:,0] = (0.8*(verts[:,0] - bounds[0])/(bounds[1] - bounds[0])) - 0.4
-#         verts[:,1] = (0.8*(verts[:,1] - bounds[2])/(bounds[3] - bounds[2])) - 0.4
-#         verts[:,2] = (0.8*(verts[:,2] - bounds[4])/(bounds[5] - bounds[4])) - 0.4
-
-#     # left_bounds = bundle_extract_tf_left.GetBounds()
-#     # right_bounds = bundle_extract_tf_right.GetBounds()
-#     # Bounds = [left_bounds[0], right_bounds[1], left_bounds[2], right_bounds[3], left_bounds[4], right_bounds[5]]
-#     # print(Bounds)
-#     # normalize(verts_left, Bounds)
-#     # normalize(verts_right, Bounds)
-#     mesh_left = Meshes(verts=[verts_left], faces=[faces_left]) # with brain
-#     mesh_right = Meshes(verts=[verts_right], faces=[faces_right]) # with brain
-#     # mesh_left = mesh_left.to(self.device) # with brain
-#     # mesh_right = mesh_right.to(self.device) # with brain
-#     # self.mesh_left.textures = textures # with brain
-#     # self.mesh_right.textures = textures # with brain
-#     meshes_brain = join_meshes_as_scene([mesh_left, mesh_right]) # with brain
-#     # meshes_brain = mesh_right
-#     verts_brain = meshes_brain.verts_padded()
-#     faces_brain = meshes_brain.faces_padded()
-#     verts_brain = verts_brain[0]
-#     faces_brain = faces_brain[0]
-#     # print(normals_left)
-#     normals_l = torch.tensor(vtk_to_numpy(normals_left.GetPointData().GetScalars("Normals")))
-#     normals_r = torch.tensor(vtk_to_numpy(normals_right.GetPointData().GetScalars("Normals")))
-#     # normals_l = torch.tensor(vtk_to_numpy(normals_left.GetPointData().GetScalars("Gauss_Curvature"))).unsqueeze(1) #Gauss_Curvature,
-#     # normals_l = torch.tensor(vtk_to_numpy(normals_left.GetPointData().GetScalars("Mean_Curvature"))).unsqueeze(1) #Gauss_Curvature, 
-#     # normals_r = torch.tensor(vtk_to_numpy(normals_right.GetPointData().GetScalars("Gauss_Curvature"))).unsqueeze(1) #Normals
-#     # normals_r = torch.tensor(vtk_to_numpy(normals_right.GetPointData().GetScalars("Mean_Curvature"))).unsqueeze(1) #Normals
-#     # normals_l = torch.cat((normals_l, normals_l, normals_l),1) #curvature
-#     min_l = torch.min(normals_l) #curvature
-#     max_l = torch.max(normals_l) #curvature
-#     # normals_r = torch.cat((normals_r, normals_r, normals_r),1) #curvature
-#     min_r = torch.min(normals_r) #curvature
-#     max_r = torch.max(normals_r) #curvature
-
-
-#     # def transf(normals, max, min):                          #curvature
-#     #     normals = ((2*(normals - min))/(max - min)) - 1 #curvature
-#     #     return normals #curvature
-#     # normals_l = transf(normals_l, max_l, min_l) #curvature
-#     # normals_r = transf(normals_r, max_r, min_r) #curvature
-#     # print(normals_l.shape)
-#     # print(torch.sum(normals_l==1))
-#     # print(torch.max(normals_l))
-#     # print(torch.min(normals_r))
-#     # print(torch.max(normals_r))
-#     # print(kusgdku)
-#     normals_brain = torch.cat((normals_l, normals_r), 0)
-#     vertex_features_brain = normals_brain #torch.cat((normals_brain), 1)
-#     # print(vertex_features_brain.shape)
-#     faces_pid0_brain = faces_brain[:,0:1]
-#     nb_faces_brain = faces_brain.shape[0]
-#     offset_brain = torch.zeros((nb_faces_brain,vertex_features_brain.shape[1]), dtype=int) + torch.arange(vertex_features_brain.shape[1]).to(torch.int64)
-#     faces_pid0_offset_brain = offset_brain + torch.multiply(faces_pid0_brain, vertex_features_brain.shape[1])
-#     face_features_brain = torch.take(vertex_features_brain, faces_pid0_offset_brain)
-#     complete = torch.ones((faces_brain.shape[0],6))
-#     # print(complete.shape)
-#     face_features_brain = torch.cat((face_features_brain, complete), 1)
-# else:
-#     verts_brain = []
-#     faces_brain = []
-#     face_features_brain = []
-#     verts_left = []
-#     faces_left = []
-#     verts_right = []
-#     faces_right = []
-
 
 df = pd.read_csv(path_test_final)
 logger = TensorBoardLogger(save_dir="/home/timtey/Documents/Models_tensorboard/tensorboard_photos", name='Resnet')
@@ -281,13 +152,11 @@ for index_csv in range(len(df)):
         cc1_tf.Update()
         fiber_tf = cc1_tf.GetOutput()
         L.append(fiber_tf)
-    fibers = bundle.GetNumberOfCells()
+    # fibers = bundle.GetNumberOfCells()
     fibers = min(df['num_cells'])
 
     # brain_data=Bundles_DataModule_tractography_labeled_fibers(contrastive, bundle, L, fibers, 0, index_csv, path_data, path_ico, batch_size, path_train_final, path_valid_final, path_test_final, verts_brain, faces_brain, face_features_brain, path_tractography_train, path_tractography_valid, path_tractography_test, tractography_list_vtk, num_workers=num_workers)
     brain_data=Bundles_DataModule_tractography_labeled_fibers(contrastive, bundle, L, fibers, 0, index_csv, path_data, path_ico, batch_size, path_train_final, path_valid_final, path_test_final, path_tractography_train, path_tractography_valid, path_tractography_test, tractography_list_vtk, num_workers=num_workers)
-
-    
 
     trainer.test(model, brain_data)
 '''    

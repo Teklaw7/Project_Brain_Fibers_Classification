@@ -45,6 +45,19 @@ def GetView(meshes,phong_renderer,R,T):
     pix_to_face = pix_to_face.permute(0,3,1,2)
     return pix_to_face, images
 
+# def similarity_btw_lists(t1,t2):
+#     cpt=0
+#     for i in range(t1.shape[0]):
+#         if t1[i].item() != t2[i].item():
+#             cpt+=1
+#     # return cpt/len(t1)
+#     print(cpt/len(t1))
+#     if cpt/len(t1) > 0.8:
+#         return True
+#     else:
+#         return False
+            
+
 class Identity(nn.Module):
     def __init__(self):
         super(Identity, self).__init__()
@@ -209,7 +222,45 @@ class IcosahedronConv2d(nn.Module):
         output = output.contiguous().view(size_initial)
         return output
 
+class ProjectionHead(nn.Module):
+    def __init__(self, input_dim=1280, hidden_dim=1280, output_dim=128):
+        super().__init__()
+        self.output_dim = output_dim
+        self.input_dim = input_dim
+        self.hidden_dim = hidden_dim
 
+        self.model = nn.Sequential(
+            nn.Linear(self.input_dim, self.hidden_dim),
+            nn.BatchNorm1d(self.hidden_dim),
+            nn.ReLU(),
+            nn.Linear(self.hidden_dim, self.output_dim, bias=False)
+        )
+
+    def forward(self, x):
+        x = self.model(x)  
+        x = torch.abs(x)      
+        return F.normalize(x, dim=1)
+
+
+class Fly_by_Contrastive(nn.Module):
+    def __init__(self):
+        super().__init__()
+
+        efficient_net = models.resnet18(pretrained = True)    ### maybe use weights instead of pretrained    
+        efficient_net.conv1 = nn.Conv2d(4, 64, kernel_size=(7, 7), stride=(2, 2), padding=(3, 3), bias=False)#depthmap
+        efficient_net.fc = Identity()
+        # self.drop = nn.Dropout(p=dropout_lvl)
+        self.TimeDistributed = TimeDistributed(efficient_net)
+        self.WV = nn.Linear(512, 512)
+        self.Attention = SelfAttention(512,512) 
+        # self.Projection = ProjectionHead(input_dim=512, hidden_dim=512, output_dim=128)
+
+    def forward(self, x):
+        x_f = self.TimeDistributed(x)
+        x_v = self.WV(x_f)
+        x, x_s = self.Attention(x_f, x_v)
+        # x = self.Projection(x)
+        return x
 
 class Fly_by_CNN_contrastive_tractography_labeled(pl.LightningModule):
     # def __init__(self, contrastive, radius, ico_lvl, dropout_lvl, batch_size, weights, num_classes, verts_left, faces_left, verts_right, faces_right, learning_rate=0.001):
@@ -228,14 +279,9 @@ class Fly_by_CNN_contrastive_tractography_labeled(pl.LightningModule):
         self.ico_lvl = ico_lvl
         self.dropout_lvl = dropout_lvl
         self.image_size = 224
-        self.batch_size = 2*batch_size ###be careful
+        self.batch_size = batch_size ###be careful
         self.weights = weights
         self.num_classes = num_classes
-        # self.verts_left = verts_left
-        # self.faces_left = faces_left
-        # self.verts_right = verts_right
-        # self.faces_right = faces_right
-        #ico_sphere, _a, _v = utils.RandomRotation(utils.CreateIcosahedron(self.radius, ico_lvl))
         ico_sphere = utils.CreateIcosahedron(self.radius, ico_lvl)
         ico_sphere_verts, ico_sphere_faces, self.ico_sphere_edges = utils.PolyDataToTensors(ico_sphere)
         self.ico_sphere_verts = ico_sphere_verts
@@ -255,56 +301,57 @@ class Fly_by_CNN_contrastive_tractography_labeled(pl.LightningModule):
         if contrastive:
             self.R = self.R.to(torch.float32)
             self.T = self.T.to(torch.float32)
+
+        self.model_original = Fly_by_Contrastive()
+        self.model_brain = Fly_by_Contrastive()
+
+        self.Projection = ProjectionHead(input_dim=1024, hidden_dim=512, output_dim=128)
         
-        efficient_net = models.resnet18(pretrained = True)    ### maybe use weights instead of pretrained
+        # efficient_net = models.resnet18(pretrained = True)    ### maybe use weights instead of pretrained
 
-        if contrastive:
-            efficient_net.conv1 = nn.Conv2d(4, 64, kernel_size=(7, 7), stride=(2, 2), padding=(3, 3), bias=False)#depthmap
-        else:
-            efficient_net.conv1 = nn.Conv2d(4, 64, kernel_size=(7, 7), stride=(2, 2), padding=(3, 3), bias=False)#depthmap
+        # if contrastive:
+        #     efficient_net.conv1 = nn.Conv2d(4, 64, kernel_size=(7, 7), stride=(2, 2), padding=(3, 3), bias=False)#depthmap
+        #     # efficient_net.conv1 = nn.Conv2d(10, 64, kernel_size=(7, 7), stride=(2, 2), padding=(3, 3), bias=False)#depthmap
+        # else:
+        #     efficient_net.conv1 = nn.Conv2d(4, 64, kernel_size=(7, 7), stride=(2, 2), padding=(3, 3), bias=False)#depthmap
+        #     # efficient_net.conv1 = nn.Conv2d(10, 64, kernel_size=(7, 7), stride=(2, 2), padding=(3, 3), bias=False)#depthmap
 
-        efficient_net.fc = Identity()
+        # efficient_net.fc = Identity()
 
-        self.drop = nn.Dropout(p=dropout_lvl)
-        self.TimeDistributed = TimeDistributed(efficient_net)
+        # self.drop = nn.Dropout(p=dropout_lvl)
+        # self.TimeDistributed = TimeDistributed(efficient_net)
 
-        self.WV = nn.Linear(512, 256)
+        # self.WV = nn.Linear(512, 256)
 
-        self.linear = nn.Linear(256, 256)
+        # self.linear = nn.Linear(256, 256)
 
-        #######
-        output_size = self.TimeDistributed.module.inplanes
-        conv2d = nn.Conv2d(512, 256, kernel_size=(3,3),stride=2,padding=0) 
-        self.IcosahedronConv2d = IcosahedronConv2d(conv2d,self.ico_sphere_verts,self.ico_sphere_edges)
-        self.pooling = AvgPoolImages(nbr_images=12) #change if we want brains 24 with brains
+        # #######
+        # output_size = self.TimeDistributed.module.inplanes
+        # conv2d = nn.Conv2d(512, 256, kernel_size=(3,3),stride=2,padding=0) 
+        # self.IcosahedronConv2d = IcosahedronConv2d(conv2d,self.ico_sphere_verts,self.ico_sphere_edges)
+        # self.pooling = AvgPoolImages(nbr_images=12) #change if we want brains 24 with brains
 
-        #######
+        # #######
 
-        #conv2dForQuery = nn.Conv2d(1280, 1280, kernel_size=(3,3),stride=2,padding=0) #1280,512
-        #conv2dForValues = nn.Conv2d(512, 512, kernel_size=(3,3),stride=2,padding=0)  #512,512
-        #self.IcosahedronConv2dForQuery = IcosahedronConv2d(conv2dForQuery,self.ico_sphere_verts,self.ico_sphere_edges)
-        #self.IcosahedronConv2dForValues = IcosahedronConv2d(conv2dForValues,self.ico_sphere_verts,self.ico_sphere_edges)
+        # #conv2dForQuery = nn.Conv2d(1280, 1280, kernel_size=(3,3),stride=2,padding=0) #1280,512
+        # #conv2dForValues = nn.Conv2d(512, 512, kernel_size=(3,3),stride=2,padding=0)  #512,512
+        # #self.IcosahedronConv2dForQuery = IcosahedronConv2d(conv2dForQuery,self.ico_sphere_verts,self.ico_sphere_edges)
+        # #self.IcosahedronConv2dForValues = IcosahedronConv2d(conv2dForValues,self.ico_sphere_verts,self.ico_sphere_edges)
         
-        #######
-        self.Attention = SelfAttention(512, 128)
-        self.Attention2 = SelfAttention(512, 128)
-        self.WV2 = nn.Linear(512, 512)
-        self.WV3 = nn.Linear(512, 512)
-        self.Attention3 = SelfAttention(512,256)
-        #######
+        # #######
+        # # self.Attention = SelfAttention(512, 128)
+        # # self.Attention2 = SelfAttention(512, 128)
+        # # self.WV2 = nn.Linear(512, 512)
+        # self.WV3 = nn.Linear(512, 512)
+        # self.Attention3 = SelfAttention(512,256)
+        # #######
 
-        self.Classification = nn.Linear(512, num_classes) #256, if just fiber normalized by brain, but 512 if fiber normalized by fiber and fiber normalized by brain
-        self.projection = nn.Sequential(
-           nn.Linear(in_features=512, out_features=512),
-           nn.BatchNorm1d(512),
-           nn.ReLU(),
-           nn.Linear(in_features=512, out_features=128),
-           nn.BatchNorm1d(128),
-       )
+        # self.Classification = nn.Linear(512, num_classes) #256, if just fiber normalized by brain, but 512 if fiber normalized by fiber and fiber normalized by brain
+        # self.projection = ProjectionHead(input_dim=512, hidden_dim=512, output_dim=128)
         
-        self.loss = nn.CrossEntropyLoss()
-        self.train_accuracy = torchmetrics.Accuracy(task="multiclass", num_classes=57)
-        self.val_accuracy = torchmetrics.Accuracy(task="multiclass", num_classes=57)
+        # self.loss = nn.CrossEntropyLoss()
+        # self.train_accuracy = torchmetrics.Accuracy(task="multiclass", num_classes=57)
+        # self.val_accuracy = torchmetrics.Accuracy(task="multiclass", num_classes=57)
 
         # compute_class_weight('balanced', np.unique(self.train_dataset.labels), self.train_dataset.labels)
 
@@ -338,44 +385,56 @@ class Fly_by_CNN_contrastive_tractography_labeled(pl.LightningModule):
         self.loss_val = nn.CrossEntropyLoss(weight = self.weights[1])
         self.loss_test = nn.CrossEntropyLoss(weight = self.weights[2])
 
-        self.lights = pd.read_pickle(r'Lights_good.pickle')
+        self.lights = torch.tensor(pd.read_pickle(r'Lights_good.pickle')).to(self.device)
         self.loss_cossine = nn.CosineSimilarity()
+        self.loss_cossine_dim2 = nn.CosineSimilarity(dim=2)
 
     def forward(self, x):
         V, V1, V2, F, FF, VFI, VFI1, VFI2, FFI, FFFI, condition = x
         
         x, PF = self.render(V,F,FF)
-        X1, PF1 = self.render(V1,F,FF)
-        X2, PF2 = self.render(V2,F,FF)
+        # X1, PF1 = self.render(V1,F,FF)
+        # X2, PF2 = self.render(V2,F,FF)
         x_fiber, PF_fiber = self.render(VFI,FFI,FFFI)
-        X1_fiber, PF1_fiber = self.render(VFI1,FFI,FFFI)
-        X2_fiber, PF2_fiber = self.render(VFI2,FFI,FFFI)
+        # X1_fiber, PF1_fiber = self.render(VFI1,FFI,FFFI)
+        # X2_fiber, PF2_fiber = self.render(VFI2,FFI,FFFI)
+        x_test = torch.cat((x,x_fiber),1)
+        # X1 = torch.cat((X1,X1_fiber),1)
+        # X2 = torch.cat((X2,X2_fiber),1)
+
+        # proj_test = self.model_original(x_test)
+
+        proj_fiber = self.model_original(x_fiber)
+        proj_brain = self.model_brain(x)
+
+        x = torch.cat((proj_fiber, proj_brain), dim=1)
+
+        return self.Projection(x)#, self.Projection(x), self.Projection(x)
+
+        # proj1 = self.model_original(X1)
+        # proj2 = self.model_original(X2)
 
         # brain_help = False
         # if brain_help:
         #     x_brain, PF_brain = self.render(VB, FB, FFB) # with brain
         #     X1_brain, PF1_brain = self.render(VB, FB, FFB) # with brain
         #     X2_brain, PF2_brain = self.render(VB, FB, FFB) # with brain
-
-        x_test = torch.cat((x,x_fiber),1)
-        X1 = torch.cat((X1,X1_fiber),1)
-        X2 = torch.cat((X2,X2_fiber),1)
-
-        query = self.TimeDistributed(x)
-        query_test = self.TimeDistributed(x_test)
-        query_1 = self.TimeDistributed(X1)
-        query_2 = self.TimeDistributed(X2)
-        
-        values_1 = self.WV3(query_1)
-        values_2 = self.WV3(query_2)
-        values_test = self.WV3(query_test)
-        
-        x_a_1, w_a_1 = self.Attention3(query_1, values_1)
-        x_a_2, w_a_2 = self.Attention3(query_2, values_2)
-        x_a_test, w_a_test = self.Attention3(query_test, values_test)
-        proj1 = self.projection(x_a_1)
-        proj2 = self.projection(x_a_2)
-        proj_test = self.projection(x_a_test)
+        # x_test = torch.cat((x,x_fiber),1)
+        # X1 = torch.cat((X1,X1_fiber),1)
+        # X2 = torch.cat((X2,X2_fiber),1)
+        # query = self.TimeDistributed(x)
+        # query_test = self.TimeDistributed(x_test)
+        # query_1 = self.TimeDistributed(X1)
+        # query_2 = self.TimeDistributed(X2)
+        # values_1 = self.WV3(query_1)
+        # values_2 = self.WV3(query_2)
+        # values_test = self.WV3(query_test)
+        # x_a_1, w_a_1 = self.Attention3(query_1, values_1)
+        # x_a_2, w_a_2 = self.Attention3(query_2, values_2)
+        # x_a_test, w_a_test = self.Attention3(query_test, values_test)
+        # proj1 = self.projection(x_a_1)
+        # proj2 = self.projection(x_a_2)
+        # proj_test = self.projection(x_a_test)
 
         '''
         query_fiber = self.TimeDistributed(x_fiber)
@@ -420,7 +479,7 @@ class Fly_by_CNN_contrastive_tractography_labeled(pl.LightningModule):
         
         return x, proj_test, proj1, proj2
     '''
-        return proj_test, proj1, proj2
+        # return proj_test, proj1, proj2
     
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(self.parameters(), lr=1e-4)
@@ -478,114 +537,94 @@ class Fly_by_CNN_contrastive_tractography_labeled(pl.LightningModule):
         # print("x.shape", x.shape) # (batch_size, nb_views, 8, 224, 224)  sans depthmap infos
         # print("x.shape", x.shape) # (batch_size, nb_views, 12, 224, 224)  avec depthmap infos
         # x_brain = torch.cat(l_features_brain,dim=2) # with brain
-        # x === mes 12 images de 224*224*8
-        #x.shape(batch_size,nb_cameras,8,224,224)
-        # x_brain_f = torch.tile(x_brain,(x.shape[0],1,1,1,1)) # with brain
         
         return x, PF
         # return x, PF, x_brain, PF_brain # with brain
 
     def training_step(self, train_batch, train_batch_idx):
 
-        V, F, FF, labels, Fiber_infos = train_batch
+        V, F, FF, labels, Fiber_infos, Mean, Scale = train_batch
         V = V.to(self.device)
+        Vo = torch.detach(V).to(self.device)
         F = F.to(self.device)
         FF = FF.to(self.device)
-        VFI = torch.clone(V)
-        VFI = VFI.to(self.device)
-        FFI = torch.clone(F)
-        FFI = FFI.to(self.device)
-        FFFI = torch.clone(FF)
-        FFFI = FFFI.to(self.device)
+        VFI = torch.detach(V).to(self.device)
+        FFI = torch.detach(F).to(self.device)
+        FFFI = torch.detach(FF).to(self.device)
         labels = labels.to(self.device)
-        labelsFI = torch.clone(labels)
-        labelsFI = labelsFI.to(self.device)
-        # vfbounds = []
-        sample_min_max = []
-        data_lab = []
-        name_labels = []
-        
-        for z in range(len(Fiber_infos)):
-            # vfbounds += [Fiber_infos[z][0]]
-            sample_min_max += [Fiber_infos[z][0]]
-            data_lab += Fiber_infos[z][1]
-            name_labels += Fiber_infos[z][2]
-        sample_id = []
-        for w in range(len(name_labels)):
-            sample_id.append(name_labels[w][0])
+        Fiber_infos = Fiber_infos.to(self.device)
+        Mean = Mean.to(self.device)
+        Scale = Scale.to(self.device)
+        mean_v = Mean[:,:3].unsqueeze(dim=1).repeat(1,VFI.shape[1],1).to(self.device) # 1x3
+        scale_v = Scale[:,0].to(self.device) # 1x1
+        mean_s = Mean[:,3:].unsqueeze(dim=1).repeat(1,Vo.shape[1],1).to(self.device) # 1x3
+        scale_s = Scale[:,1].to(self.device) # 1x1
 
-        # change fibers points with stretching, rotation, translation twices for the V and twices for the VFI
-        vfbounds = []
-        for i in range(V.shape[0]):
-            for j in range(V.shape[1]):
-                if V[i,j,0].item() == 0.0 and V[i,j,1].item() == 0.0 and V[i,j,2].item() == 0.0:
-                    limit = j
-                    break
-            l = [torch.min(V[i,:limit,0]).item(), torch.max(V[i,:limit,0]).item(), torch.min(V[i,:limit,1]).item(), torch.max(V[i,:limit,1]).item(), torch.min(V[i,:limit,2]).item(), torch.max(V[i,:limit,2]).item()]
-            vfbounds.append([min(l), max(l), min(l), max(l), min(l), max(l)])
+        Vo = transformation_verts(Vo, mean_s, scale_s)         #normalization by the bounds of the brain
+        VFI = transformation_verts_by_fiber(VFI, mean_v, scale_v)  #normalization by the bounds of the fiber
+        V1 = torch.detach(Vo)
+        V2 = torch.detach(Vo)
+        VFI1 = torch.detach(VFI)
+        VFI2 = torch.detach(VFI)
+        # V1 = randomstretching(V).to(self.device)            #random stretching
+        # V2 = randomstretching(V).to(self.device)
+        # VFI1 = randomstretching(VFI).to(self.device)
+        # VFI2 = randomstretching(VFI).to(self.device)
+        #just for now
+        # for i in range(V1.shape[0]):                        #random rotation
+            # V1[i] = randomrotation(V1[i])
+            # V2[i] = randomrotation(V2[i])
+            # VFI1[i] = randomrotation(VFI1[i])
+            # VFI2[i] = randomrotation(VFI2[i])
 
-        V = transformation_verts(V, sample_min_max)
-        VFI = transformation_verts_by_fiber(VFI, vfbounds)
-        V1 = randomstretching(V).to(self.device)
-        V2 = randomstretching(V).to(self.device)
-        VFI1 = randomstretching(VFI).to(self.device)
-        VFI2 = randomstretching(VFI).to(self.device)
-        for i in range(V1.shape[0]):
-            V1[i] = randomrotation(V1[i])
-            V2[i] = randomrotation(V2[i])
-            VFI1[i] = randomrotation(VFI1[i])
-            VFI2[i] = randomrotation(VFI2[i])
         condition = True
         # x, proj_test, x1, x2 = self((V, V1, V2, F, FF, VFI, VFI1, VFI2, FFI, FFFI, condition))
-        proj_test, x1, x2 = self((V, V1, V2, F, FF, VFI, VFI1, VFI2, FFI, FFFI, condition))
-        x1_b = torch.tensor([]).to(self.device)
-        x1_t = torch.tensor([]).to(self.device)
-        x2_b = torch.tensor([]).to(self.device)
-        x2_t = torch.tensor([]).to(self.device)
-        proj_test_b = torch.tensor([]).to(self.device)
-        proj_test_t = torch.tensor([]).to(self.device)
+        # proj_test, x1, x2 = self((Vo, V1, V2, F, FF, VFI, VFI1, VFI2, FFI, FFFI, condition))
+        # x1_b = x1[:self.batch_size].to(self.device)
+        # x2_b = x2[:self.batch_size].to(self.device)
+        # proj_test_b = proj_test[:self.batch_size].to(self.device)
+        # labels_b = labels[:self.batch_size].to(self.device)
+        # x1_t = x1[self.batch_size:].to(self.device)
+        # x2_t = x2[self.batch_size:].to(self.device)
+        # proj_test_t = proj_test[self.batch_size:].to(self.device)
+        proj_test = self((Vo, V1, V2, F, FF, VFI, VFI1, VFI2, FFI, FFFI, condition))
+        labels_b = labels[:self.batch_size].to(self.device)
+        x1_t = proj_test[self.batch_size:].to(self.device)
+        x2_t = proj_test[self.batch_size:].to(self.device)
+        # loss_contrastive = self.loss_contrastive(x1, x2) # Simclr between the two augmentations of the original data
+        lights = self.lights.to(self.device)
+        # loss_contrastive_bundle = 1 - self.loss_cossine(lights[labels_b],x1_b)# + 1 - self.loss_cossine(self.lights[labels_b],x2_b) + 1 - self.loss_cossine(x1_b,x2_b)
+        loss_contrastive_bundle = 1 - self.loss_cossine(lights[labels_b],proj_test)# + 1 - self.loss_cossine(self.lights[labels_b],x2_b) + 1 - self.loss_cossine(x1_b,x2_b)
+        # r = torch.randperm(int(x2_b.shape[0]))
+        # x2_b_r = x2_b[r].to(self.device)
+        # labels_b_t = torch.tensor(labels_b).to(self.device)
+        # labels_b_t_r = labels_b_t[r].to(self.device)
+        # condition_similarity = similarity_btw_lists(labels_b_t,labels_b_t_r)
+        # loss_contrastive_bundle_repulse = self.loss_cossine(x1_b, x2_b_r)#*condition_similarity  # cossine(Fb1,Fb2_shuffled)
 
-        labels_b = []
-        for i in range(len(data_lab)):
-            if data_lab[i] == 0 :
-                x1_b = torch.cat((x1_b, x1[i].unsqueeze(0)))
-                x2_b = torch.cat((x2_b, x2[i].unsqueeze(0)))
-                proj_test_b = torch.cat((proj_test_b, proj_test[i].unsqueeze(0)))
-                labels_b.append(labels[i])
-            else:
-                x1_t = torch.cat((x1_t, x1[i].unsqueeze(0)))
-                x2_t = torch.cat((x2_t, x2[i].unsqueeze(0)))
-                proj_test_t = torch.cat((proj_test_t, proj_test[i].unsqueeze(0)))
-        # loss = self.loss_train(x, labels)
-    
-        loss_contrastive = self.loss_contrastive(x1, x2)
-        loss_contrastive_bundle = 0
-        lights = torch.tensor(self.lights).to(self.device)
-        
-        for i in range(x1_b.shape[0]):
-            loss_contrastive_bundle += 1-self.loss_cossine(lights[labels_b[i]], x1_b[i].unsqueeze(0)) + 1 - self.loss_cossine(lights[labels_b[i]], x2_b[i].unsqueeze(0)) + 1 - self.loss_cossine(x1_b[i].unsqueeze(0), x2_b[i].unsqueeze(0))
-        
-        r = torch.randperm(int(x2_t.shape[0]))
-        x2_t_r = x2_t[r].to(self.device)
-        
-        loss_contrastive_tractography = 1 - self.loss_cossine(x1_t, x2_t)
-        loss_contrastive_shuffle = self.loss_cossine(x1_t, x2_t_r)
-        loss_contrastive_tractography = torch.sum(loss_contrastive_tractography)
-        loss_contrastive_shuffle = torch.sum(loss_contrastive_shuffle)
+        if x1_t.shape[0] > 0:   # if tractography fibers are in the batch
+            r = torch.randperm(int(x2_t.shape[0]))
+            x2_t_r = x2_t[r].to(self.device)
 
-        loss_tract_cluster = 0
-        for j in range(x1_t.shape[0]):
-            loss_tract_cluster_i = torch.tensor([]).to(self.device)
-            for i in range(lights.shape[0]):
-                loss_tract_cluster_i = torch.cat((loss_tract_cluster_i, self.loss_cossine(lights[i], x1_t[j].unsqueeze(0))))
-            topk = torch.topk(loss_tract_cluster_i, 5)
-            topk_indices = topk.indices
-            n = random.randint(-5,-1)
-            cluster_k_indices = topk_indices[n].item()
-            loss_tract_cluster += 1-self.loss_cossine(lights[cluster_k_indices], x1_t[j].unsqueeze(0))
+            loss_contrastive_tractography = 1 - self.loss_cossine(x1_t, x2_t) # 1 - cossine(Ft1,Ft2)
+            loss_contrastive_shuffle = self.loss_cossine(x1_t, x2_t_r)  # 1 - cossine(Ft1,Ft2_shuffled)
+            loss_contrastive_tractography = torch.sum(loss_contrastive_tractography).to(self.device)
+            loss_contrastive_shuffle = torch.sum(loss_contrastive_shuffle).to(self.device)
 
-        Loss_combine = loss_contrastive_bundle + loss_contrastive_tractography + loss_contrastive_shuffle + loss_tract_cluster
+            X1_T = x1_t.unsqueeze(1).repeat(1,self.lights.shape[0],1).to(self.device) #(7,57,128)
+            LT = self.lights.unsqueeze(0).repeat(x1_t.shape[0],1,1).to(self.device) #(7,57,128)
+            loss_for_best = self.loss_cossine_dim2(LT, X1_T) #(7,57)        #compute the cosinesimilarity between each tractography fiber and each cluster
+            topk_i = torch.topk(loss_for_best, 5,dim = 1).indices #(7,5)     #get the 5 closest clusters for each tractography fiber
+            Nl = [ i.item() for i in torch.randint(-5,0,(7,))]  #randomly choose one of the 5 closest clusters for each tractography fiber
+            topk_i_choosen=[topk_i[i,Nl[i]].item() for i in range(len(Nl))] #get the index of the choosen cluster for each tractography fiber
+            lights_topk = self.lights[topk_i_choosen].to(self.device) #(7,128)
+            loss_tract_cluster = self.loss_cossine(lights_topk, x1_t) #(7,57)
+            loss_tract_cluster = torch.sum(loss_tract_cluster).to(self.device)
 
+            Loss_combine = loss_contrastive_bundle + loss_contrastive_tractography + loss_contrastive_shuffle + loss_tract_cluster
+        else:
+            Loss_combine = loss_contrastive_bundle #+ loss_contrastive_bundle_repulse
+        Loss_combine = torch.sum(Loss_combine)
         self.log('train_loss', Loss_combine.item(), batch_size=self.batch_size)
         # print("accuracy", self.train_accuracy(x, labels))
         # self.log('train_accuracy', self.train_accuracy, batch_size=self.batch_size)
@@ -596,105 +635,88 @@ class Fly_by_CNN_contrastive_tractography_labeled(pl.LightningModule):
         
     def validation_step(self, val_batch, val_batch_idx):
         
-        V, F, FF, labels, Fiber_infos= val_batch
+        V, F, FF, labels, Fiber_infos, Mean, Scale = val_batch
         V = V.to(self.device)
+        Vo = torch.detach(V).to(self.device)
         F = F.to(self.device)
         FF = FF.to(self.device)
-        VFI = torch.clone(V)
-        VFI = VFI.to(self.device)
-        FFI = torch.clone(F)
-        FFI = FFI.to(self.device)
-        FFFI = torch.clone(FF)
-        FFFI = FFFI.to(self.device)
+        VFI = torch.detach(V).to(self.device)
+        FFI = torch.detach(F).to(self.device)
+        FFFI = torch.detach(FF).to(self.device)
         labels = labels.to(self.device)
-        labelsFI = torch.clone(labels)
-        labelsFI = labelsFI.to(self.device)
-        
-        # vfbounds = []
-        sample_min_max = []
-        data_lab = []
-        name_labels = []
-        for z in range(len(Fiber_infos)):
-            # vfbounds += [Fiber_infos[z][0]]
-            sample_min_max += [Fiber_infos[z][0]]
-            data_lab += Fiber_infos[z][1]
-            name_labels += Fiber_infos[z][2]
-
-        sample_id = []
-        for w in range(len(name_labels)):
-            sample_id.append(name_labels[w][0])
-        vfbounds = []
-        for i in range(V.shape[0]):
-            for j in range(V.shape[1]):
-                if V[i,j,0].item() == 0.0 and V[i,j,1].item() == 0.0 and V[i,j,2].item() == 0.0:
-                    limit = j
-                    break
-            l = [torch.min(V[i,:limit,0]).item(), torch.max(V[i,:limit,0]).item(), torch.min(V[i,:limit,1]).item(), torch.max(V[i,:limit,1]).item(), torch.min(V[i,:limit,2]).item(), torch.max(V[i,:limit,2]).item()]
-            vfbounds.append([min(l), max(l), min(l), max(l), min(l), max(l)])
-
-        V = transformation_verts(V, sample_min_max)
-        VFI = transformation_verts_by_fiber(VFI, vfbounds)
-        V1 = randomstretching(V).to(self.device)
-        V2 = randomstretching(V).to(self.device)
-        VFI1 = randomstretching(VFI).to(self.device)
-        VFI2 = randomstretching(VFI).to(self.device)
-        for i in range(V1.shape[0]):
-            V1[i] = randomrotation(V1[i])
-            V2[i] = randomrotation(V2[i])
-            VFI1[i] = randomrotation(VFI1[i])
-            VFI2[i] = randomrotation(VFI2[i])
-        
+        Fiber_infos = Fiber_infos.to(self.device) # bs x 4
+        Mean = Mean.to(self.device) # bs x 6
+        Scale = Scale.to(self.device) # bs x 2
+        mean_v = Mean[:,:3].unsqueeze(1).repeat(1,VFI.shape[1],1).to(self.device) # bs x 3
+        scale_v = Scale[:,0].to(self.device) # bs x 1
+        mean_s = Mean[:,3:].unsqueeze(1).repeat(1,Vo.shape[1],1).to(self.device) # bs x 3
+        scale_s = Scale[:,1].to(self.device) # bs x 1
+        Vo = transformation_verts(Vo, mean_s, scale_s)         #normalization by the bounds of the brain
+        VFI = transformation_verts_by_fiber(VFI, mean_v, scale_v)  #normalization by the bounds of the fiber
+        # V1 = randomstretching(V).to(self.device)            #random stretching of the fiber
+        # V2 = randomstretching(V).to(self.device)
+        # VFI1 = randomstretching(VFI).to(self.device)
+        # VFI2 = randomstretching(VFI).to(self.device)
+        #just for now
+        # for i in range(V1.shape[0]):                        #random rotation
+            # V1[i] = randomrotation(V1[i])
+            # V2[i] = randomrotation(V2[i])
+            # VFI1[i] = randomrotation(VFI1[i])
+            # VFI2[i] = randomrotation(VFI2[i])
+        V1 = torch.detach(Vo)
+        V2 = torch.detach(Vo)
+        VFI1 = torch.detach(VFI)
+        VFI2 = torch.detach(VFI)
         condition = True
         # x, proj_test, x1, x2 = self((V, V1, V2, F, FF, VFI, VFI1, VFI2, FFI, FFFI, condition))    #.shape = (batch_size, num classes)
-        proj_test, x1, x2 = self((V, V1, V2, F, FF, VFI, VFI1, VFI2, FFI, FFFI, condition))    #.shape = (batch_size, num classes)
-        x1_b = torch.tensor([]).to(self.device)
-        x1_t = torch.tensor([]).to(self.device)
-        x2_b = torch.tensor([]).to(self.device)
-        x2_t = torch.tensor([]).to(self.device)
-        proj_test_b = torch.tensor([]).to(self.device)
-        proj_test_t = torch.tensor([]).to(self.device)
-        labels_b = []
+        # proj_test, x1, x2 = self((Vo, V1, V2, F, FF, VFI, VFI1, VFI2, FFI, FFFI, condition))    #.shape = (batch_size, num classes)
+        # x1_b = x1[:self.batch_size].to(self.device)
+        # x2_b = x2[:self.batch_size].to(self.device)
+        # proj_test_b = proj_test[:self.batch_size].to(self.device)
+        # labels_b = labels[:self.batch_size].to(self.device)
+        # x1_t = x1[self.batch_size:].to(self.device)
+        # x2_t = x2[self.batch_size:].to(self.device)
+        # proj_test_t = proj_test[self.batch_size:].to(self.device)
 
-        for i in range(len(data_lab)):
-            if data_lab[i] == 0 :
-                x1_b = torch.cat((x1_b, x1[i].unsqueeze(0)))
-                x2_b = torch.cat((x2_b, x2[i].unsqueeze(0)))
-                proj_test_b = torch.cat((proj_test_b, proj_test[i].unsqueeze(0)))
-                labels_b.append(labels[i])
-            else:
-                x1_t = torch.cat((x1_t, x1[i].unsqueeze(0)))
-                x2_t = torch.cat((x2_t, x2[i].unsqueeze(0)))
-                proj_test_t = torch.cat((proj_test_t, proj_test[i].unsqueeze(0)))
-        # loss = self.loss_train(x, labels)
-        loss_contrastive = self.loss_contrastive(x1, x2)
-        
-        loss_contrastive_bundle = 0
-        lights = torch.tensor(self.lights).to(self.device)
-        
-        for i in range(x1_b.shape[0]):
-            loss_contrastive_bundle += 1-self.loss_cossine(lights[labels_b[i]], x1_b[i].unsqueeze(0)) + 1 - self.loss_cossine(lights[labels_b[i]], x2_b[i].unsqueeze(0)) + 1 - self.loss_cossine(x1_b[i].unsqueeze(0), x2_b[i].unsqueeze(0))
-        
-        r = torch.randperm(int(x2_t.shape[0]))
-        x2_t_r = x2_t[r].to(self.device)
-        
-        loss_contrastive_tractography = 1 - self.loss_cossine(x1_t, x2_t)
-        loss_contrastive_shuffle = self.loss_cossine(x1_t, x2_t_r)
-        loss_contrastive_tractography = torch.sum(loss_contrastive_tractography)
-        loss_contrastive_shuffle = torch.sum(loss_contrastive_shuffle)
-        
-        loss_tract_cluster = 0
-        for j in range(x1_t.shape[0]):
-            loss_tract_cluster_i = torch.tensor([]).to(self.device)
-            for i in range(lights.shape[0]):
-                loss_tract_cluster_i = torch.cat((loss_tract_cluster_i, self.loss_cossine(lights[i], x1_t[j].unsqueeze(0))))
-            topk = torch.topk(loss_tract_cluster_i, 5)
-            n = random.randint(-5,-1)
-            topk_indices = topk.indices
-            cluster_k_indices = topk_indices[n].item()
-            loss_tract_cluster += 1-self.loss_cossine(lights[cluster_k_indices], x1_t[j].unsqueeze(0))
+        proj_test = self((Vo, V1, V2, F, FF, VFI, VFI1, VFI2, FFI, FFFI, condition))    #.shape = (batch_size, num classes)
+        labels_b = labels[:self.batch_size].to(self.device)
+        x1_t = proj_test[self.batch_size:].to(self.device)
+        x2_t = proj_test[self.batch_size:].to(self.device)
+        # loss_contrastive = self.loss_contrastive(x1, x2) # Simclr between the two augmentations of the original data
+        lights= self.lights.to(self.device)
+        # loss_contrastive_bundle = 1 - self.loss_cossine(lights[labels_b],x1_b)# + 1 - self.loss_cossine(self.lights[labels_b],x2_b) + 1 - self.loss_cossine(x1_b,x2_b)
+        loss_contrastive_bundle = 1 - self.loss_cossine(lights[labels_b],proj_test)# + 1 - self.loss_cossine(self.lights[labels_b],x2_b) + 1 - self.loss_cossine(x1_b,x2_b)
 
-        Loss_combine = loss_contrastive_bundle + loss_contrastive_tractography + loss_contrastive_shuffle + loss_tract_cluster
-        
+        # r = torch.randperm(int(x2_b.shape[0]))
+        # x2_b_r = x2_b[r].to(self.device)
+        # labels_b_t = torch.tensor(labels_b).to(self.device)
+        # labels_b_t_r = labels_b_t[r].to(self.device)
+        # condition_similarity = similarity_btw_lists(labels_b_t,labels_b_t_r)
+        # loss_contrastive_bundle_repulse = self.loss_cossine(x1_b, x2_b_r)#*condition_similarity  # cossine(Fb1,Fb2_shuffled)
+
+        if x1_t.shape[0] > 0:   # if tractography fibers are in the batch
+            r = torch.randperm(int(x2_t.shape[0]))
+            x2_t_r = x2_t[r].to(self.device)
+
+            loss_contrastive_tractography = 1 - self.loss_cossine(x1_t, x2_t) # 1 - cossine(Ft1,Ft2)
+            loss_contrastive_shuffle = self.loss_cossine(x1_t, x2_t_r)  # 1 - cossine(Ft1,Ft2_shuffled)
+            loss_contrastive_tractography = torch.sum(loss_contrastive_tractography)
+            loss_contrastive_shuffle = torch.sum(loss_contrastive_shuffle)
+
+            X1_T = x1_t.unsqueeze(1).repeat(1,self.lights.shape[0],1).to(self.device) #(7,57,128)
+            LT = self.lights.unsqueeze(0).repeat(x1_t.shape[0],1,1).to(self.device)  #(7,57,128)
+            loss_for_best = self.loss_cossine_dim2(LT, X1_T) #(7,57)    #compute the cosinesimilarity between each tractography fiber and each cluster
+            topk_i = torch.topk(loss_for_best, 5,dim = 1).indices       #get the 5 best clusters for each tractography fiber
+            Nl = [ i.item() for i in torch.randint(-5,0,(7,))]          #get a random number between -5 and 0 for each tractography fiber
+            topk_i_choosen=[topk_i[i,Nl[i]].item() for i in range(len(Nl))] #get the cluster corresponding to the random number
+            lights_topk = self.lights[topk_i_choosen].to(self.device) #(7,128)
+            loss_tract_cluster = self.loss_cossine(lights_topk, x1_t) #(7,57)
+            loss_tract_cluster = torch.sum(loss_tract_cluster).to(self.device)
+
+            Loss_combine = loss_contrastive_bundle + loss_contrastive_tractography + loss_contrastive_shuffle + loss_tract_cluster
+        else:
+            Loss_combine = loss_contrastive_bundle #+ loss_contrastive_bundle_repulse
+        Loss_combine =torch.sum(Loss_combine)
         self.log('val_loss', Loss_combine.item(), batch_size=self.batch_size)
         # predictions = torch.argmax(x, dim=1)
         # self.val_accuracy(predictions.reshape(-1,1), labels.reshape(-1,1))
@@ -705,120 +727,96 @@ class Fly_by_CNN_contrastive_tractography_labeled(pl.LightningModule):
 
     def test_step(self, test_batch, test_batch_idx):
 
-        V, F, FF, labels, Fiber_infos = test_batch  
+        V, F, FF, labels, Fiber_infos, Mean, Scale = test_batch  
         V = V.to(self.device)
+        Vo = torch.detach(V).to(self.device)
         F = F.to(self.device)
         FF = FF.to(self.device)
-        VFI = torch.clone(V)
-        VFI = VFI.to(self.device)
-        FFI = torch.clone(F)
-        FFI = FFI.to(self.device)
-        FFFI = torch.clone(FF)
-        FFFI = FFFI.to(self.device)
+        VFI = torch.detach(V).to(self.device)
+        FFI = torch.detach(F).to(self.device)
+        FFFI = torch.detach(FF).to(self.device)
         labels = labels.to(self.device)
-        labelsFI = torch.clone(labels)
-        labelsFI = labelsFI.to(self.device)
-        # vfbounds = []
-        sample_min_max = []
-        data_lab = []
-        name_labels = []
-        for z in range(len(Fiber_infos)):
-            # vfbounds += [Fiber_infos[z][0]]
-            sample_min_max += [Fiber_infos[z][0]]
-            data_lab += Fiber_infos[z][1]
-            name_labels += Fiber_infos[z][2]
-
-        sample_id = []
-        for w in range(len(name_labels)):
-            sample_id.append(name_labels[w][0])
-        vfbounds = []
-        for i in range(V.shape[0]):
-            for j in range(V.shape[1]):
-                if V[i,j,0].item() == 0.0 and V[i,j,1].item() == 0.0 and V[i,j,2].item() == 0.0:
-                    limit = j
-                    break
-            l = [torch.min(V[i,:limit,0]).item(), torch.max(V[i,:limit,0]).item(), torch.min(V[i,:limit,1]).item(), torch.max(V[i,:limit,1]).item(), torch.min(V[i,:limit,2]).item(), torch.max(V[i,:limit,2]).item()]
-            vfbounds.append([min(l), max(l), min(l), max(l), min(l), max(l)])
-
-        V = transformation_verts(V, sample_min_max)
-        VFI = transformation_verts_by_fiber(VFI, vfbounds)
-        V1 = randomstretching(V).to(self.device)
-        V2 = randomstretching(V).to(self.device)
-        VFI1 = randomstretching(VFI).to(self.device)
-        VFI2 = randomstretching(VFI).to(self.device)
-        for i in range(V1.shape[0]):
-            V1[i] = randomrotation(V1[i])
-            V2[i] = randomrotation(V2[i])
-            VFI1[i] = randomrotation(VFI1[i])
-            VFI2[i] = randomrotation(VFI2[i])
+        Fiber_infos = Fiber_infos.to(self.device)
+        Mean = Mean.to(self.device)
+        Scale = Scale.to(self.device)
+        mean_v = Mean[:,:3].unsqueeze(1).repeat(1,VFI.shape[1],1).to(self.device)
+        scale_v = Scale[:,0].to(self.device)
+        mean_s = Mean[:,3:].unsqueeze(1).repeat(1,Vo.shape[1],1).to(self.device)
+        scale_s = Scale[:,1].to(self.device)
+        data_lab = Fiber_infos[:,0].to(self.device)
+        name_labels = Fiber_infos[:,1:]
+        
+        Vo = transformation_verts(Vo, mean_s,scale_s)         #normalisation by the bounds of the brain
+        VFI = transformation_verts_by_fiber(VFI, mean_v, scale_v)  #normalisation by the bounds of the fiber
+        # V1 = randomstretching(V).to(self.device)            #stretching
+        # V2 = randomstretching(V).to(self.device)
+        # VFI1 = randomstretching(VFI).to(self.device)
+        # VFI2 = randomstretching(VFI).to(self.device)
+        #just for now
+        # for i in range(V1.shape[0]):                        #random rotation
+            # V1[i] = randomrotation(V1[i])
+            # V2[i] = randomrotation(V2[i])
+            # VFI1[i] = randomrotation(VFI1[i])
+            # VFI2[i] = randomrotation(VFI2[i])
+        V1 = torch.detach(Vo)
+        V2 = torch.detach(Vo)
+        VFI1 = torch.detach(VFI)
+        VFI2 = torch.detach(VFI)
         condition = False
         # x,  proj_test, x1, x2 = self((V, V1, V2, F, FF, VFI, VFI1, VFI2, FFI, FFFI, condition))
-        proj_test, x1, x2 = self((V, V1, V2, F, FF, VFI, VFI1, VFI2, FFI, FFFI, condition))
-        x1_b = torch.tensor([]).to(self.device)
-        x1_t = torch.tensor([]).to(self.device)
-        x2_b = torch.tensor([]).to(self.device)
-        x2_t = torch.tensor([]).to(self.device)
-        proj_test_b = torch.tensor([]).to(self.device)
-        proj_test_t = torch.tensor([]).to(self.device)
-        labels_b = []
-        for i in range(len(data_lab)):
-            if data_lab[i] == 0 :
-
-                x1_b = torch.cat((x1_b, x1[i].unsqueeze(0)))
-                x2_b = torch.cat((x2_b, x2[i].unsqueeze(0)))
-                proj_test_b = torch.cat((proj_test_b, proj_test[i].unsqueeze(0)))
-                labels_b.append(labels[i])
-            else:
-                x1_t = torch.cat((x1_t, x1[i].unsqueeze(0)))
-                x2_t = torch.cat((x2_t, x2[i].unsqueeze(0)))
-                proj_test_t = torch.cat((proj_test_t, proj_test[i].unsqueeze(0)))
-
-
+        # proj_test, x1, x2 = self((Vo, V1, V2, F, FF, VFI, VFI1, VFI2, FFI, FFFI, condition))
+        # x1_b = x1[:self.batch_size].to(self.device)
+        # x2_b = x2[:self.batch_size].to(self.device)
+        # proj_test_b = proj_test[:self.batch_size].to(self.device)
+        # labels_b = labels[:self.batch_size].to(self.device)
+        # x1_t = x1[self.batch_size:].to(self.device)
+        # x2_t = x2[self.batch_size:].to(self.device)
+        # proj_test_t = proj_test[self.batch_size:].to(self.device)
+        proj_test = self((Vo, V1, V2, F, FF, VFI, VFI1, VFI2, FFI, FFFI, condition))
+        labels_b = labels[:self.batch_size].to(self.device)
+        x1_t = proj_test[self.batch_size:].to(self.device)
+        x2_t = proj_test[self.batch_size:].to(self.device)
         tot = np.random.randint(0,1000000)
-        name_labels = torch.tensor(name_labels)
-        name_labels = name_labels.to(self.device)
-        data_lab = torch.tensor(data_lab)
-        data_lab = data_lab.to(self.device)
         labels2 = labels.unsqueeze(dim = 1)
         data_lab = data_lab.unsqueeze(dim = 1)
-
-        proj_test = torch.cat((proj_test, labels2, name_labels, data_lab), dim=1)
-        
+        proj_test_save = torch.cat((proj_test, labels2, name_labels, data_lab), dim=1)
         lab = np.array(torch.unique(labels).cpu())
-        # lab = lab.cpu()
-        # lab = np.array(lab)
-    
-        # torch.save(proj_test, f"/CMF/data/timtey/results_contrastive_loss_combine_loss_tract_cluster_with_simclr/proj_test_{lab[-1]}_{tot}.pt")
-        # loss = self.loss_train(x, labels)
-        loss_contrastive = self.loss_contrastive(x1, x2)
+        # torch.save(proj_test_save, f"/CMF/data/timtey/results_contrastive_learning_060123/proj_test_{lab[-1]}_{tot}.pt")
+        # loss_contrastive = self.loss_contrastive(x1, x2) # Simclr between the two augmentations of the original data
+        lights = self.lights.to(self.device)
+        loss_contrastive_bundle = 1 - self.loss_cossine(lights[labels_b],proj_test)# + 1 - self.loss_cossine(self.lights[labels_b],x2_b) + 1 - self.loss_cossine(x1_b,x2_b)
+        
+        # r = torch.randperm(int(x2_b.shape[0]))
+        # x2_b_r = x2_b[r].to(self.device)            #randomize the batch of fibers from the bundles
+        # labels_b_t = torch.tensor(labels_b).to(self.device)
+        # labels_b_t_r = labels_b_t[r].to(self.device)
+        # condition_similarity = similarity_btw_lists(labels_b_t,labels_b_t_r)    
+        # loss_contrastive_bundle_repulse = self.loss_cossine(x1_b, x2_b_r)#*condition_similarity  # cossine(Fb1,Fb2_shuffled)
+        
+        if x1_t.shape[0] > 0:   # if tractography fibers are in the batch
+            r = torch.randperm(int(x2_t.shape[0]))
+            x2_t_r = x2_t[r].to(self.device)
 
-        loss_contrastive_bundle = 0
-        lights = torch.tensor(self.lights).to(self.device)
-        
-        for i in range(x1_b.shape[0]):
-            loss_contrastive_bundle += 1-self.loss_cossine(lights[labels_b[i]], x1_b[i].unsqueeze(0)) + 1 - self.loss_cossine(lights[labels_b[i]], x2_b[i].unsqueeze(0)) + 1 - self.loss_cossine(x1_b[i].unsqueeze(0), x2_b[i].unsqueeze(0))
-        
-        r = torch.randperm(int(x2_t.shape[0]))
-        x2_t_r = x2_t[r].to(self.device)
-        
-        loss_contrastive_tractography = 1 - self.loss_cossine(x1_t, x2_t)
-        loss_contrastive_shuffle = self.loss_cossine(x1_t, x2_t_r)
-        loss_contrastive_tractography = torch.sum(loss_contrastive_tractography)
-        loss_contrastive_shuffle = torch.sum(loss_contrastive_shuffle)
-        
-        loss_tract_cluster = 0
-        for j in range(x1_t.shape[0]):
-            loss_tract_cluster_i = torch.tensor([]).to(self.device)
-            for i in range(lights.shape[0]):
-                loss_tract_cluster_i = torch.cat((loss_tract_cluster_i, self.loss_cossine(lights[i], x1_t[j].unsqueeze(0))))
-            topk = torch.topk(loss_tract_cluster_i, 5)
-            topk_indices = topk.indices
-            n = random.randint(-5,-1)
-            cluster_k_indices = topk_indices[n].item()
-            loss_tract_cluster += 1-self.loss_cossine(lights[cluster_k_indices], x1_t[j].unsqueeze(0))
-        Loss_combine = loss_contrastive_bundle + loss_contrastive_tractography + loss_contrastive_shuffle + loss_tract_cluster
-        
-        self.log('test_loss', Loss_combine, batch_size=self.batch_size)
+            loss_contrastive_tractography = 1 - self.loss_cossine(x1_t, x2_t) # 1 - cossine(Ft1,Ft2)
+            loss_contrastive_shuffle = self.loss_cossine(x1_t, x2_t_r)  # 1 - cossine(Ft1,Ft2_shuffled)
+            loss_contrastive_tractography = torch.sum(loss_contrastive_tractography)
+            loss_contrastive_shuffle = torch.sum(loss_contrastive_shuffle)
+
+            X1_T = x1_t.unsqueeze(1).repeat(1,self.lights.shape[0],1).to(self.device) #(7,57,128)
+            LT = self.lights.unsqueeze(0).repeat(x1_t.shape[0],1,1).to(self.device) #(7,57,128)
+            loss_for_best = self.loss_cossine_dim2(LT, X1_T) #(7,57)
+            topk_i = torch.topk(loss_for_best, 5,dim = 1).indices
+            Nl = [ i.item() for i in torch.randint(-5,0,(7,))]
+            topk_i_choosen=[topk_i[i,Nl[i]].item() for i in range(len(Nl))]
+            lights_topk = self.lights[topk_i_choosen].to(self.device) #(7,128)
+            loss_tract_cluster = self.loss_cossine(lights_topk, x1_t) #(7,57)
+            loss_tract_cluster = torch.sum(loss_tract_cluster).to(self.device)
+
+            Loss_combine = loss_contrastive_bundle + loss_contrastive_tractography + loss_contrastive_shuffle + loss_tract_cluster
+        else:
+            Loss_combine = loss_contrastive_bundle #+ loss_contrastive_bundle_repulse
+        Loss_combine = torch.sum(Loss_combine)
+        self.log('test_loss', Loss_combine.item(), batch_size=self.batch_size)
         '''
         # predictions = torch.argmax(x, dim=1)
         
