@@ -85,7 +85,7 @@ from Transformations.transformations import *
 
 num_classes = 57
 nb_epochs = 500
-batch_size= 3
+batch_size= 18
 dropout_lvl=0.1
 radius=1
 ico_lvl=1

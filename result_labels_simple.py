@@ -41,7 +41,7 @@ import pandas as pd
 
 lights = pd.read_pickle(r'Lights_good.pickle')
 # liste = os.listdir("/CMF/data/timtey/results_contrastive_loss_combine_loss_tract_cluster_bundle")
-liste = os.listdir("/CMF/data/timtey/results_contrastive_learning_053123")
+liste = os.listdir("/CMF/data/timtey/results_contrastive_learning_060123")
 l_colors = colors.ListedColormap ( np.random.rand (57,3))
 l_colors1 = colors.ListedColormap ( np.random.rand (20,3))
 l_colors2 = colors.ListedColormap ( np.random.rand (20,3))
@@ -52,7 +52,7 @@ print(lights.shape)
 matrix2 = [] #should be shape = (56*100,128)
 
 for i in range(len(liste)):
-    matrix = torch.load(f"/CMF/data/timtey/results_contrastive_learning_053123/{liste[i]}")
+    matrix = torch.load(f"/CMF/data/timtey/results_contrastive_learning_060123/{liste[i]}")
     matrix2.append(matrix)
 MATR2 = torch.cat(matrix2, dim=0)
 print(MATR2.shape)
@@ -71,13 +71,13 @@ LIGHTS = lights.cpu()
 
 # for i in range(LIGHTS.shape[0]):
     # print(np.linalg.norm(LIGHTS[i]))
-for i in range(MATR.shape[0]):
+# for i in range(MATR.shape[0]):
     # print(np.linalg.norm(MATR[i]))
-    MATR[i] = MATR[i]/np.linalg.norm(MATR[i])
+    # MATR[i] = MATR[i]/np.linalg.norm(MATR[i])
 # print(LIGHTS[0])
 # print(MATR[0], MATR[1], MATR[2], MATR[3])
-threedtsne = TSNE(n_components=3, perplexity=1000)
-tsne = TSNE(n_components=2, perplexity=1000)
+threedtsne = TSNE(n_components=3, perplexity=500)
+tsne = TSNE(n_components=2, perplexity=500)
 # threedumap = umap.UMAP(n_components=3, n_neighbors=205, min_dist=0.1)
 # twodumap = umap.UMAP(n_components=2, n_neighbors=205, min_dist=0.1)
 GLOBAL = torch.cat((MATR, LIGHTS), dim=0)
@@ -88,8 +88,8 @@ tsne_results_global = tsne.fit_transform(GLOBAL)
 # tsne_results_global = twodumap.fit_transform(GLOBAL)
 tsne_results = tsne_results_global[:MATR.shape[0],:]
 tsne_results_lights = tsne_results_global[MATR.shape[0]:,:]
-torch.save(tsne_results, "tsne_results_contrastive_learning_053123_before_normalisation.pt")
-torch.save(tsne_results_lights, "tsne_results_lights_contrastive_learning_053123_before_normalisation.pt")
+torch.save(tsne_results, "tsne_results_contrastive_learning_060123_before_normalisation.pt")
+torch.save(tsne_results_lights, "tsne_results_lights_contrastive_learning_060123_before_normalisation.pt")
 # umap_results = twodumap.fit_transform(MATR)
 # umap_results_lights = twodumap.fit_transform(LIGHTS)
 uniq_lab = torch.unique(LAB)
@@ -116,8 +116,8 @@ plt.show()
 
 threedtsne_results = threedtsne_results/np.linalg.norm(threedtsne_results, axis=1, keepdims=True)
 threedtsne_results_lights = threedtsne_results_lights/np.linalg.norm(threedtsne_results_lights, axis=1, keepdims=True)
-torch.save(threedtsne_results, "threedtsne_results_contrastive_learning_053123.pt")
-torch.save(threedtsne_results_lights, "threedtsne_results_lights_contrastive_learning_053123.pt")
+torch.save(threedtsne_results, "threedtsne_results_contrastive_learning_060123.pt")
+torch.save(threedtsne_results_lights, "threedtsne_results_lights_contrastive_learning_060123.pt")
 # threedtsne_results = torch.load("pt/053023/threedtsne_results_contrastive_learning_053023.pt")
 # threedtsne_results_lights = torch.load("pt/053023/threedtsne_results_lights_contrastive_learning_053023.pt")
 # ax = plt.axes(projection='3d')

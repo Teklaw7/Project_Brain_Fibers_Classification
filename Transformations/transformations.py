@@ -39,6 +39,7 @@ def transformation_verts_by_fiber(verts, mean_f, scale_f):
     #     verts[i,:,2] = (0.8*(verts[i,:,2] - verts_fiber_bounds[i][4])/(verts_fiber_bounds[i][5] - verts_fiber_bounds[i][4])) - 0.4
     # return verts
     va = verts - mean_f
+    scale_f = scale_f*0.6
     for i in range(va.shape[0]):
         va[i,:,:] = va[i,:,:]*scale_f[i]
     # return (verts - mean_f)*scale_f

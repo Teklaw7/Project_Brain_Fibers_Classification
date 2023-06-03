@@ -271,9 +271,9 @@ class Fly_by_CNN_contrastive_tractography_labeled(pl.LightningModule):
         self.model.fc = nn.Linear(512, num_classes)
         self.loss = nn.CrossEntropyLoss()
         self.loss_contrastive = ContrastiveLoss(batch_size)
-        self.train_acc = torchmetrics.Accuracy(task="multiclass", num_classes=57)
-        self.val_acc = torchmetrics.Accuracy(task="multiclass", num_classes=57)
-        self.test_acc = torchmetrics.Accuracy(task="multiclass", num_classes=57)
+        # self.train_acc = torchmetrics.Accuracy(task="multiclass", num_classes=57)
+        # self.val_acc = torchmetrics.Accuracy(task="multiclass", num_classes=57)
+        # self.test_acc = torchmetrics.Accuracy(task="multiclass", num_classes=57)
         self.contrastive = contrastive
         self.radius = radius
         self.ico_lvl = ico_lvl
@@ -398,17 +398,20 @@ class Fly_by_CNN_contrastive_tractography_labeled(pl.LightningModule):
         x_fiber, PF_fiber = self.render(VFI,FFI,FFFI)
         # X1_fiber, PF1_fiber = self.render(VFI1,FFI,FFFI)
         # X2_fiber, PF2_fiber = self.render(VFI2,FFI,FFFI)
-        x_test = torch.cat((x,x_fiber),1)
+        # x_test = torch.cat((x,x_fiber),1)
         # X1 = torch.cat((X1,X1_fiber),1)
         # X2 = torch.cat((X2,X2_fiber),1)
-
-        # proj_test = self.model_original(x_test)
+        # proj_brain_1 = self.model_brain(X1)
+        # proj_brain_2 = self.model_brain(X2)
+        # proj_fiber_1 = self.model_original(x_fiber)
+        # proj_fiber_2 = self.model_original(x_fiber)
 
         proj_fiber = self.model_original(x_fiber)
         proj_brain = self.model_brain(x)
 
         x = torch.cat((proj_fiber, proj_brain), dim=1)
-
+        # x1 = torch.cat((proj_fiber_1, proj_brain_1), dim=1)
+        # x2 = torch.cat((proj_fiber_2, proj_brain_2), dim=1)
         return self.Projection(x)#, self.Projection(x), self.Projection(x)
 
         # proj1 = self.model_original(X1)
@@ -781,7 +784,7 @@ class Fly_by_CNN_contrastive_tractography_labeled(pl.LightningModule):
         data_lab = data_lab.unsqueeze(dim = 1)
         proj_test_save = torch.cat((proj_test, labels2, name_labels, data_lab), dim=1)
         lab = np.array(torch.unique(labels).cpu())
-        # torch.save(proj_test_save, f"/CMF/data/timtey/results_contrastive_learning_060123/proj_test_{lab[-1]}_{tot}.pt")
+        torch.save(proj_test_save, f"/CMF/data/timtey/results_contrastive_learning_060223/proj_test_{lab[-1]}_{tot}.pt")
         # loss_contrastive = self.loss_contrastive(x1, x2) # Simclr between the two augmentations of the original data
         lights = self.lights.to(self.device)
         loss_contrastive_bundle = 1 - self.loss_cossine(lights[labels_b],proj_test)# + 1 - self.loss_cossine(self.lights[labels_b],x2_b) + 1 - self.loss_cossine(x1_b,x2_b)

@@ -98,10 +98,8 @@ class BrainNetImageLogger_contrastive_tractography_labeled(Callback):
             scale_s = Scale[:,1].to(pl_module.device,non_blocking=True)
             mean_s = mean_s.unsqueeze(1).repeat(1, Vo.shape[1], 1).to(pl_module.device,non_blocking=True)
             mean_v = mean_v.unsqueeze(1).repeat(1, VFI.shape[1], 1).to(pl_module.device,non_blocking=True)
-
             Vo = transformation_verts(Vo, mean_s, scale_s)   
             VFI = transformation_verts_by_fiber(VFI, mean_v, scale_v)
-            # print("logger",VFI)
             # V1 = randomstretching(V).to(pl_module.device,non_blocking=True)
             # V2 = randomstretching(V).to(pl_module.device,non_blocking=True)
             # VFI1 = randomstretching(VFI).to(pl_module.device,non_blocking=True)

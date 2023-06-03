@@ -72,34 +72,8 @@ class Bundles_Dataset_contrastive_tractography_labeled(Dataset):
         
         verts, faces, edges = utils.PolyDataToTensors(cc1_extract_tf)
         verts_fiber_bounds = cc1_extract_tf.GetBounds()
-        # verts_fiber_bounds = list(verts_fiber_bounds)
-        # verts_fiber_bounds = [min(verts_fiber_bounds), max(verts_fiber_bounds), min(verts_fiber_bounds), max(verts_fiber_bounds), min(verts_fiber_bounds), max(verts_fiber_bounds)]
-        # sample_min_max = [sample_x_min, sample_x_max, sample_y_min, sample_y_max, sample_z_min, sample_z_max]
-        # verts_fiber_bounds = np.array(verts_fiber_bounds)
-        # mean_v = [0.0]*3
-        # bounds_max_v = [0.0]*3
-        # mean_v[0] = (verts_fiber_bounds[0] + verts_fiber_bounds[1])/2.0
-        # mean_v[1] = (verts_fiber_bounds[2] + verts_fiber_bounds[3])/2.0
-        # mean_v[2] = (verts_fiber_bounds[4] + verts_fiber_bounds[5])/2.0
-        # mean_v = np.array(mean_v)
-        # bounds_max_v[0]=max(verts_fiber_bounds[0],verts_fiber_bounds[1])
-        # bounds_max_v[1]=max(verts_fiber_bounds[2],verts_fiber_bounds[3])
-        # bounds_max_v[2]=max(verts_fiber_bounds[4],verts_fiber_bounds[5])
-        # bounds_max_v = np.array(bounds_max_v)
-        # scale_factor_v = 1/np.linalg.norm(bounds_max_v-mean_v)
         mean_v, scale_factor_v = get_mean_scale_factor(verts_fiber_bounds)
         sample_min_max = [sample_x_min, sample_x_max, sample_y_min, sample_y_max, sample_z_min, sample_z_max]
-        # mean_s = [0.0]*3
-        # bounds_max_s = [0.0]*3
-        # mean_s[0] = (sample_x_min + sample_x_max)/2.0
-        # mean_s[1] = (sample_y_min + sample_y_max)/2.0
-        # mean_s[2] = (sample_z_min + sample_z_max)/2.0
-        # mean_s = np.array(mean_s)
-        # bounds_max_s[0]=max(sample_x_min,sample_x_max)
-        # bounds_max_s[1]=max(sample_y_min,sample_y_max)
-        # bounds_max_s[2]=max(sample_z_min,sample_z_max)
-        # bounds_max_s = np.array(bounds_max_s)
-        # scale_factor_s = 1/np.linalg.norm(bounds_max_s-mean_s)
         mean_s, scale_factor_s = get_mean_scale_factor(sample_min_max)
         # EstimatedUncertainty = torch.tensor(vtk_to_numpy(cc1_extract_tf.GetPointData().GetScalars("EstimatedUncertainty"))).unsqueeze(1)
         # FA1 = torch.tensor(vtk_to_numpy(cc1_extract_tf.GetPointData().GetScalars("FA1"))).unsqueeze(1)
@@ -123,7 +97,6 @@ class Bundles_Dataset_contrastive_tractography_labeled(Dataset):
         data_lab = torch.tensor([0]).unsqueeze(0) #1x1
         name_l = torch.tensor(name).unsqueeze(0) #1x3
         Fiber_infos = torch.cat((data_lab, name_l), dim=1) #1x4
-        # Fiber_infos = [verts_fiber_bounds, sample_min_max, data_lab, name_l]
         Mean = torch.cat((torch.tensor(mean_v).unsqueeze(0), torch.tensor(mean_s).unsqueeze(0)), dim=1) # 1 x 6
         Scale = torch.cat((torch.tensor(scale_factor_v).unsqueeze(0), torch.tensor(scale_factor_s).unsqueeze(0)), dim=0).unsqueeze(0) # 1 x 2
         return verts,faces,face_features,labels, Fiber_infos, Mean, Scale
@@ -184,34 +157,8 @@ class Bundles_Dataset_tractography(Dataset):
             tracts_f = tracts_tf.GetOutput()
             verts, faces, edges = utils.PolyDataToTensors(tracts_f)
 
-        # sample_min_max = [sample_x_min, sample_x_max, sample_y_min, sample_y_max, sample_z_min, sample_z_max]
         verts_fiber_bounds = tracts_f.GetBounds()
-        # verts_fiber_bounds = np.array(verts_fiber_bounds)
-        # verts_fiber_bounds = list(verts_fiber_bounds)
-        # verts_fiber_bounds = [min(verts_fiber_bounds), max(verts_fiber_bounds), min(verts_fiber_bounds), max(verts_fiber_bounds), min(verts_fiber_bounds), max(verts_fiber_bounds)]
-        # mean_v = [0.0]*3
-        # bounds_max_v = [0.0]*3
-        # mean_v[0] = (verts_fiber_bounds[0] + verts_fiber_bounds[1])/2.0
-        # mean_v[1] = (verts_fiber_bounds[2] + verts_fiber_bounds[3])/2.0
-        # mean_v[2] = (verts_fiber_bounds[4] + verts_fiber_bounds[5])/2.0
-        # mean_v = np.array(mean_v)
-        # bounds_max_v[0] = max(verts_fiber_bounds[0], verts_fiber_bounds[1])
-        # bounds_max_v[1] = max(verts_fiber_bounds[2], verts_fiber_bounds[3])
-        # bounds_max_v[2] = max(verts_fiber_bounds[4], verts_fiber_bounds[5])
-        # bounds_max_v = np.array(bounds_max_v)
-        # scale_factor_v = 1/np.linalg.norm(bounds_max_v - mean_v)
         mean_v, scale_factor_v = get_mean_scale_factor(verts_fiber_bounds)
-        # mean_s = [0.0]*3
-        # bounds_max_s = [0.0]*3
-        # mean_s[0] = (sample_x_min + sample_x_max)/2
-        # mean_s[1] = (sample_y_min + sample_y_max)/2
-        # mean_s[2] = (sample_z_min + sample_z_max)/2
-        # mean_s = np.array(mean_s)
-        # bounds_max_s[0] = max(sample_x_min, sample_x_max)
-        # bounds_max_s[1] = max(sample_y_min, sample_y_max)
-        # bounds_max_s[2] = max(sample_z_min, sample_z_max)
-        # bounds_max_s = np.array(bounds_max_s)
-        # scale_factor_s = 1/np.linalg.norm(bounds_max_s - mean_s)
         sample_min_max = [sample_x_min, sample_x_max, sample_y_min, sample_y_max, sample_z_min, sample_z_max]
         mean_s, scale_factor_s = get_mean_scale_factor(sample_min_max)
         TubeNormals = torch.tensor(vtk_to_numpy(tracts_f.GetPointData().GetScalars("TubeNormals")))
@@ -226,7 +173,6 @@ class Bundles_Dataset_tractography(Dataset):
         data_lab = torch.tensor([1]).unsqueeze(0) #1x1
         name_l = torch.tensor(name).unsqueeze(0) #1x3
         Fiber_infos = torch.cat((data_lab, name_l), dim=1) #1x4
-        # Fiber_infos = [verts_fiber_bounds, sample_min_max, data_lab, name_l]
         mean_v = torch.tensor(mean_v).unsqueeze(0) #1x3
         mean_s = torch.tensor(mean_s).unsqueeze(0) #1x3
         Mean = torch.cat((mean_v, mean_s), dim=1) # 1x6
@@ -273,40 +219,11 @@ class Bundles_Dataset_test_contrastive_tractography_labeled(Dataset):
         bundle_extract_tf = self.L[idx]
         name = [sample_id, sample_label, idx]
         verts, faces, edges = utils.PolyDataToTensors(bundle_extract_tf)
-        # sample_min_max = [sample_x_min, sample_x_max, sample_y_min, sample_y_max, sample_z_min, sample_z_max]
-        # sample_min_max = np.array(sample_min_max)
         verts_fiber_bounds = bundle_extract_tf.GetBounds()
-        # verts_fiber_bounds = np.array(verts_fiber_bounds)
-
-        # mean_v = [0.0] * 3
-        # bounds_max_v = [0.0] * 3
-        
-        # mean_v[0] = (verts_fiber_bounds[0] + verts_fiber_bounds[1])/2.0
-        # mean_v[1] = (verts_fiber_bounds[2] + verts_fiber_bounds[3])/2.0
-        # mean_v[2] = (verts_fiber_bounds[4] + verts_fiber_bounds[5])/2.0
-        # mean_v = np.array(mean_v)
-
-        # bounds_max_v[0] = max(verts_fiber_bounds[0], verts_fiber_bounds[1])
-        # bounds_max_v[1] = max(verts_fiber_bounds[2], verts_fiber_bounds[3])
-        # bounds_max_v[2] = max(verts_fiber_bounds[4], verts_fiber_bounds[5])
-        # bounds_max_v = np.array(bounds_max_v) 
-        # scale_factor_v = 1/np.linalg.norm(bounds_max_v - mean_v)     
         mean_v, scale_factor_v = get_mean_scale_factor(verts_fiber_bounds)
-        
-        # mean_s = [0.0] * 3
-        # bounds_max_s = [0.0] * 3
-        # mean_s[0] = (sample_x_min + sample_x_max)/2.0
-        # mean_s[1] = (sample_y_min + sample_y_max)/2.0
-        # mean_s[2] = (sample_z_min + sample_z_max)/2.0
-        # mean_s = np.array(mean_s)
-        # bounds_max_s[0] = max(sample_x_min, sample_x_max)
-        # bounds_max_s[1] = max(sample_y_min, sample_y_max)
-        # bounds_max_s[2] = max(sample_z_min, sample_z_max)
-        # bounds_max_s = np.array(bounds_max_s)
-        # scale_factor_s = 1/np.linalg.norm(bounds_max_s - mean_s)
         sample_min_max = [sample_x_min, sample_x_max, sample_y_min, sample_y_max, sample_z_min, sample_z_max]
         mean_s, scale_factor_s = get_mean_scale_factor(sample_min_max)
-        # verts_fiber_bounds = [min(verts_fiber_bounds), max(verts_fiber_bounds), min(verts_fiber_bounds), max(verts_fiber_bounds), min(verts_fiber_bounds), max(verts_fiber_bounds)]
+
         # EstimatedUncertainty = torch.tensor(vtk_to_numpy(bundle_extract_tf.GetPointData().GetScalars("EstimatedUncertainty"))).unsqueeze(1)
         # FA1 = torch.tensor(vtk_to_numpy(bundle_extract_tf.GetPointData().GetScalars("FA1"))).unsqueeze(1)
         # FA2 = torch.tensor(vtk_to_numpy(bundle_extract_tf.GetPointData().GetScalars("FA2"))).unsqueeze(1)
@@ -328,7 +245,6 @@ class Bundles_Dataset_test_contrastive_tractography_labeled(Dataset):
         data_lab = torch.tensor([2]).unsqueeze(0) # 1 x 1
         name_l = torch.tensor(name).unsqueeze(0) # 1 x 3
         Fiber_infos = torch.cat((data_lab, name_l), dim=1) # 1 x 4
-        # Fiber_infos = [verts_fiber_bounds, sample_min_max, data_lab, name_l]
         mean_v = torch.tensor(mean_v).unsqueeze(0) # 1 x 3
         mean_s = torch.tensor(mean_s).unsqueeze(0) # 1 x 3
         Mean = torch.cat((mean_v, mean_s), dim=1) # 1 x 6
@@ -438,8 +354,6 @@ class Bundles_DataModule_tractography_labeled_fibers(pl.LightningDataModule):
     def get_weights(self):
         return self.weights
 
-
-
     def pad_verts_faces_simple(self, batch):
         verts = [v for v, f, vdf, l ,f_infos, m, s in batch]
         faces = [f for v, f, vdf, l ,f_infos, m, s  in batch]
@@ -458,7 +372,6 @@ class Bundles_DataModule_tractography_labeled_fibers(pl.LightningDataModule):
         scale = torch.cat(scale)
 
         return verts, faces, verts_data_faces, labels, f_infos, mean, scale
-
 
     def pad_verts_faces(self, batch):
         labeled_fibers = ()
