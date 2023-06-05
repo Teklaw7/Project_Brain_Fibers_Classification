@@ -65,7 +65,8 @@ def main(args):
     plt.title("lights avant normalisation")
     plt.show()
 
-    lights = np.abs(lights/np.linalg.norm(lights, axis=1, keepdims=True))
+    # lights = np.abs(lights/np.linalg.norm(lights, axis=1, keepdims=True))
+    lights = lights/np.linalg.norm(lights, axis=1, keepdims=True)
     
     print(lights.shape)
     fig = plt.figure()
@@ -93,7 +94,8 @@ def main(args):
     plt.title("centroids")
     plt.show()
 
-    lights = np.abs(centroids/np.linalg.norm(centroids, axis=1, keepdims=True))    
+    # lights = np.abs(centroids/np.linalg.norm(centroids, axis=1, keepdims=True))    
+    lights = centroids/np.linalg.norm(centroids, axis=1, keepdims=True)    
 
     print(lights.shape)
     fig = plt.figure()
@@ -112,11 +114,11 @@ def main(args):
 
     print(min_l)
 
-    # if not os.path.exists(args.out):
-    #     os.makedirs(args.out)
+    if not os.path.exists(args.out):
+        os.makedirs(args.out)
 
-    # with open(os.path.join(args.out, "lights.pickle"), 'wb') as f:
-    #     pickle.dump(lights, f)
+    with open(os.path.join(args.out, "lights_good_on_sphere.pickle"), 'wb') as f:
+        pickle.dump(lights, f)
 
 
 

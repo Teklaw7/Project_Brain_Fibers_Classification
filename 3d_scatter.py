@@ -6,8 +6,8 @@ import sys
 import math
 
 from sklearn.cluster import KMeans
-
-
+import os
+import argparse
 
 
 
@@ -39,7 +39,7 @@ ax.set_zlabel('Z Label')
 plt.show()
 
 # fit KMeans++ model to the data
-kmeans = KMeans(n_clusters=32, init='k-means++').fit(lights)
+kmeans = KMeans(n_clusters=57, init='k-means++').fit(lights)
 
 # get the cluster centroids
 centroids = kmeans.cluster_centers_
@@ -54,6 +54,7 @@ plt.show()
 print(centroids[0], centroids[1], centroids[2])
 
 centroids = np.abs(centroids/np.linalg.norm(centroids, axis=1, keepdims=True))
+
 
 print(centroids[0], centroids[1], centroids[2])
 
@@ -73,3 +74,8 @@ ax.set_ylabel('Y Label')
 ax.set_zlabel('Z Label')
 
 plt.show()
+
+if not os.path.exists(args.out):
+    os.makedirs(args.out)
+with open(os.path.join(args.out, "lights.pickle"), 'wb') as f:
+    pickle.dump(lights, f)
