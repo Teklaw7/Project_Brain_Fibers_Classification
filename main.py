@@ -85,7 +85,7 @@ from Transformations.transformations import *
 
 num_classes = 57
 nb_epochs = 500
-batch_size= 18
+batch_size= 10
 dropout_lvl=0.1
 radius=1
 ico_lvl=1
@@ -93,7 +93,7 @@ min_delta_early_stopping = 0.00
 patience_early_stopping= 10
 num_workers=12
 path_data="/CMF/data/timtey/tracts/archives"
-path_ico = "/NIRAL/tools/atlas/Surface/Sphere_Template/sphere_f327680_v163842.vtk"
+# path_ico = "/NIRAL/tools/atlas/Surface/Sphere_Template/sphere_f327680_v163842.vtk"
 path_tractography_train = "/home/timtey/Documents/datasets/dataset4/tractography_2_train.csv"
 path_tractography_valid = "/home/timtey/Documents/datasets/dataset4/tractography_2_valid.csv"
 path_tractography_test = "/home/timtey/Documents/datasets/dataset4/tractography_2_test.csv"
@@ -102,7 +102,7 @@ path_valid_final = "/home/timtey/Documents/datasets/dataset4/tracts_filtered_tra
 path_test_final = "/home/timtey/Documents/datasets/dataset4/tracts_filtered_train_test_label_to_number_nb_cells_without_missing_2_part.csv"
 
 checkpoint_callback = ModelCheckpoint(
-    dirpath='/home/timtey/Documents/Models_tensorboard/models/Loss_combine',
+    dirpath='/home/timtey/Documents/Models_tensorboard/models/Loss_combine/060823',
     filename='{epoch}-{val_loss:.2f}',
     monitor='val_loss',
     save_top_k=3
@@ -133,16 +133,17 @@ Acc = []
 Acc_details = []
 
 # brain_data=Bundles_DataModule_tractography_labeled_fibers(contrastive, 0,0,0,0,0,path_data, path_ico, batch_size, path_train_final, path_valid_final, path_test_final, verts_brain, faces_brain, face_features_brain, path_tractography_train, path_tractography_valid, path_tractography_test, tractography_list_vtk, num_workers=num_workers)
-brain_data=Bundles_DataModule_tractography_labeled_fibers(contrastive, 0,0,0,0,0,path_data, path_ico, batch_size, path_train_final, path_valid_final, path_test_final, path_tractography_train, path_tractography_valid, path_tractography_test, tractography_list_vtk, num_workers=num_workers)
+brain_data=Bundles_DataModule_tractography_labeled_fibers(0,0,0,path_data, batch_size, path_train_final, path_valid_final, path_test_final, path_tractography_train, path_tractography_valid, path_tractography_test, tractography_list_vtk, num_workers=num_workers)
 
 weights = brain_data.get_weights()
 # model= Fly_by_CNN_contrastive_tractography_labeled(contrastive, radius, ico_lvl, dropout_lvl, batch_size, weights, num_classes, verts_left, faces_left, verts_right, faces_right, learning_rate=0.001)
-model= Fly_by_CNN_contrastive_tractography_labeled(contrastive, radius, ico_lvl, dropout_lvl, batch_size, weights, num_classes, learning_rate=0.001)
+model= Fly_by_CNN_contrastive_tractography_labeled(radius, ico_lvl, dropout_lvl, batch_size, weights, num_classes, learning_rate=0.001)
 
 trainer.fit(model, brain_data)
 # trainer.test(model, brain_data)
 for index_csv in range(len(df)):
-    path = f"/CMF/data/timtey/tracts/{df['surf'][index_csv]}"
+    # path = f"/CMF/data/timtey/tracts/{df['surf'][index_csv]}"
+    path = f"/CMF/data/timtey/tracts/archives/{df['id'][index_csv]}_tracts/{df['class'][index_csv]}_DTI.vtk"
     bundle = utils.ReadSurf(path)
     L = []
     for i in range(bundle.GetNumberOfCells()):
@@ -156,7 +157,7 @@ for index_csv in range(len(df)):
     fibers = min(df['num_cells'])
 
     # brain_data=Bundles_DataModule_tractography_labeled_fibers(contrastive, bundle, L, fibers, 0, index_csv, path_data, path_ico, batch_size, path_train_final, path_valid_final, path_test_final, verts_brain, faces_brain, face_features_brain, path_tractography_train, path_tractography_valid, path_tractography_test, tractography_list_vtk, num_workers=num_workers)
-    brain_data=Bundles_DataModule_tractography_labeled_fibers(contrastive, bundle, L, fibers, 0, index_csv, path_data, path_ico, batch_size, path_train_final, path_valid_final, path_test_final, path_tractography_train, path_tractography_valid, path_tractography_test, tractography_list_vtk, num_workers=num_workers)
+    brain_data=Bundles_DataModule_tractography_labeled_fibers(L, fibers, index_csv, path_data, batch_size, path_train_final, path_valid_final, path_test_final, path_tractography_train, path_tractography_valid, path_tractography_test, tractography_list_vtk, num_workers=num_workers)
 
     trainer.test(model, brain_data)
 '''    

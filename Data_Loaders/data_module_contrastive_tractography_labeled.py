@@ -32,14 +32,11 @@ class ConcatDataset(torch.utils.data.Dataset):
 
 class Bundles_Dataset_contrastive_tractography_labeled(Dataset):
     # def __init__(self, data, path_data, path_ico, verts_brain, faces_brain, face_features_brain, transform=True, column_class='class',column_id='id', column_label='label', column_x_min = 'x_min', column_x_max = 'x_max', column_y_min = 'y_min', column_y_max = 'y_max', column_z_min = 'z_min', column_z_max = 'z_max'):
-    def __init__(self, data, path_data, path_ico, transform=True, column_class='class',column_id='id', column_label='label', column_x_min = 'x_min', column_x_max = 'x_max', column_y_min = 'y_min', column_y_max = 'y_max', column_z_min = 'z_min', column_z_max = 'z_max'):
+    def __init__(self, data, path_data, column_class='class',column_id='id', column_label='label', column_x_min = 'x_min', column_x_max = 'x_max', column_y_min = 'y_min', column_y_max = 'y_max', column_z_min = 'z_min', column_z_max = 'z_max'):
         self.data = data
-        self.transform = transform
+        # self.transform = transform
         self.path_data = path_data
-        self.path_ico = path_ico
-        # self.verts_brain = verts_brain
-        # self.faces_brain = faces_brain
-        # self.face_features_brain = face_features_brain
+        # self.path_ico = path_ico
         self.column_class = column_class
         self.column_id = column_id
         self.column_label = column_label
@@ -59,8 +56,8 @@ class Bundles_Dataset_contrastive_tractography_labeled(Dataset):
         
         sample_id, sample_class, sample_label = sample_row[self.column_id], sample_row[self.column_class], sample_row[self.column_label]
         sample_x_min, sample_x_max, sample_y_min, sample_y_max, sample_z_min, sample_z_max = sample_row[self.column_x_min], sample_row[self.column_x_max], sample_row[self.column_y_min], sample_row[self.column_y_max], sample_row[self.column_z_min], sample_row[self.column_z_max]
-        path_cc1 = f"/CMF/data/timtey/tracts/archives/{sample_id}_tracts/{sample_class}.vtp"
-        
+        # path_cc1 = f"/CMF/data/timtey/tracts/archives/{sample_id}_tracts/{sample_class}.vtp"
+        path_cc1 = f"/CMF/data/timtey/tracts/archives/{sample_id}_tracts/{sample_class}_DTI.vtk"
         cc1 = utils.ReadSurf(path_cc1)
         n = randint(0,cc1.GetNumberOfCells()-1)
         name = [sample_id, sample_label, n]
@@ -84,8 +81,13 @@ class Bundles_Dataset_contrastive_tractography_labeled(Dataset):
         # trace2 = torch.tensor(vtk_to_numpy(cc1_extract_tf.GetPointData().GetScalars("trace2"))).unsqueeze(1)
         # vtkOriginalPointIds = vtk_to_numpy(cc1_extract_tf.GetPointData().GetScalars("vtkOriginalPointIds"))
         TubeNormals = torch.tensor(vtk_to_numpy(cc1_extract_tf.GetPointData().GetScalars("TubeNormals")))
+        FA = torch.tensor(vtk_to_numpy(cc1_extract_tf.GetPointData().GetScalars("FA"))).unsqueeze(1)
+        MD = torch.tensor(vtk_to_numpy(cc1_extract_tf.GetPointData().GetScalars("MD"))).unsqueeze(1)
+        AD = torch.tensor(vtk_to_numpy(cc1_extract_tf.GetPointData().GetScalars("AD"))).unsqueeze(1)
+        RD = torch.tensor(vtk_to_numpy(cc1_extract_tf.GetPointData().GetScalars("RD"))).unsqueeze(1)
         # vertex_features = torch.cat([EstimatedUncertainty, FA1, FA2, HemisphereLocataion, trace1, trace2, TubeNormals], dim=1)
-        vertex_features = torch.cat([TubeNormals], dim=1)
+        # vertex_features = torch.cat([TubeNormals], dim=1)
+        vertex_features = torch.cat([TubeNormals, FA, MD, AD, RD], dim=1)
         faces_pid0 = faces[:,0:1]
         nb_faces = len(faces)
         offset = torch.zeros((nb_faces, vertex_features.shape[1]), dtype=int) + torch.arange(vertex_features.shape[1]).to(torch.int64)
@@ -104,15 +106,12 @@ class Bundles_Dataset_contrastive_tractography_labeled(Dataset):
 
 class Bundles_Dataset_tractography(Dataset):
     # def __init__(self, data, path_data, path_ico, verts_brain, faces_brain, face_features_brain, length, tractography_list_vtk, transform=True, column_surf='surf',column_class='class',column_id='id', column_label='label', column_x_min = 'x_min', column_x_max = 'x_max', column_y_min = 'y_min', column_y_max = 'y_max', column_z_min = 'z_min', column_z_max = 'z_max'):
-    def __init__(self, data, path_data, path_ico, length, tractography_list_vtk, transform=True, column_surf='surf',column_class='class',column_id='id', column_label='label', column_x_min = 'x_min', column_x_max = 'x_max', column_y_min = 'y_min', column_y_max = 'y_max', column_z_min = 'z_min', column_z_max = 'z_max'):
-        self.data = data
-        self.transform = transform
-        self.path_data = path_data
-        self.path_ico = path_ico
-        # self.verts_brain = verts_brain
-        # self.faces_brain = faces_brain
-        # self.face_features_brain = face_features_brain
-        self.length = length
+    def __init__(self, data, tractography_list_vtk, column_surf='surf',column_class='class',column_id='id', column_label='label', column_x_min = 'x_min', column_x_max = 'x_max', column_y_min = 'y_min', column_y_max = 'y_max', column_z_min = 'z_min', column_z_max = 'z_max'):
+        self.data = data # csv file
+        # self.transform = transform
+        # self.path_data = path_data #path where to find the data
+        # self.path_ico = path_ico
+        # self.length = length
         self.tractography_list_vtk = tractography_list_vtk
         self.column_surf = column_surf
         self.column_class = column_class
@@ -183,19 +182,17 @@ class Bundles_Dataset_tractography(Dataset):
 
 class Bundles_Dataset_test_contrastive_tractography_labeled(Dataset):
     # def __init__(self, contrastive, data, bundle, L, fibers, index_csv, path_data, path_ico, verts_brain, faces_brain, face_features_brain, transform=True, column_class='class',column_id='id', column_label='label', column_x_min = 'x_min', column_x_max = 'x_max', column_y_min = 'y_min', column_y_max = 'y_max', column_z_min = 'z_min', column_z_max = 'z_max'):
-    def __init__(self, contrastive, data, bundle, L, fibers, index_csv, path_data, path_ico, transform=True, column_class='class',column_id='id', column_label='label', column_x_min = 'x_min', column_x_max = 'x_max', column_y_min = 'y_min', column_y_max = 'y_max', column_z_min = 'z_min', column_z_max = 'z_max'):
-        self.contrastive = contrastive
+    # def __init__(self, data, bundle, L, fibers, index_csv, path_data, path_ico, column_class='class',column_id='id', column_label='label', column_x_min = 'x_min', column_x_max = 'x_max', column_y_min = 'y_min', column_y_max = 'y_max', column_z_min = 'z_min', column_z_max = 'z_max'):
+    def __init__(self, data, L, fibers, index_csv, column_class='class',column_id='id', column_label='label', column_x_min = 'x_min', column_x_max = 'x_max', column_y_min = 'y_min', column_y_max = 'y_max', column_z_min = 'z_min', column_z_max = 'z_max'):
+        # self.contrastive = contrastive
         self.data = data
-        self.bundle = bundle
+        # self.bundle = bundle
         self.L = L
         self.fibers = fibers
         self.index_csv = index_csv
-        self.transform = transform
-        self.path_data = path_data
-        self.path_ico = path_ico
-        # self.verts_brain = verts_brain
-        # self.faces_brain = faces_brain
-        # self.face_features_brain = face_features_brain
+        # self.transform = transform
+        # self.path_data = path_data
+        # self.path_ico = path_ico
         self.column_class = column_class
         self.column_id = column_id
         self.column_label = column_label
@@ -216,8 +213,9 @@ class Bundles_Dataset_test_contrastive_tractography_labeled(Dataset):
         sample_label = sample_row[self.column_label]
         sample_x_min, sample_x_max, sample_y_min, sample_y_max, sample_z_min, sample_z_max = sample_row[self.column_x_min], sample_row[self.column_x_max], sample_row[self.column_y_min], sample_row[self.column_y_max], sample_row[self.column_z_min], sample_row[self.column_z_max]
         sample_id = sample_row[self.column_id]
-        bundle_extract_tf = self.L[idx]
-        name = [sample_id, sample_label, idx]
+        n = randint(0,len(self.L)-1)
+        bundle_extract_tf = self.L[n]
+        name = [sample_id, sample_label, n]
         verts, faces, edges = utils.PolyDataToTensors(bundle_extract_tf)
         verts_fiber_bounds = bundle_extract_tf.GetBounds()
         mean_v, scale_factor_v = get_mean_scale_factor(verts_fiber_bounds)
@@ -233,8 +231,13 @@ class Bundles_Dataset_test_contrastive_tractography_labeled(Dataset):
         # trace2 = torch.tensor(vtk_to_numpy(bundle_extract_tf.GetPointData().GetScalars("trace2"))).unsqueeze(1)
         # vtkOriginalPointIds = vtk_to_numpy(cc1_extract_tf.GetPointData().GetScalars("vtkOriginalPointIds"))
         TubeNormals = torch.tensor(vtk_to_numpy(bundle_extract_tf.GetPointData().GetScalars("TubeNormals")))
+        FA = torch.tensor(vtk_to_numpy(bundle_extract_tf.GetPointData().GetScalars("FA"))).unsqueeze(1)
+        MD = torch.tensor(vtk_to_numpy(bundle_extract_tf.GetPointData().GetScalars("MD"))).unsqueeze(1)
+        AD = torch.tensor(vtk_to_numpy(bundle_extract_tf.GetPointData().GetScalars("AD"))).unsqueeze(1)
+        RD = torch.tensor(vtk_to_numpy(bundle_extract_tf.GetPointData().GetScalars("RD"))).unsqueeze(1)
         # vertex_features = torch.cat([EstimatedUncertainty, FA1, FA2, HemisphereLocataion, trace1, trace2, TubeNormals], dim=1)
-        vertex_features = torch.cat([TubeNormals], dim=1)
+        # vertex_features = torch.cat([TubeNormals], dim=1)
+        vertex_features = torch.cat([TubeNormals, FA, MD, AD, RD], dim=1)
         faces_pid0 = faces[:,0:1]
         nb_faces = len(faces)
         offset = torch.zeros((nb_faces, vertex_features.shape[1]), dtype=int) + torch.arange(vertex_features.shape[1]).to(torch.int64)
@@ -258,30 +261,28 @@ class Bundles_Dataset_test_contrastive_tractography_labeled(Dataset):
 
 class Bundles_DataModule_tractography_labeled_fibers(pl.LightningDataModule):
     # def __init__(self, contrastive, bundle, L, fibers, fibers_valid, index_csv, path_data, path_ico, batch_size, train_path, val_path, test_path, verts_brain, faces_brain, face_features_brain, path_tractography_train, path_tractography_valid, path_tractography_test, tractography_list_vtk, num_workers=12, transform=True, persistent_workers=False):
-    def __init__(self, contrastive, bundle, L, fibers, fibers_valid, index_csv, path_data, path_ico, batch_size, train_path, val_path, test_path, path_tractography_train, path_tractography_valid, path_tractography_test, tractography_list_vtk, num_workers=12, transform=True, persistent_workers=False):
+    # def __init__(self, bundle, L, fibers, fibers_valid, index_csv, path_data, path_ico, batch_size, train_path, val_path, test_path, path_tractography_train, path_tractography_valid, path_tractography_test, tractography_list_vtk, num_workers=12, persistent_workers=False):
+    def __init__(self, L, fibers, index_csv, path_data, batch_size, train_path, val_path, test_path, path_tractography_train, path_tractography_valid, path_tractography_test, tractography_list_vtk, num_workers=12, persistent_workers=False):
     
         super().__init__()
-        self.contrastive = contrastive
-        self.bundle = bundle
+        # self.contrastive = contrastive
+        # self.bundle = bundle
         self.L = L
         self.fibers = fibers
-        self.fibers_valid = fibers_valid
+        # self.fibers_valid = fibers_valid
         self.index_csv = index_csv
         self.path_data = path_data
-        self.path_ico = path_ico
+        # self.path_ico = path_ico
         self.batch_size = batch_size
         self.train_path = train_path
         self.val_path = val_path
         self.test_path = test_path
-        # self.verts_brain = verts_brain
-        # self.faces_brain = faces_brain
-        # self.face_features_brain = face_features_brain
         self.path_tractography_train = path_tractography_train
         self.path_tractography_valid = path_tractography_valid
         self.path_tractography_test = path_tractography_test
         self.tractography_list_vtk = tractography_list_vtk
         self.num_workers = num_workers
-        self.transform = transform
+        # self.transform = transform
         self.persistent_workers = persistent_workers
         self.weights = []
         self.df_train = pd.read_csv(self.train_path)
@@ -321,16 +322,13 @@ class Bundles_DataModule_tractography_labeled_fibers(pl.LightningDataModule):
         list_train_tractography_data = pd.read_csv(self.path_tractography_train)
         list_val_tractography_data = pd.read_csv(self.path_tractography_valid)
         list_test_tractography_data = pd.read_csv(self.path_tractography_test)
-        len_train = len(list_train_data)
-        len_val = len(list_val_data)
-        len_test = len(list_test_data)
         
-        self.train_dataset = Bundles_Dataset_contrastive_tractography_labeled(list_train_data, self.path_data, self.path_ico, self.transform)
-        self.val_dataset = Bundles_Dataset_contrastive_tractography_labeled(list_val_data, self.path_data, self.path_ico, self.transform)
-        self.test_dataset = Bundles_Dataset_test_contrastive_tractography_labeled(self.contrastive, list_test_data, self.bundle, self.L, self.fibers, self.index_csv, self.path_data, self.path_ico, self.transform)
-        self.train_tractography_dataset = Bundles_Dataset_tractography(list_train_tractography_data, self.path_data, self.path_ico, len_train, self.tractography_list_vtk, self.transform)
-        self.val_tractography_dataset = Bundles_Dataset_tractography(list_val_tractography_data, self.path_data, self.path_ico, len_val, self.tractography_list_vtk, self.transform)
-        self.test_tractography_dataset = Bundles_Dataset_tractography(list_test_tractography_data, self.path_data, self.path_ico, len_test, self.tractography_list_vtk, self.transform)
+        self.train_dataset = Bundles_Dataset_contrastive_tractography_labeled(list_train_data, self.path_data)
+        self.val_dataset = Bundles_Dataset_contrastive_tractography_labeled(list_val_data, self.path_data)
+        self.test_dataset = Bundles_Dataset_test_contrastive_tractography_labeled(list_test_data, self.L, self.fibers, self.index_csv)
+        self.train_tractography_dataset = Bundles_Dataset_tractography(list_train_tractography_data, self.tractography_list_vtk)
+        self.val_tractography_dataset = Bundles_Dataset_tractography(list_val_tractography_data, self.tractography_list_vtk)
+        self.test_tractography_dataset = Bundles_Dataset_tractography(list_test_tractography_data, self.tractography_list_vtk)
 
         self.concatenated_train_dataset = ConcatDataset(self.train_dataset, self.train_tractography_dataset)
         self.concatenated_val_dataset = ConcatDataset(self.val_dataset, self.val_tractography_dataset)

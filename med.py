@@ -2,20 +2,32 @@ from tools import utils
 import vtk
 import numpy as np
 import torch
-path = "/CMF/data/timtey/tracts/archives/101006_tracts/T_AF_left.vtp"
-tracts = utils.ReadSurf(path)
-verts  = torch.ones([1000,3])
-while verts.shape[0] < 100:
-    print("in")
-    n = np.random.randint(0,tracts.GetNumberOfCells())
-    tracts_extract = utils.ExtractFiber(tracts,n)
-    # name = [sample_id, sample_label, n]
-    tracts_tf = vtk.vtkTriangleFilter()
-    tracts_tf.SetInputData(tracts_extract)
-    tracts_tf.Update()
-    tracts_f = tracts_tf.GetOutput()
-    verts, faces, edges = utils.PolyDataToTensors(tracts_f)
-    # verts =torch.ones([10,3])
-    print(verts.shape)
+path = "/CMF/data/timtey/tractography/all/tractogram_deterministic_102008_dg.vtp"
+# path = "/CMF/data/timtey/tracts/archives/102008_tracts/T_CC1.vtp"
+# path2 = "/CMF/data/timtey/tractography/all/tractogram_deterministic_102008_dg_clean.vtk"
 
-print("good")
+tracts = utils.ReadSurf(path)
+# tracts2 = utils.ReadSurf(path2)
+# nb_points = tracts.GetNumberOfPoints()
+# print(nb_points)
+nb_cells = tracts.GetNumberOfCells()
+print(nb_cells)
+# nb_cells2 = tracts2.GetNumberOfCells()
+# print(nb_cells2)
+
+for i in range(nb_cells):
+    a = tracts.GetCell(i).GetNumberOfPoints()
+    # print(a)
+    if a  < 2:
+        tracts.DeleteCell(i)
+        # print(tracts.GetNumberOfCells())
+tracts.RemoveDeletedCells()
+print(tracts.GetNumberOfCells())
+writer = vtk.vtkPolyDataWriter()
+# writer.setFileVersion(1)
+writer.SetFileName("/CMF/data/timtey/tractography/all/tractogram_deterministic_102008_dg_clean.vtk")
+writer.SetInputData(tracts)
+writer.Write()
+# vtk.vtkPolyDataWriter().SetFileName("/CMF/data/timtey/tractography/all/tractogram_deterministic_102008_dg_clean.vtp").SetInputData(tracts).Write()
+print("Final")
+print(tracts.GetNumberOfCells())

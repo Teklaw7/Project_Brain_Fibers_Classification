@@ -50,69 +50,82 @@ def main(args):
 
     # light_house = model.light_house.detach().cpu().numpy()
 
-    lights = np.random.normal(loc=0, scale=1, size=(args.init_points, args.emb_dim))
-    print(lights.shape)
-    pca = PCA(n_components=3)
-    lights = pca.fit_transform(lights)
-    print(lights.shape)
-
-    fig = plt.figure()
-    ax = fig.add_subplot(projection='3d')
-    ax.scatter(lights[:,0], lights[:,1], lights[:,2], linewidths=10)
-    ax.set_xlabel('X Label')
-    ax.set_ylabel('Y Label')
-    ax.set_zlabel('Z Label')
-    plt.title("lights avant normalisation")
-    plt.show()
-
-    # lights = np.abs(lights/np.linalg.norm(lights, axis=1, keepdims=True))
-    lights = lights/np.linalg.norm(lights, axis=1, keepdims=True)
-    
-    print(lights.shape)
-    fig = plt.figure()
-    ax = fig.add_subplot(projection='3d')
-    ax.scatter(lights[:,0], lights[:,1], lights[:,2], linewidths=10)
-    ax.set_xlabel('X Label')
-    ax.set_ylabel('Y Label')
-    ax.set_zlabel('Z Label')
-    plt.title("lights apres normalisation")
-    plt.show()
+    noise = np.random.uniform(low=0.0, high=1.0, size=(args.init_points, args.emb_dim))
+    noise = np.abs(noise/np.linalg.norm(noise, axis=1, keepdims=True))
 
     # fit KMeans++ model to the data
-    kmeans = KMeans(n_clusters=args.n_lights, init='k-means++').fit(lights)
+    kmeans = KMeans(n_clusters=args.n_lights, init='k-means++', verbose=True).fit(noise)
 
     # get the cluster centroids
-    centroids = kmeans.cluster_centers_
-    
-    print(centroids.shape)
-    fig = plt.figure()
-    ax = fig.add_subplot(projection='3d')
-    ax.scatter(centroids[:,0], centroids[:,1], centroids[:,2], linewidths=10)
-    ax.set_xlabel('X Label')
-    ax.set_ylabel('Y Label')
-    ax.set_zlabel('Z Label')
-    plt.title("centroids")
-    plt.show()
+    lights = kmeans.cluster_centers_
+    lights = np.abs(lights/np.linalg.norm(lights, axis=1, keepdims=True))
 
-    # lights = np.abs(centroids/np.linalg.norm(centroids, axis=1, keepdims=True))    
-    lights = centroids/np.linalg.norm(centroids, axis=1, keepdims=True)    
 
     print(lights.shape)
+    pca = PCA(n_components=3)
+    lights_pca = pca.fit_transform(lights)
+    noise_pca = pca.transform(noise)
+    print(lights.shape)
+
     fig = plt.figure()
     ax = fig.add_subplot(projection='3d')
-    ax.scatter(lights[:,0], lights[:,1], lights[:,2], linewidths=10)
+    ax.scatter(lights_pca[:,0], lights_pca[:,1], lights_pca[:,2], linewidths=10)
+    ax.scatter(noise_pca[:,0], noise_pca[:,1], noise_pca[:,2], linewidths=1)
     ax.set_xlabel('X Label')
     ax.set_ylabel('Y Label')
     ax.set_zlabel('Z Label')
-    plt.title("centroids apres normalisation")
+    plt.title("lights pca")
     plt.show()
 
-    min_l = 999999999
-    for idx, l in enumerate(lights):
-        lights_ex = np.concatenate([lights[:idx], lights[idx+1:]])
-        min_l = min(min_l, np.min(np.sum(np.square(l - lights_ex), axis=1)))
+    # # lights = np.abs(lights/np.linalg.norm(lights, axis=1, keepdims=True))
+    
+    
+    # print(lights.shape)
+    # fig = plt.figure()
+    # ax = fig.add_subplot(projection='3d')
+    # ax.scatter(lights[:,0], lights[:,1], lights[:,2], linewidths=10)
+    # ax.set_xlabel('X Label')
+    # ax.set_ylabel('Y Label')
+    # ax.set_zlabel('Z Label')
+    # plt.title("lights apres normalisation")
+    # plt.show()
 
-    print(min_l)
+
+
+
+
+
+
+    
+    # print(centroids.shape)
+    # fig = plt.figure()
+    # ax = fig.add_subplot(projection='3d')
+    # ax.scatter(centroids[:,0], centroids[:,1], centroids[:,2], linewidths=10)
+    # ax.set_xlabel('X Label')
+    # ax.set_ylabel('Y Label')
+    # ax.set_zlabel('Z Label')
+    # plt.title("centroids")
+    # plt.show()
+
+    # # lights = np.abs(centroids/np.linalg.norm(centroids, axis=1, keepdims=True))    
+    # lights = centroids/np.linalg.norm(centroids, axis=1, keepdims=True)    
+
+    # print(lights.shape)
+    # fig = plt.figure()
+    # ax = fig.add_subplot(projection='3d')
+    # ax.scatter(lights[:,0], lights[:,1], lights[:,2], linewidths=10)
+    # ax.set_xlabel('X Label')
+    # ax.set_ylabel('Y Label')
+    # ax.set_zlabel('Z Label')
+    # plt.title("centroids apres normalisation")
+    # plt.show()
+
+    # min_l = 999999999
+    # for idx, l in enumerate(lights):
+    #     lights_ex = np.concatenate([lights[:idx], lights[idx+1:]])
+    #     min_l = min(min_l, np.min(np.sum(np.square(l - lights_ex), axis=1)))
+
+    # print(min_l)
 
     if not os.path.exists(args.out):
         os.makedirs(args.out)

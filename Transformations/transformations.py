@@ -33,29 +33,16 @@ from torch.nn.utils.rnn import pad_sequence, pack_padded_sequence as pack_sequen
 import pandas as pd
 
 def transformation_verts_by_fiber(verts, mean_f, scale_f):
-    # for i in range (verts.shape[0]):
-    #     verts[i,:,0] = (0.8*(verts[i,:,0] - verts_fiber_bounds[i][0])/(verts_fiber_bounds[i][1] - verts_fiber_bounds[i][0])) - 0.4
-    #     verts[i,:,1] = (0.8*(verts[i,:,1] - verts_fiber_bounds[i][2])/(verts_fiber_bounds[i][3] - verts_fiber_bounds[i][2])) - 0.4
-    #     verts[i,:,2] = (0.8*(verts[i,:,2] - verts_fiber_bounds[i][4])/(verts_fiber_bounds[i][5] - verts_fiber_bounds[i][4])) - 0.4
-    # return verts
     va = verts - mean_f
     scale_f = scale_f*0.6
     for i in range(va.shape[0]):
         va[i,:,:] = va[i,:,:]*scale_f[i]
-    # return (verts - mean_f)*scale_f
     return va
 
-# def transformation_verts(verts, sample_min_max):
 def transformation_verts(verts, mean_v, scale_v):
-    # for i in range (verts.shape[0]):
-    #     verts[i,:,0] = ((verts[i,:,0] - sample_min_max[i][0])/(sample_min_max[i][1] - sample_min_max[i][0])) - 0.5
-    #     verts[i,:,1] = ((verts[i,:,1] - sample_min_max[i][2])/(sample_min_max[i][3] - sample_min_max[i][2])) - 0.5
-    #     verts[i,:,2] = ((verts[i,:,2] - sample_min_max[i][4])/(sample_min_max[i][5] - sample_min_max[i][4])) - 0.5
-    # return verts
     va = verts - mean_v
     for i in range(va.shape[0]):
         va[i,:,:] = va[i,:,:]*scale_v[i]
-    # return (verts - mean_v)*scale_v
     return va
 
 class RotationTransform:
@@ -97,6 +84,7 @@ def randomstretching(verts):
         M = M.to(torch.float32)
         verts_i[i,:,:] = verts[i,:,:]@M #multiplication btw the 2 matrix
     return verts_i
+
 def get_mean_scale_factor(bounds):
     bounds = np.array(bounds)
     mean_f = [0.0]*3
