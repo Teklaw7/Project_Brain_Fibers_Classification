@@ -60,9 +60,9 @@ from pytorch3d.renderer import (
     TexturesVertex
 )
 
-from Data_Loaders.data_module_contrastive_tractography_labeled import Bundles_DataModule_tractography_labeled_fibers
+from Data_Loaders.data_module_contrastive_tractography_labeled import Bundles_DataModule_tractography_labeled_fibers, Bundles_Dataset_test_contrastive_tractography_labeled, Bundles_Dataset_tractography
 from Data_Loaders.data_module_contrastive_labeled import Bundles_Dataset_contrastive_labeled  #same for classification
-
+from tools.pad import pad_verts_faces, pad_verts_faces_simple
 from Nets.brain_module_cnn_contrastive_tractography_labeled import Fly_by_CNN_contrastive_tractography_labeled
 from Nets.brain_module_cnn_contrastive_labeled import Fly_by_CNN_contrastive_labeled
 from Nets.brain_module_cnn import Fly_by_CNN
@@ -121,21 +121,21 @@ tractography_list_vtk = []
 # tractography_list_vtk.append(utils.ReadSurf("/CMF/data/timtey/tractography/all/tractogram_deterministic_124826_dg.vtp"))
 # tractography_list_vtk.append(utils.ReadSurf("/CMF/data/timtey/tractography/all/tractogram_deterministic_139233_dg.vtp"))
 
-contrastive = True
+# contrastive = True
 
 df = pd.read_csv(path_test_final)
 logger = TensorBoardLogger(save_dir="/home/timtey/Documents/Models_tensorboard/tensorboard_photos", name='Resnet')
 image_logger = BrainNetImageLogger_contrastive_tractography_labeled(num_features = 3,num_images = 24,mean = 0)
 
 # early_stop_callback = EarlyStopping(monitor='val_loss', min_delta=min_delta_early_stopping, patience=patience_early_stopping, verbose=True, mode='min')
-trainer=Trainer(log_every_n_steps=5, max_epochs=nb_epochs, logger = logger, callbacks=[image_logger], accelerator="gpu")
-Y_TRUE = []
-Y_PRED = []
-Acc = []
-Acc_details = []
+# trainer=Trainer(log_every_n_steps=5, max_epochs=nb_epochs, logger = logger, callbacks=[image_logger], accelerator="gpu")
+# Y_TRUE = []
+# Y_PRED = []
+# Acc = []
+# Acc_details = []
 
 # brain_data=Bundles_DataModule_tractography_labeled_fibers(contrastive, 0,0,0,0,0,path_data, path_ico, batch_size, path_train_final, path_valid_final, path_test_final, verts_brain, faces_brain, face_features_brain, path_tractography_train, path_tractography_valid, path_tractography_test, tractography_list_vtk, num_workers=num_workers)
-brain_data=Bundles_DataModule_tractography_labeled_fibers(0,0,0,0,0,path_data, path_ico, batch_size, path_train_final, path_valid_final, path_test_final, path_tractography_train, path_tractography_valid, path_tractography_test, tractography_list_vtk, num_workers=num_workers)
+brain_data=Bundles_DataModule_tractography_labeled_fibers(0,0,0,path_data, batch_size, path_train_final, path_valid_final, path_test_final, path_tractography_train, path_tractography_valid, path_tractography_test, tractography_list_vtk, num_workers=num_workers)
 
 weights = brain_data.get_weights()
 # model= Fly_by_CNN_contrastive_tractography_labeled(contrastive, radius, ico_lvl, dropout_lvl, batch_size, weights, num_classes, verts_left, faces_left, verts_right, faces_right, learning_rate=0.001)
@@ -147,8 +147,10 @@ model.eval()
 
 # trainer.fit(model, brain_data)
 # trainer.test(model, brain_data)
+list_test_data = pd.read_csv(path_test_final)
+list_test_tractography_data = pd.read_csv(path_tractography_test)
 for index_csv in range(len(df)):
-    path = f"/CMF/data/timtey/tracts/{df['surf'][index_csv]}"
+    path = f"/CMF/data/timtey/tracts/archives/{df['id'][index_csv]}_tracts/{df['class'][index_csv]}_DTI.vtk"
     # create a dataloader for this part to load and create the list of all the fibers as tubes
     bundle = utils.ReadSurf(path)
     L = []
@@ -164,8 +166,11 @@ for index_csv in range(len(df)):
 
     # brain_data=Bundles_DataModule_tractography_labeled_fibers(contrastive, bundle, L, fibers, 0, index_csv, path_data, path_ico, batch_size, path_train_final, path_valid_final, path_test_final, verts_brain, faces_brain, face_features_brain, path_tractography_train, path_tractography_valid, path_tractography_test, tractography_list_vtk, num_workers=num_workers)
     # brain_data=Bundles_DataModule_tractography_labeled_fibers(contrastive, bundle, L, fibers, 0, index_csv, path_data, path_ico, batch_size, path_train_final, path_valid_final, path_test_final, path_tractography_train, path_tractography_valid, path_tractography_test, tractography_list_vtk, num_workers=num_workers)
-    test_dataset = Bundles_Dataset_test_contrastive_tractography_labeled(list_test_data, self.bundle, self.L, self.fibers, self.index_csv, self.path_data, self.path_ico, self.transform)
-    test_data = DataLoader(test_dataset, batch_size=1, collate_fn=self.pad_verts_faces_simple, shuffle=False, num_workers=8)
+    test_dataset = Bundles_Dataset_test_contrastive_tractography_labeled(list_test_data, L, fibers, index_csv)
+    # test_tractography_dataset = Bundles_Dataset_tractography(list_test_tractography_data, tractography_list_vtk)
+    
+    test_data = DataLoader(test_dataset, batch_size=1, collate_fn=pad_verts_faces_simple, shuffle=False, num_workers=8)
+    print(test_data, type(test_data))
         # return
 
     for idx, batch in enumerate(test_data):

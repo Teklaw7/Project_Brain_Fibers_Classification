@@ -102,7 +102,7 @@ path_valid_final = "/home/timtey/Documents/datasets/dataset4/tracts_filtered_tra
 path_test_final = "/home/timtey/Documents/datasets/dataset4/tracts_filtered_train_test_label_to_number_nb_cells_without_missing_2_part.csv"
 
 checkpoint_callback = ModelCheckpoint(
-    dirpath='/home/timtey/Documents/Models_tensorboard/models/Loss_combine/060823',
+    dirpath='/home/timtey/Documents/Models_tensorboard/models/Loss_combine/060923',
     filename='{epoch}-{val_loss:.2f}',
     monitor='val_loss',
     save_top_k=3
@@ -119,7 +119,7 @@ tractography_list_vtk = []
 # tractography_list_vtk.append(utils.ReadSurf("/CMF/data/timtey/tractography/all/tractogram_deterministic_124826_dg.vtp"))
 # tractography_list_vtk.append(utils.ReadSurf("/CMF/data/timtey/tractography/all/tractogram_deterministic_139233_dg.vtp"))
 
-contrastive = True
+# contrastive = True
 
 df = pd.read_csv(path_test_final)
 logger = TensorBoardLogger(save_dir="/home/timtey/Documents/Models_tensorboard/tensorboard_photos", name='Resnet')
@@ -127,10 +127,10 @@ image_logger = BrainNetImageLogger_contrastive_tractography_labeled(num_features
 
 early_stop_callback = EarlyStopping(monitor='val_loss', min_delta=min_delta_early_stopping, patience=patience_early_stopping, verbose=True, mode='min')
 trainer=Trainer(log_every_n_steps=5, max_epochs=nb_epochs, logger = logger, callbacks=[early_stop_callback, checkpoint_callback, image_logger], accelerator="gpu")
-Y_TRUE = []
-Y_PRED = []
-Acc = []
-Acc_details = []
+# Y_TRUE = []
+# Y_PRED = []
+# Acc = []
+# Acc_details = []
 
 # brain_data=Bundles_DataModule_tractography_labeled_fibers(contrastive, 0,0,0,0,0,path_data, path_ico, batch_size, path_train_final, path_valid_final, path_test_final, verts_brain, faces_brain, face_features_brain, path_tractography_train, path_tractography_valid, path_tractography_test, tractography_list_vtk, num_workers=num_workers)
 brain_data=Bundles_DataModule_tractography_labeled_fibers(0,0,0,path_data, batch_size, path_train_final, path_valid_final, path_test_final, path_tractography_train, path_tractography_valid, path_tractography_test, tractography_list_vtk, num_workers=num_workers)

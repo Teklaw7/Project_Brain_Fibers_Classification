@@ -51,21 +51,21 @@ def main(args):
     # light_house = model.light_house.detach().cpu().numpy()
 
     noise = np.random.uniform(low=0.0, high=1.0, size=(args.init_points, args.emb_dim))
-    noise = np.abs(noise/np.linalg.norm(noise, axis=1, keepdims=True))
-
+    # noise = np.abs(noise/np.linalg.norm(noise, axis=1, keepdims=True))
+    # print(noise)
+    noise = np.abs(noise)
+    # print(noise)
     # fit KMeans++ model to the data
     kmeans = KMeans(n_clusters=args.n_lights, init='k-means++', verbose=True).fit(noise)
 
     # get the cluster centroids
     lights = kmeans.cluster_centers_
-    lights = np.abs(lights/np.linalg.norm(lights, axis=1, keepdims=True))
+    # lights = np.abs(lights/np.linalg.norm(lights, axis=1, keepdims=True))
+    lights = np.abs(lights)
 
-
-    print(lights.shape)
     pca = PCA(n_components=3)
     lights_pca = pca.fit_transform(lights)
     noise_pca = pca.transform(noise)
-    print(lights.shape)
 
     fig = plt.figure()
     ax = fig.add_subplot(projection='3d')
@@ -130,7 +130,7 @@ def main(args):
     if not os.path.exists(args.out):
         os.makedirs(args.out)
 
-    with open(os.path.join(args.out, "lights_good_on_sphere.pickle"), 'wb') as f:
+    with open(os.path.join(args.out, "lights_good_on_sphere_without_norm.pickle"), 'wb') as f:
         pickle.dump(lights, f)
 
 

@@ -284,13 +284,41 @@ class Fly_by_Classification(nn.Module):
         values = self.WV(x)#10,12,256
         x, x_s = self.Attention(x, values)#10,12,256
         return x
+    
+class Fly_by_Classification_Icoconv2d(nn.Module):
+    def __init__(self, ico_sphere_verts, ico_sphere_edges):
+        super().__init__()
+        self.ico_sphere_verts = ico_sphere_verts
+        self.ico_sphere_edges = ico_sphere_edges
+        self.model = models.resnet18(pretrained=True)
+        self.model.conv1 = nn.Conv2d(8, 64, kernel_size=(7, 7), stride=(2, 2), padding=(3, 3), bias=False) # depthmap # with new features from DTI
+        self.model.fc = Identity()
+        self.TimeDistributed = TimeDistributed(self.model)
+        # self.WV = nn.Linear(512, 256)
+        # self.linear = nn.Linear(256, 256)
+        # self.Attention = SelfAttention_without_reduction(512,128)
+        # self.conv2d = nn.Conv2d(256, num_classes, kernel_size=(1, 1), stride=(1, 1))
+        self.conv2d = nn.Conv2d(512, 256, kernel_size=(3, 3), stride=2,padding=0)
+        self.IcosahedronConv2d = IcosahedronConv2d(self.conv2d,self.ico_sphere_verts, self.ico_sphere_edges)
+        self.linear = nn.Linear(256, 256)
+        # self.IcosahedronConv2d_model_original = self.IcosahedronConv2d
+
+    def forward(self, x):
+        x = self.TimeDistributed(x) #10,12,512
+        x_ico = self.IcosahedronConv2d(x)
+        x = self.linear(x_ico)
+        return x
 
 class Fly_by_Res_Classification(nn.Module):
-    def __init__(self, num_classes):
+    def __init__(self, num_classes, ico_sphere_verts, ico_sphere_edges):
         super().__init__()
         self.num_classes = num_classes
-        self.model_original_classification = Fly_by_Classification()
-        self.model_brain_classification = Fly_by_Classification()
+        self.ico_sphere_verts = ico_sphere_verts
+        self.ico_sphere_edges = ico_sphere_edges
+        # self.model_original_classification = Fly_by_Classification()
+        # self.model_brain_classification = Fly_by_Classification()
+        self.model_original_classification = Fly_by_Classification_Icoconv2d(self.ico_sphere_verts, self.ico_sphere_edges)
+        self.model_brain_classification = Fly_by_Classification_Icoconv2d(self.ico_sphere_verts, self.ico_sphere_edges)
         self.WVConcat = nn.Linear(512, 512)
         self.Attention_Concat = SelfAttention(512,128)
         self.Classification = nn.Linear(512, self.num_classes)
@@ -306,7 +334,7 @@ class Fly_by_Res_Classification(nn.Module):
 
 class Fly_by_CNN_contrastive_tractography_labeled(pl.LightningModule):
     # def __init__(self, contrastive, radius, ico_lvl, dropout_lvl, batch_size, weights, num_classes, verts_left, faces_left, verts_right, faces_right, learning_rate=0.001):
-    def __init__(self, radius, ico_lvl, dropout_lvl, batch_size, weights, num_classes, learning_rate=0.001):
+    def __init__(self, radius, ico_lvl, dropout_lvl, batch_size, weights, num_classes, learning_rate=0.0001):
         super().__init__()
         self.save_hyperparameters()
         # self.model = models.resnet18(pretrained=True)
@@ -348,7 +376,7 @@ class Fly_by_CNN_contrastive_tractography_labeled(pl.LightningModule):
         self.model_brain = Fly_by_Contrastive()
         # self.model_original_classification = Fly_by_Classification()
         # self.model_brain_classification = Fly_by_Classification()
-        self.res_classification = Fly_by_Res_Classification(self.num_classes)
+        self.res_classification = Fly_by_Res_Classification(self.num_classes, self.ico_sphere_verts, self.ico_sphere_edges)
         self.Projection = ProjectionHead(input_dim=1024, hidden_dim=512, output_dim=128)
         # self.Projection = ProjectionHead(input_dim=1024, hidden_dim=512, output_dim=3)
 
@@ -707,7 +735,7 @@ class Fly_by_CNN_contrastive_tractography_labeled(pl.LightningModule):
         data_lab = data_lab.unsqueeze(dim = 1)
         proj_test_save = torch.cat((proj_test, labels2, name_labels, data_lab), dim=1)
         lab = np.array(torch.unique(labels).cpu())
-        torch.save(proj_test_save, f"/CMF/data/timtey/results_contrastive_learning_060823/proj_test_{lab[-1]}_{tot}.pt")
+        torch.save(proj_test_save, f"/CMF/data/timtey/results_contrastive_learning_060923_ico/proj_test_{lab[-1]}_{tot}.pt")
         # loss_contrastive = self.loss_contrastive(x1, x2) # Simclr between the two augmentations of the original data
         # lights = self.lights.to(self.device)
         # loss_contrastive_bundle = 1 - self.loss_cossine(lights[labels_b],proj_test)# + 1 - self.loss_cossine(self.lights[labels_b],x2_b) + 1 - self.loss_cossine(x1_b,x2_b)
