@@ -79,6 +79,7 @@ LIGHTS = lights.cpu()
 # print(LIGHTS[0],)
 # threedtsne = TSNE(n_components=3, perplexity=205)
 threedtsne = PCA(n_components=3)
+twopca = PCA(n_components=2)
 # tsne = PCA(n_components=2)
 # tsne = TSNE(n_components=2, perplexity=500)
 # lightstest = threedtsne.fit_transform(LIGHTS)
@@ -116,9 +117,16 @@ uniq_lab = torch.unique(LAB)
 # threedtsne_results = threedtsne.fit_transform(MATR)
 # threedtsne_results_lights = threedtsne.fit_transform(LIGHTS)
 threedtsne_results_global = threedtsne.fit_transform(GLOBAL)
+results = twopca.fit_transform(GLOBAL)
 # threedtsne_results_global = threedumap.fit_transform(GLOBAL)
 threedtsne_results = threedtsne_results_global[:MATR.shape[0],:]
 threedtsne_results_lights = threedtsne_results_global[MATR.shape[0]:,:]
+pca_res = results[:MATR.shape[0],:]
+pca_lights = results[MATR.shape[0]:,:]
+
+plt.scatter(pca_res[:,0], pca_res[:,1], c=LAB, cmap=l_colors)
+plt.scatter(pca_lights[:,0], pca_lights[:,1], c="black", marker="x")
+plt.show()
 # torch.save(threedtsne_results, "threedtsne_results_contrastive_learning_052523_before_normalisation.pt")
 # torch.save(threedtsne_results_lights, "threedtsne_results_lights_contrastive_learning_052523_before_normalisation.pt")
 # torch.save(tsne_results, "tsne_results_contrastive_learning_052523_before_normalisation.pt")

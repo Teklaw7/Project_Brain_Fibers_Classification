@@ -102,7 +102,7 @@ path_valid_final = "/home/timtey/Documents/datasets/dataset4/tracts_filtered_tra
 path_test_final = "/home/timtey/Documents/datasets/dataset4/tracts_filtered_train_test_label_to_number_nb_cells_without_missing_2_part.csv"
 
 checkpoint_callback = ModelCheckpoint(
-    dirpath='/home/timtey/Documents/Models_tensorboard/models/Loss_combine/060923',
+    dirpath='/home/timtey/Documents/Models_tensorboard/models/Loss_combine/061223',
     filename='{epoch}-{val_loss:.2f}',
     monitor='val_loss',
     save_top_k=3

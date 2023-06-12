@@ -63,14 +63,14 @@ def main(args):
     # lights = np.abs(lights/np.linalg.norm(lights, axis=1, keepdims=True))
     lights = np.abs(lights)
 
-    pca = PCA(n_components=3)
-    lights_pca = pca.fit_transform(lights)
-    noise_pca = pca.transform(noise)
+    # pca = PCA(n_components=3)
+    # lights_pca = pca.fit_transform(lights)
+    # noise_pca = pca.transform(noise)
 
     fig = plt.figure()
     ax = fig.add_subplot(projection='3d')
-    ax.scatter(lights_pca[:,0], lights_pca[:,1], lights_pca[:,2], linewidths=10)
-    ax.scatter(noise_pca[:,0], noise_pca[:,1], noise_pca[:,2], linewidths=1)
+    ax.scatter(lights[:,0], lights[:,1], lights[:,2], linewidths=10)
+    ax.scatter(noise[:,0], noise[:,1], noise[:,2], linewidths=1, alpha=0.1)
     ax.set_xlabel('X Label')
     ax.set_ylabel('Y Label')
     ax.set_zlabel('Z Label')
@@ -130,7 +130,7 @@ def main(args):
     if not os.path.exists(args.out):
         os.makedirs(args.out)
 
-    with open(os.path.join(args.out, "lights_good_on_sphere_without_norm.pickle"), 'wb') as f:
+    with open(os.path.join(args.out, "lights_57_3d_on_positive_sphere_without_norm.pickle"), 'wb') as f:
         pickle.dump(lights, f)
 
 
