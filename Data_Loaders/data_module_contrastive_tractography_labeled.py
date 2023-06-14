@@ -33,9 +33,9 @@ class ConcatDataset(torch.utils.data.Dataset):
 class Bundles_Dataset_contrastive_tractography_labeled(Dataset):
     # def __init__(self, data, path_data, path_ico, verts_brain, faces_brain, face_features_brain, transform=True, column_class='class',column_id='id', column_label='label', column_x_min = 'x_min', column_x_max = 'x_max', column_y_min = 'y_min', column_y_max = 'y_max', column_z_min = 'z_min', column_z_max = 'z_max'):
     def __init__(self, data, path_data, column_class='class',column_id='id', column_label='label', column_x_min = 'x_min', column_x_max = 'x_max', column_y_min = 'y_min', column_y_max = 'y_max', column_z_min = 'z_min', column_z_max = 'z_max'):
-        self.data = data
+        self.data = data    #csv file with the data
         # self.transform = transform
-        self.path_data = path_data
+        # self.path_data = path_data #path to the data
         # self.path_ico = path_ico
         self.column_class = column_class
         self.column_id = column_id
@@ -46,7 +46,7 @@ class Bundles_Dataset_contrastive_tractography_labeled(Dataset):
         self.column_y_max = column_y_max
         self.column_z_min = column_z_min
         self.column_z_max = column_z_max
-     
+    
     def __len__(self):
         return len(self.data)
 

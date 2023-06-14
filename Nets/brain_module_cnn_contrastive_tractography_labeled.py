@@ -47,6 +47,12 @@ def GetView(meshes,phong_renderer,R,T):
     return pix_to_face, images
 
 
+def align_loss(x, y, alpha=2):
+    return (x - y).norm(p=2, dim=1).pow(alpha).mean()
+
+def uniform_loss(x, t=2):
+    return torch.pdist(x, p=2).pow(2).mul(-t).exp().mean().log()
+
 class Identity(nn.Module):
     def __init__(self):
         super(Identity, self).__init__()
@@ -340,7 +346,7 @@ class Fly_by_CNN_contrastive_tractography_labeled(pl.LightningModule):
         self.save_hyperparameters()
         # self.model = models.resnet18(pretrained=True)
         # self.model.fc = nn.Linear(512, num_classes)
-        self.loss = nn.CrossEntropyLoss()
+        # self.loss = nn.CrossEntropyLoss()
         self.loss_contrastive = ContrastiveLoss(batch_size)
         # self.train_acc = torchmetrics.Accuracy(task="multiclass", num_classes=57)
         # self.val_acc = torchmetrics.Accuracy(task="multiclass", num_classes=57)
@@ -400,10 +406,10 @@ class Fly_by_CNN_contrastive_tractography_labeled(pl.LightningModule):
             rasterizer=rasterizer,
             shader=HardPhongShader(cameras=self.cameras, lights=lights)
         )
-        self.phong_renderer_brain = MeshRenderer(
-            rasterizer=rasterizer,
-            shader=HardPhongShader(cameras=self.cameras, lights=lights)
-        )
+        # self.phong_renderer_brain = MeshRenderer(
+        #     rasterizer=rasterizer,
+        #     shader=HardPhongShader(cameras=self.cameras, lights=lights)
+        # )
 
         # self.loss_train = nn.CrossEntropyLoss(weight = self.weights[0])
         # self.loss_val = nn.CrossEntropyLoss(weight = self.weights[1])
@@ -419,10 +425,10 @@ class Fly_by_CNN_contrastive_tractography_labeled(pl.LightningModule):
 
     def forward(self, x):
         V, V1, V2, F, FF, VFI, VFI1, VFI2, FFI, FFFI = x
-        x, PF = self.render(V,F,FF)
+        x, PF = self.render(V,F,FF) # bs, 12,nb_features, 224, 224
         # X1, PF1 = self.render(V1,F,FF)
         # X2, PF2 = self.render(V2,F,FF)
-        x_fiber, PF_fiber = self.render(VFI,FFI,FFFI)
+        x_fiber, PF_fiber = self.render(VFI,FFI,FFFI)   # bs, 12,nb_features, 224, 224
         # X1_fiber, PF1_fiber = self.render(VFI1,FFI,FFFI)
         # X2_fiber, PF2_fiber = self.render(VFI2,FFI,FFFI)
         # x_test = torch.cat((x,x_fiber),1)
@@ -432,10 +438,10 @@ class Fly_by_CNN_contrastive_tractography_labeled(pl.LightningModule):
         # proj_brain_2 = self.model_brain(X2)
         # proj_fiber_1 = self.model_original(x_fiber)
         # proj_fiber_2 = self.model_original(x_fiber)        
-        proj_fiber = self.model_original(x_fiber)
-        proj_brain = self.model_brain(x)
+        proj_fiber = self.model_original(x_fiber) #bs,512
+        proj_brain = self.model_brain(x) #bs,512
 
-        x = torch.cat((proj_fiber, proj_brain), dim=1)
+        x = torch.cat((proj_fiber, proj_brain), dim=1) #bs,1024
 
         res_for_class = self.Classification(x) #bs,57
         # x1 = torch.cat((proj_fiber_1, proj_brain_1), dim=1)
@@ -555,6 +561,7 @@ class Fly_by_CNN_contrastive_tractography_labeled(pl.LightningModule):
         x2_t = proj_test[self.batch_size:].to(self.device)
         # loss_contrastive = self.loss_contrastive(x1, x2) # Simclr between the two augmentations of the original data
         lights = self.lights.to(self.device)
+        loss_contrastive = self.loss_contrastive(lights[labels_b],proj_test) # Simclr between the two augmentations of the original data
         loss_contrastive_bundle = 1 - self.loss_cossine(lights[labels_b],proj_test)# + 1 - self.loss_cossine(self.lights[labels_b],x2_b) + 1 - self.loss_cossine(x1_b,x2_b)
         loss_cross_entropy = self.loss_cross_entropy(x_class, labels_b)
         # loss_ts_ss, diag_loss_ts_ss = TS_SS(lights[labels_b].cpu(),proj_test.cpu()).forward()
@@ -564,7 +571,8 @@ class Fly_by_CNN_contrastive_tractography_labeled(pl.LightningModule):
         loss_contrastive_bundle_repulse = self.loss_cossine(proj_test,proj_test_r)#*torch.where(labels_b!=labels_b_r)
         w = (labels_b!=labels_b_r).to(torch.float32)
         loss_contrastive_bundle_repulse = loss_contrastive_bundle_repulse*w
-
+        lam = 1
+        loss_align_uniformity = align_loss(lights[labels_b], proj_test) + lam * (uniform_loss(proj_test) + uniform_loss(lights[labels_b])) / 2 
         if x1_t.shape[0] > 0:   # if tractography fibers are in the batch
             r = torch.randperm(int(x2_t.shape[0]))
             x2_t_r = x2_t[r].to(self.device)
@@ -586,12 +594,11 @@ class Fly_by_CNN_contrastive_tractography_labeled(pl.LightningModule):
 
             Loss_combine = loss_contrastive_bundle + loss_contrastive_tractography + loss_contrastive_shuffle + loss_tract_cluster
         else:
-            Loss_combine = loss_contrastive_bundle + loss_contrastive_bundle_repulse #+ loss_contrastive_bundle_repulse
+            Loss_combine = loss_contrastive_bundle #+ loss_contrastive_bundle_repulse #+ loss_contrastive_bundle_repulse
                             # sum                       # mean
-        Loss_combine = torch.sum(Loss_combine) + loss_cross_entropy
+        Loss_combine = torch.sum(Loss_combine) + loss_cross_entropy + loss_align_uniformity + loss_contrastive
         # diag_loss_ts_ss = diag_loss_ts_ss.requires_grad_(True)
         # Loss_combine = torch.sum(diag_loss_ts_ss) #+ loss_cross_entropy
-
         self.log('train_loss', Loss_combine.item(), batch_size=self.batch_size)
         # print("accuracy", self.train_accuracy(x, labels))
         # self.log('train_accuracy', self.train_accuracy, batch_size=self.batch_size)
@@ -651,6 +658,7 @@ class Fly_by_CNN_contrastive_tractography_labeled(pl.LightningModule):
         x2_t = proj_test[self.batch_size:].to(self.device)
         # loss_contrastive = self.loss_contrastive(x1, x2) # Simclr between the two augmentations of the original data
         lights= self.lights.to(self.device)
+        loss_contrastive = self.loss_contrastive(lights[labels_b],proj_test) # Simclr between the two augmentations of the original data
         loss_contrastive_bundle = 1 - self.loss_cossine(lights[labels_b],proj_test)# + 1 - self.loss_cossine(self.lights[labels_b],x2_b) + 1 - self.loss_cossine(x1_b,x2_b)
         loss_cross_entropy = self.loss_cross_entropy(x_class, labels_b) # return one value
         # loss_ts_ss, diag_loss_ts_ss = TS_SS(lights[labels_b].cpu(),proj_test.cpu()).forward()
@@ -660,6 +668,8 @@ class Fly_by_CNN_contrastive_tractography_labeled(pl.LightningModule):
         loss_contrastive_bundle_repulse = self.loss_cossine(proj_test,proj_test_r)#*torch.where(labels_b!=labels_b_r)
         w = (labels_b!=labels_b_r).to(torch.float32)
         loss_contrastive_bundle_repulse = loss_contrastive_bundle_repulse*w
+        lam = 1
+        loss_align_uniformity = align_loss(lights[labels_b], proj_test) + lam * (uniform_loss(proj_test) + uniform_loss(lights[labels_b])) / 2 
 
         if x1_t.shape[0] > 0:   # if tractography fibers are in the batch
             r = torch.randperm(int(x2_t.shape[0]))
@@ -682,8 +692,8 @@ class Fly_by_CNN_contrastive_tractography_labeled(pl.LightningModule):
 
             Loss_combine = loss_contrastive_bundle + loss_contrastive_tractography + loss_contrastive_shuffle + loss_tract_cluster
         else:
-            Loss_combine = loss_contrastive_bundle + loss_contrastive_bundle_repulse #+ loss_contrastive_bundle_repulse
-        Loss_combine =torch.sum(Loss_combine) + loss_cross_entropy
+            Loss_combine = loss_contrastive_bundle #+ loss_contrastive_bundle_repulse #+ loss_contrastive_bundle_repulse
+        Loss_combine =torch.sum(Loss_combine) + loss_cross_entropy + loss_align_uniformity + loss_contrastive
         self.log('val_loss', Loss_combine.item(), batch_size=self.batch_size)
         # predictions = torch.argmax(x, dim=1)
         # self.val_accuracy(predictions.reshape(-1,1), labels.reshape(-1,1))
@@ -745,7 +755,7 @@ class Fly_by_CNN_contrastive_tractography_labeled(pl.LightningModule):
         data_lab = data_lab.unsqueeze(dim = 1)
         proj_test_save = torch.cat((proj_test, labels2, name_labels, data_lab), dim=1)
         lab = np.array(torch.unique(labels).cpu())
-        torch.save(proj_test_save, f"/CMF/data/timtey/results_contrastive_learning_061223/proj_test_{lab[-1]}_{tot}.pt")
+        torch.save(proj_test_save, f"/CMF/data/timtey/results_contrastive_learning_061423/proj_test_{lab[-1]}_{tot}.pt")
         # loss_contrastive = self.loss_contrastive(x1, x2) # Simclr between the two augmentations of the original data
         # lights = self.lights.to(self.device)
         # loss_contrastive_bundle = 1 - self.loss_cossine(lights[labels_b],proj_test)# + 1 - self.loss_cossine(self.lights[labels_b],x2_b) + 1 - self.loss_cossine(x1_b,x2_b)
@@ -856,14 +866,6 @@ class ContrastiveLoss(nn.Module):
         loss = torch.sum(all_losses) / (2 * self.batch_size)
         return loss
     
-
-
-
-
-
-
-
-
 
 
 

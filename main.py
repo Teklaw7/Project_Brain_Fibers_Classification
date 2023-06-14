@@ -90,7 +90,7 @@ dropout_lvl=0.1
 radius=1
 ico_lvl=1
 min_delta_early_stopping = 0.00
-patience_early_stopping= 10
+patience_early_stopping= 15
 num_workers=12
 path_data="/CMF/data/timtey/tracts/archives"
 # path_ico = "/NIRAL/tools/atlas/Surface/Sphere_Template/sphere_f327680_v163842.vtk"
@@ -102,7 +102,7 @@ path_valid_final = "/home/timtey/Documents/datasets/dataset4/tracts_filtered_tra
 path_test_final = "/home/timtey/Documents/datasets/dataset4/tracts_filtered_train_test_label_to_number_nb_cells_without_missing_2_part.csv"
 
 checkpoint_callback = ModelCheckpoint(
-    dirpath='/home/timtey/Documents/Models_tensorboard/models/Loss_combine/061223',
+    dirpath='/home/timtey/Documents/Models_tensorboard/models/Loss_combine/061423',
     filename='{epoch}-{val_loss:.2f}',
     monitor='val_loss',
     save_top_k=3
@@ -137,7 +137,7 @@ brain_data=Bundles_DataModule_tractography_labeled_fibers(0,0,0,path_data, batch
 
 weights = brain_data.get_weights()
 # model= Fly_by_CNN_contrastive_tractography_labeled(contrastive, radius, ico_lvl, dropout_lvl, batch_size, weights, num_classes, verts_left, faces_left, verts_right, faces_right, learning_rate=0.001)
-model= Fly_by_CNN_contrastive_tractography_labeled(radius, ico_lvl, dropout_lvl, batch_size, weights, num_classes, learning_rate=0.001)
+model= Fly_by_CNN_contrastive_tractography_labeled(radius, ico_lvl, dropout_lvl, batch_size, weights, num_classes, learning_rate=0.0001)
 
 trainer.fit(model, brain_data)
 # trainer.test(model, brain_data)

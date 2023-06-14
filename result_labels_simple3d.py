@@ -41,7 +41,7 @@ import pandas as pd
 
 lights = pd.read_pickle(r'lights_57_3d_on_positive_sphere.pickle')
 # liste = os.listdir("/CMF/data/timtey/results_contrastive_loss_combine_loss_tract_cluster_bundle")
-liste = os.listdir("/CMF/data/timtey/results_contrastive_learning_060923_3d")
+liste = os.listdir("/CMF/data/timtey/results_contrastive_learning_061223_2")
 l_colors = colors.ListedColormap ( np.random.rand (57,3))
 l_colors1 = colors.ListedColormap ( np.random.rand (20,3))
 l_colors2 = colors.ListedColormap ( np.random.rand (20,3))
@@ -52,7 +52,7 @@ print(lights.shape)
 matrix2 = [] #should be shape = (56*100,128)
 
 for i in range(len(liste)):
-    matrix = torch.load(f"/CMF/data/timtey/results_contrastive_learning_060923_3d/{liste[i]}")
+    matrix = torch.load(f"/CMF/data/timtey/results_contrastive_learning_061223_2/{liste[i]}")
     matrix2.append(matrix)
 MATR2 = torch.cat(matrix2, dim=0)
 print(MATR2.shape)
@@ -63,17 +63,41 @@ print(d_unique)
 LAB = MATR2[:,-3]
 print(LAB.shape)
 print(LAB)
-MATR = MATR2[:,:128]
+MATR = MATR2[:,:3]
 MATR = MATR.cpu()
 LAB = LAB.cpu()
 LIGHTS = lights.cpu()
-
+# print(MATR[0,:].unsqueeze(0).shape)
+# print(dkfjsdkh)
 uniq_lab = torch.unique(LAB)
+# MATR_i = torch.tensor([])
+# LAB_i = torch.tensor([])
+# for j in range(uniq_lab.shape[0]):
+#     Matr_idx = torch.tensor([])
+#     LAB_idx = torch.tensor([])
+#     for i in range(LAB.shape[0]):
+#         if LAB[i] == j:
+#             # Matr_idx.append(MATR[i,:])
+#             Matr_idx = torch.cat((Matr_idx, MATR[i,:].unsqueeze(0)), dim=0)
+#             LAB_idx = torch.cat((LAB_idx, LAB[i].unsqueeze(0)), dim=0)
+#     # print(Matr_idx.shape)
+#     # print(Matr_idx)
+#     # Matr_idx = torch.tensor([Matr_idx])
+#     # print(Matr_idx.shape)
+#     MATR_i = torch.cat((MATR_i, Matr_idx.unsqueeze(0)), dim=0)
+#     LAB_i = torch.cat((LAB_i, LAB_idx.unsqueeze(0)), dim=0)
+#     # print(MATR_i.shape)
+# print(MATR_i.shape)
+# print(MATR_i[0].shape)
+# MATR_r = MATR_i[:,::4,:]
+# LAB_r = LAB_i[:,::4]
+# print(MATR_r.shape)
 
 ax = plt.axes(projection='3d')
 ax.scatter(LIGHTS[:,0], LIGHTS[:,1], LIGHTS[:,2], linewidths=5, c='black')
 for i in range(LIGHTS.shape[0]):
     ax.text(LIGHTS[i, 0], LIGHTS[i, 1], LIGHTS[i, 2], str(i), fontsize=12)
+# ax.view_init(90, 90,45)
 plt.show()
 
 ax = plt.axes(projection='3d')
@@ -85,6 +109,16 @@ ax.axes.set_xlim3d(left=0, right=1)
 ax.axes.set_ylim3d(bottom=0, top=1)
 ax.axes.set_zlim3d(bottom=0, top=1)
 plt.show()
+# ax = plt.axes(projection='3d')
+# ax.scatter(LIGHTS[:,0], LIGHTS[:,1], LIGHTS[:,2], linewidths=5, c='black')
+# ax.scatter(MATR_r[:,:,0], MATR_r[:,:,1], MATR_r[:,:,2], c=LAB_r, cmap=l_colors)
+# for i in range(LIGHTS.shape[0]):
+#     ax.text(LIGHTS[i, 0], LIGHTS[i, 1], LIGHTS[i, 2], str(i), fontsize=12)
+# ax.axes.set_xlim3d(left=0, right=1)
+# ax.axes.set_ylim3d(bottom=0, top=1)
+# ax.axes.set_zlim3d(bottom=0, top=1)
+# plt.show()
+
 
 for i in range(LIGHTS.shape[0]):
     l_i = (LAB==i).nonzero().squeeze()

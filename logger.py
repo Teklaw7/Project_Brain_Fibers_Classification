@@ -57,7 +57,7 @@ class BrainNetImageLogger_contrastive_tractography_labeled(Callback):
             V2 = torch.detach(Vo)
             VFI1 = torch.detach(VFI)
             VFI2 = torch.detach(VFI)
-
+            
             with torch.no_grad():
 
                 images, PF = pl_module.render(Vo, F, FF)  
@@ -113,6 +113,7 @@ class BrainNetImageLogger_contrastive_tractography_labeled(Callback):
             V2 = torch.detach(Vo)
             VFI1 = torch.detach(VFI)
             VFI2 = torch.detach(VFI)
+
             with torch.no_grad():
                 images, PF = pl_module.render(Vo, F, FF)
                 images1, PF1 = pl_module.render(V1, F, FF)
