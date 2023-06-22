@@ -41,7 +41,8 @@ import pandas as pd
 
 lights = pd.read_pickle(r'lights_57_3d_on_positive_sphere.pickle')
 # liste = os.listdir("/CMF/data/timtey/results_contrastive_loss_combine_loss_tract_cluster_bundle")
-liste = os.listdir("/CMF/data/timtey/results_contrastive_learning_061223_2")
+liste = os.listdir("/CMF/data/timtey/results_contrastive_learning_062023_best_model")
+# liste = os.listdir("/CMF/data/timtey/results_contrastive_learning_061523")
 l_colors = colors.ListedColormap ( np.random.rand (57,3))
 l_colors1 = colors.ListedColormap ( np.random.rand (20,3))
 l_colors2 = colors.ListedColormap ( np.random.rand (20,3))
@@ -52,7 +53,8 @@ print(lights.shape)
 matrix2 = [] #should be shape = (56*100,128)
 
 for i in range(len(liste)):
-    matrix = torch.load(f"/CMF/data/timtey/results_contrastive_learning_061223_2/{liste[i]}")
+    matrix = torch.load(f"/CMF/data/timtey/results_contrastive_learning_062023_best_model/{liste[i]}")
+    # matrix = torch.load(f"/CMF/data/timtey/results_contrastive_learning_061523/{liste[i]}")
     matrix2.append(matrix)
 MATR2 = torch.cat(matrix2, dim=0)
 print(MATR2.shape)
@@ -93,6 +95,28 @@ uniq_lab = torch.unique(LAB)
 # LAB_r = LAB_i[:,::4]
 # print(MATR_r.shape)
 
+
+# #initialize kmeans parameters
+# kmeans_kwargs = {
+# "init": "random",
+# "n_init": 10,
+# "random_state": 1,
+# }
+
+# #create list to hold SSE values for each k
+# sse = []
+# for k in range(0, 56):
+#     kmeans = KMeans(n_clusters=k, **kmeans_kwargs)
+#     kmeans.fit(MATR)
+#     sse.append(kmeans.inertia_)
+
+# #visualize results
+# plt.plot(range(0, 56), sse)
+# plt.xticks(range(0, 56))
+# plt.xlabel("Number of Clusters")
+# plt.ylabel("SSE")
+# plt.show()
+
 ax = plt.axes(projection='3d')
 ax.scatter(LIGHTS[:,0], LIGHTS[:,1], LIGHTS[:,2], linewidths=5, c='black')
 for i in range(LIGHTS.shape[0]):
@@ -129,11 +153,11 @@ for i in range(LIGHTS.shape[0]):
     # print(LAB[l_i].shape)
     # print(threedtsne_results[l_i,:].shape)
     ax= plt.axes(projection='3d')
+    ax.scatter(LIGHTS[:,0], LIGHTS[:,1], LIGHTS[:,2], linewidths=1, c='blue')
     ax.text(LIGHTS[i, 0], LIGHTS[i, 1], LIGHTS[i, 2], str(i), fontsize=12)
     ax.scatter(LIGHTS[i,0], LIGHTS[i,1], LIGHTS[i,2], linewidths=1, c='black')
     # ax.scatter(threedtsne_results[i*205:(i+1)*205,0], threedtsne_results[i*205:(i+1)*205,1], threedtsne_results[i*205:(i+1)*205,2], c=LAB[i*205:(i+1)*205], cmap=l_colors)
     ax.scatter(MATR[l_i,0], MATR[l_i,1], MATR[l_i,2], c=LAB[l_i], cmap=l_colors)
-
     ax.axes.set_xlim3d(left=0, right=1)
     ax.axes.set_ylim3d(bottom=0, top=1)
     ax.axes.set_zlim3d(bottom=0, top=1)

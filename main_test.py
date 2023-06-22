@@ -87,7 +87,7 @@ from Transformations.transformations import *
 
 num_classes = 57
 nb_epochs = 500
-batch_size= 18
+batch_size= 10
 dropout_lvl=0.1
 radius=1
 ico_lvl=1
@@ -133,17 +133,21 @@ image_logger = BrainNetImageLogger_contrastive_tractography_labeled(num_features
 # Y_PRED = []
 # Acc = []
 # Acc_details = []
-
+trainer = Trainer(log_every_n_steps=5, logger = logger, callbacks = [image_logger],accelerator="gpu")
 # brain_data=Bundles_DataModule_tractography_labeled_fibers(contrastive, 0,0,0,0,0,path_data, path_ico, batch_size, path_train_final, path_valid_final, path_test_final, verts_brain, faces_brain, face_features_brain, path_tractography_train, path_tractography_valid, path_tractography_test, tractography_list_vtk, num_workers=num_workers)
 brain_data=Bundles_DataModule_tractography_labeled_fibers(0,0,0,path_data, batch_size, path_train_final, path_valid_final, path_test_final, path_tractography_train, path_tractography_valid, path_tractography_test, tractography_list_vtk, num_workers=num_workers)
 
 weights = brain_data.get_weights()
 # model= Fly_by_CNN_contrastive_tractography_labeled(contrastive, radius, ico_lvl, dropout_lvl, batch_size, weights, num_classes, verts_left, faces_left, verts_right, faces_right, learning_rate=0.001)
 # model= Fly_by_CNN_contrastive_tractography_labeled(contrastive, radius, ico_lvl, dropout_lvl, batch_size, weights, num_classes, learning_rate=0.001)
-model_path ="/home/timtey/Documents/Models_tensorboard/models/Loss_combine/060623/epoch=12-val_loss=12.33.ckpt"
-model = Fly_by_CNN_contrastive_tractography_labeled.load_from_checkpoint(model_path)
-model.cuda()
-model.eval()
+model_path ="/home/timtey/Documents/Models_tensorboard/models/Loss_combine/062023/epoch=48-val_loss=0.29.ckpt"
+
+model= Fly_by_CNN_contrastive_tractography_labeled(radius, ico_lvl, dropout_lvl, batch_size, weights, num_classes, learning_rate=0.0001)
+checkpoint = torch.load(model_path)
+model.load_state_dict(checkpoint['state_dict'])
+# model = Fly_by_CNN_contrastive_tractography_labeled.load_from_checkpoint(model_path)
+# model.cuda()
+# model.eval()
 
 # trainer.fit(model, brain_data)
 # trainer.test(model, brain_data)
@@ -166,15 +170,17 @@ for index_csv in range(len(df)):
 
     # brain_data=Bundles_DataModule_tractography_labeled_fibers(contrastive, bundle, L, fibers, 0, index_csv, path_data, path_ico, batch_size, path_train_final, path_valid_final, path_test_final, verts_brain, faces_brain, face_features_brain, path_tractography_train, path_tractography_valid, path_tractography_test, tractography_list_vtk, num_workers=num_workers)
     # brain_data=Bundles_DataModule_tractography_labeled_fibers(contrastive, bundle, L, fibers, 0, index_csv, path_data, path_ico, batch_size, path_train_final, path_valid_final, path_test_final, path_tractography_train, path_tractography_valid, path_tractography_test, tractography_list_vtk, num_workers=num_workers)
-    test_dataset = Bundles_Dataset_test_contrastive_tractography_labeled(list_test_data, L, fibers, index_csv)
+    # test_dataset = Bundles_Dataset_test_contrastive_tractography_labeled(list_test_data, L, fibers, index_csv)
     # test_tractography_dataset = Bundles_Dataset_tractography(list_test_tractography_data, tractography_list_vtk)
+    brain_data=Bundles_DataModule_tractography_labeled_fibers(L, fibers, index_csv, path_data, batch_size, path_train_final, path_valid_final, path_test_final, path_tractography_train, path_tractography_valid, path_tractography_test, tractography_list_vtk, num_workers=num_workers)
     
-    test_data = DataLoader(test_dataset, batch_size=1, collate_fn=pad_verts_faces_simple, shuffle=False, num_workers=8)
-    print(test_data, type(test_data))
-        # return
-
-    for idx, batch in enumerate(test_data):
-        proj = model(batch)
+    # test_data = DataLoader(test_dataset, batch_size=1, collate_fn=pad_verts_faces_simple, shuffle=False, num_workers=8)
+    # print(test_data, type(test_data))
+    trainer.test(model, brain_data)
+    # for idx, batch in enumerate(test_data):
+        # print("batch",batch)
+        # print("idx",idx)
+        # proj = model(batch)
 
 
 

@@ -32,7 +32,7 @@ class ConcatDataset(torch.utils.data.Dataset):
 
 class Bundles_Dataset_contrastive_tractography_labeled(Dataset):
     # def __init__(self, data, path_data, path_ico, verts_brain, faces_brain, face_features_brain, transform=True, column_class='class',column_id='id', column_label='label', column_x_min = 'x_min', column_x_max = 'x_max', column_y_min = 'y_min', column_y_max = 'y_max', column_z_min = 'z_min', column_z_max = 'z_max'):
-    def __init__(self, data, path_data, column_class='class',column_id='id', column_label='label', column_x_min = 'x_min', column_x_max = 'x_max', column_y_min = 'y_min', column_y_max = 'y_max', column_z_min = 'z_min', column_z_max = 'z_max'):
+    def __init__(self, data, column_class='class',column_id='id', column_label='label', column_x_min = 'x_min', column_x_max = 'x_max', column_y_min = 'y_min', column_y_max = 'y_max', column_z_min = 'z_min', column_z_max = 'z_max'):
         self.data = data    #csv file with the data
         # self.transform = transform
         # self.path_data = path_data #path to the data
@@ -323,8 +323,8 @@ class Bundles_DataModule_tractography_labeled_fibers(pl.LightningDataModule):
         list_val_tractography_data = pd.read_csv(self.path_tractography_valid)
         list_test_tractography_data = pd.read_csv(self.path_tractography_test)
         
-        self.train_dataset = Bundles_Dataset_contrastive_tractography_labeled(list_train_data, self.path_data)
-        self.val_dataset = Bundles_Dataset_contrastive_tractography_labeled(list_val_data, self.path_data)
+        self.train_dataset = Bundles_Dataset_contrastive_tractography_labeled(list_train_data)
+        self.val_dataset = Bundles_Dataset_contrastive_tractography_labeled(list_val_data)
         self.test_dataset = Bundles_Dataset_test_contrastive_tractography_labeled(list_test_data, self.L, self.fibers, self.index_csv)
         self.train_tractography_dataset = Bundles_Dataset_tractography(list_train_tractography_data, self.tractography_list_vtk)
         self.val_tractography_dataset = Bundles_Dataset_tractography(list_val_tractography_data, self.tractography_list_vtk)

@@ -90,7 +90,7 @@ dropout_lvl=0.1
 radius=1
 ico_lvl=1
 min_delta_early_stopping = 0.00
-patience_early_stopping= 15
+patience_early_stopping= 50
 num_workers=12
 path_data="/CMF/data/timtey/tracts/archives"
 # path_ico = "/NIRAL/tools/atlas/Surface/Sphere_Template/sphere_f327680_v163842.vtk"
@@ -102,7 +102,7 @@ path_valid_final = "/home/timtey/Documents/datasets/dataset4/tracts_filtered_tra
 path_test_final = "/home/timtey/Documents/datasets/dataset4/tracts_filtered_train_test_label_to_number_nb_cells_without_missing_2_part.csv"
 
 checkpoint_callback = ModelCheckpoint(
-    dirpath='/home/timtey/Documents/Models_tensorboard/models/Loss_combine/061423',
+    dirpath='/home/timtey/Documents/Models_tensorboard/models/Loss_combine/062223_align_uniformity',
     filename='{epoch}-{val_loss:.2f}',
     monitor='val_loss',
     save_top_k=3

@@ -1,0 +1,67 @@
+batch_size: 10
+dropout_lvl: 0.1
+ico_lvl: 1
+learning_rate: 0.0001
+num_classes: 57
+radius: 1
+weights:
+- !!python/object/apply:torch._utils._rebuild_tensor_v2
+  - !!python/object/apply:torch.storage._load_from_bytes
+    - !!binary |
+      gAKKCmz8nEb5IGqoUBkugAJN6QMugAJ9cQAoWBAAAABwcm90b2NvbF92ZXJzaW9ucQFN6QNYDQAA
+      AGxpdHRsZV9lbmRpYW5xAohYCgAAAHR5cGVfc2l6ZXNxA31xBChYBQAAAHNob3J0cQVLAlgDAAAA
+      aW50cQZLBFgEAAAAbG9uZ3EHSwR1dS6AAihYBwAAAHN0b3JhZ2VxAGN0b3JjaApGbG9hdFN0b3Jh
+      Z2UKcQFYCgAAADE0NzYwNzMxNTJxAlgDAAAAY3B1cQNLOU50cQRRLoACXXEAWAoAAAAxNDc2MDcz
+      MTUycQFhLjkAAAAAAAAAAACAPwAAgD8AAIA/AACAPwAAgD8AAIA/AACAPwAAgD8AAIA/AACAPwAA
+      gD8AAIA/AACAPwAAgD8AAIA/AACAPwAAgD8AAIA/AACAPwAAgD8AAIA/AACAPwAAgD8AAIA/AACA
+      PwAAgD8AAIA/AACAPwAAgD8AAIA/AACAPwAAgD8AAIA/AACAPwAAgD8AAIA/AACAPwAAgD8AAIA/
+      AACAPwAAgD8AAIA/AACAPwAAgD8AAIA/AACAPwAAgD8AAIA/AACAPwAAgD8AAIA/AACAPwAAgD8A
+      AIA/AACAPwAAgD8AAIA/
+  - 0
+  - !!python/tuple
+    - 57
+  - !!python/tuple
+    - 1
+  - false
+  - !!python/object/apply:collections.OrderedDict
+    - []
+- !!python/object/apply:torch._utils._rebuild_tensor_v2
+  - !!python/object/apply:torch.storage._load_from_bytes
+    - !!binary |
+      gAKKCmz8nEb5IGqoUBkugAJN6QMugAJ9cQAoWBAAAABwcm90b2NvbF92ZXJzaW9ucQFN6QNYDQAA
+      AGxpdHRsZV9lbmRpYW5xAohYCgAAAHR5cGVfc2l6ZXNxA31xBChYBQAAAHNob3J0cQVLAlgDAAAA
+      aW50cQZLBFgEAAAAbG9uZ3EHSwR1dS6AAihYBwAAAHN0b3JhZ2VxAGN0b3JjaApGbG9hdFN0b3Jh
+      Z2UKcQFYCgAAADE0Nzg3MDMwODhxAlgDAAAAY3B1cQNLOU50cQRRLoACXXEAWAoAAAAxNDc4NzAz
+      MDg4cQFhLjkAAAAAAAAA6yksP3AfgT9wH4E/cB+BP3AfgT9wH4E/cB+BP3AfgT9wH4E/cB+BP3Af
+      gT9wH4E/cB+BP3AfgT9wH4E/cB+BP3AfgT9wH4E/cB+BP3AfgT9wH4E/cB+BP3AfgT9wH4E/cB+B
+      P3AfgT9wH4E/cB+BP3AfgT9wH4E/cB+BP3AfgT9wH4E/cB+BP3AfgT9wH4E/cB+BP3AfgT9wH4E/
+      cB+BP3AfgT9wH4E/cB+BP3AfgT9wH4E/cB+BP3AfgT9wH4E/cB+BP3AfgT9wH4E/cB+BP3AfgT9w
+      H4E/cB+BP3AfgT9wH4E/
+  - 0
+  - !!python/tuple
+    - 57
+  - !!python/tuple
+    - 1
+  - false
+  - !!python/object/apply:collections.OrderedDict
+    - []
+- !!python/object/apply:torch._utils._rebuild_tensor_v2
+  - !!python/object/apply:torch.storage._load_from_bytes
+    - !!binary |
+      gAKKCmz8nEb5IGqoUBkugAJN6QMugAJ9cQAoWBAAAABwcm90b2NvbF92ZXJzaW9ucQFN6QNYDQAA
+      AGxpdHRsZV9lbmRpYW5xAohYCgAAAHR5cGVfc2l6ZXNxA31xBChYBQAAAHNob3J0cQVLAlgDAAAA
+      aW50cQZLBFgEAAAAbG9uZ3EHSwR1dS6AAihYBwAAAHN0b3JhZ2VxAGN0b3JjaApGbG9hdFN0b3Jh
+      Z2UKcQFYCgAAADE0NzU1MzM0NzJxAlgDAAAAY3B1cQNLOU50cQRRLoACXXEAWAoAAAAxNDc1NTMz
+      NDcycQFhLjkAAAAAAAAATz4+QKMx4j4bfSk/skeAP70Tmj9EWbQ+mdQZP0/8jz+EAmdADQGGP9xR
+      xj/ujSg/WZ01P6gEij9J1j4/dxdNQVoWIUGwC6o/PfSHP9cpWEBHBz5AE7ytP/kB+z9WjK9AlM9+
+      QEMgWj8UR2U/RooGP9tNVj+tW5s+7BoDP581YT9wAYQ/EmxCP1VYKz/cUo1Av6y+QIlNEj/6/yI/
+      UrmiPx5eTz/5AXtAMpijQFLo7z9SQco/WcEVP9ReIj++2ahAlmvVQOiD/EDuvtJAuUHJPrA8xD7r
+      mDdAM7JEQKPyez+3MKk/
+  - 0
+  - !!python/tuple
+    - 57
+  - !!python/tuple
+    - 1
+  - false
+  - !!python/object/apply:collections.OrderedDict
+    - []
