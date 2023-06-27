@@ -41,7 +41,7 @@ import pandas as pd
 
 lights = pd.read_pickle(r'lights_57_3d_on_positive_sphere.pickle')
 # liste = os.listdir("/CMF/data/timtey/results_contrastive_loss_combine_loss_tract_cluster_bundle")
-liste = os.listdir("/CMF/data/timtey/results_contrastive_learning_062023_best_model")
+liste = os.listdir("/CMF/data/timtey/results_contrastive_learning_062223_align_uniformity")
 # liste = os.listdir("/CMF/data/timtey/results_contrastive_learning_061523")
 l_colors = colors.ListedColormap ( np.random.rand (57,3))
 l_colors1 = colors.ListedColormap ( np.random.rand (20,3))
@@ -53,7 +53,7 @@ print(lights.shape)
 matrix2 = [] #should be shape = (56*100,128)
 
 for i in range(len(liste)):
-    matrix = torch.load(f"/CMF/data/timtey/results_contrastive_learning_062023_best_model/{liste[i]}")
+    matrix = torch.load(f"/CMF/data/timtey/results_contrastive_learning_062223_align_uniformity/{liste[i]}")
     # matrix = torch.load(f"/CMF/data/timtey/results_contrastive_learning_061523/{liste[i]}")
     matrix2.append(matrix)
 MATR2 = torch.cat(matrix2, dim=0)

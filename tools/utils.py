@@ -810,6 +810,136 @@ def ExtractFiber(surf, list_random_id) :
 
     return tubefilter
 
+def ExtractPart(surf, list_random_id) :
+    # L_tube = []
+    # for i in range(len(list_random_id)):
+    ids = vtk.vtkIdTypeArray()
+    ids.SetNumberOfComponents(1)
+    # ids.SetNumberOfTuples(len(list_random_id))
+        # ids.SetNumberOfComponents(len(list_random_id))
+    for i in range(len(list_random_id)):
+        ids.InsertNextValue(list_random_id[i])
+
+    # print(ids)
+    
+    # extract a subset from a dataset
+    selectionNode = vtk.vtkSelectionNode() 
+    selectionNode.SetFieldType(0)
+    selectionNode.SetContentType(3)
+    selectionNode.SetSelectionList(ids) 
+    # print(selectionNode)
+
+    # set containing cell to 1 = extract cell
+    # print(selectionNode.GetProperties())
+    selectionNode.GetProperties().Set(vtk.vtkSelectionNode.CONTAINING_CELLS(), 1)
+    # print(selectionNode)
+
+    selection = vtk.vtkSelection()
+    selection.AddNode(selectionNode)
+    # print(selection)
+    # extract the cell from the cluster
+    extractSelection = vtk.vtkExtractSelection()
+    extractSelection.SetInputData(0, surf)
+    extractSelection.SetInputData(1, selection)
+    extractSelection.Update()
+    # print(extractSelection.GetOutput())
+
+    # convert the extract cell to a polygonal type (a line here)
+    geometryFilter = vtk.vtkGeometryFilter()
+    geometryFilter.SetInputData(extractSelection.GetOutput())
+    geometryFilter.Update()
+
+    # fiber = surf.GetCell(list_random_id)
+
+    # cells = vtk.vtkCellArray()
+    # points = vtk.vtkPoints()
+
+    # poly_fiber = vtk.vtkPolyData()    
+
+    # for pid in range(fiber.GetNumberOfPoints()):
+    #     points.InsertNextPoint(fiber.GetPoints().GetPoint(pid))
+
+    # poly_fiber.SetPoints(fiber.GetPoints())
+    # poly_fiber.
+
+
+    tubefilter = geometryFilter.GetOutput()
+    # print(tubefilter)
+    # L_tube.append(tubefilter)
+
+    # return L_tube
+    return tubefilter
+
+def ExtractPart2(surf, list_random_id) :
+    L_tube = []
+    for i in range(len(list_random_id)):
+        ids = vtk.vtkIdTypeArray()
+        ids.SetNumberOfComponents(1)
+        # ids.SetNumberOfComponents(len(list_random_id))
+        # for i in range(len(list_random_id)):
+        ids.InsertNextValue(list_random_id[i])
+
+        # print(ids)
+
+        # extract a subset from a dataset
+        selectionNode = vtk.vtkSelectionNode() 
+        selectionNode.SetFieldType(0)
+        selectionNode.SetContentType(3)
+        selectionNode.SetSelectionList(ids) 
+        print(selectionNode)
+
+        # set containing cell to 1 = extract cell
+        print(selectionNode.GetProperties())
+        selectionNode.GetProperties().Set(vtk.vtkSelectionNode.CONTAINING_CELLS(), 1)
+        print(selectionNode)
+
+        selection = vtk.vtkSelection()
+        selection.AddNode(selectionNode)
+        print(selection)
+        # extract the cell from the cluster
+        extractSelection = vtk.vtkExtractSelection()
+        extractSelection.SetInputData(0, surf)
+        extractSelection.SetInputData(1, selection)
+        extractSelection.Update()
+        print(extractSelection.GetOutput())
+
+        # convert the extract cell to a polygonal type (a line here)
+        geometryFilter = vtk.vtkGeometryFilter()
+        geometryFilter.SetInputData(extractSelection.GetOutput())
+        geometryFilter.Update()
+
+        # fiber = surf.GetCell(list_random_id)
+
+        # cells = vtk.vtkCellArray()
+        # points = vtk.vtkPoints()
+
+        # poly_fiber = vtk.vtkPolyData()    
+
+        # for pid in range(fiber.GetNumberOfPoints()):
+        #     points.InsertNextPoint(fiber.GetPoints().GetPoint(pid))
+
+        # poly_fiber.SetPoints(fiber.GetPoints())
+        # poly_fiber.
+
+
+        tubefilter = geometryFilter.GetOutput()
+        # print(tubefilter)
+        L_tube.append(tubefilter)
+
+    return L_tube
+    # return tubefilter
+
+def Merge(liste):
+    m = vtk.vtkAppendPolyData()
+    for i in range(len(liste)):
+        m.AddInputData(liste[i])
+    m.Update()
+
+    return m.GetOutput()
+
+
+
+
 def Write(vtkdata, output_name, print_out = True):
     outfilename = output_name
     if print_out == True:

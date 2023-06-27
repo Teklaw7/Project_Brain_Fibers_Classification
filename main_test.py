@@ -140,7 +140,7 @@ brain_data=Bundles_DataModule_tractography_labeled_fibers(0,0,0,path_data, batch
 weights = brain_data.get_weights()
 # model= Fly_by_CNN_contrastive_tractography_labeled(contrastive, radius, ico_lvl, dropout_lvl, batch_size, weights, num_classes, verts_left, faces_left, verts_right, faces_right, learning_rate=0.001)
 # model= Fly_by_CNN_contrastive_tractography_labeled(contrastive, radius, ico_lvl, dropout_lvl, batch_size, weights, num_classes, learning_rate=0.001)
-model_path ="/home/timtey/Documents/Models_tensorboard/models/Loss_combine/062023/epoch=48-val_loss=0.29.ckpt"
+model_path ="/home/timtey/Documents/Models_tensorboard/models/Loss_combine/062223/epoch=56-val_loss=1.53.ckpt"
 
 model= Fly_by_CNN_contrastive_tractography_labeled(radius, ico_lvl, dropout_lvl, batch_size, weights, num_classes, learning_rate=0.0001)
 checkpoint = torch.load(model_path)
