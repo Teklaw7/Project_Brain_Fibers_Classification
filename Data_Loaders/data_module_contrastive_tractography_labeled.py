@@ -133,7 +133,15 @@ class Bundles_Dataset_tractography(Dataset):
         sample_surf = sample_row[self.column_surf]
         sample_id, sample_class, sample_label = sample_row[self.column_id], sample_row[self.column_class], sample_row[self.column_label]
         sample_x_min, sample_x_max, sample_y_min, sample_y_max, sample_z_min, sample_z_max = sample_row[self.column_x_min], sample_row[self.column_x_max], sample_row[self.column_y_min], sample_row[self.column_y_max], sample_row[self.column_z_min], sample_row[self.column_z_max]
-        list_sample_id = [102008, 103515, 108525, 113215, 119833, 121618, 124220, 124826, 139233]
+        list_sample_id = [102008_1, 102008_2, 102008_3, 102008_4,
+                          103515_1, 103515_2, 103515_3, 103515_4,
+                          108525_1, 108525_2, 108525_3, 108525_4,
+                          113215_1, 113215_2, 113215_3, 113215_4,
+                          119833_1, 119833_2, 119833_3, 119833_4,
+                          121618_1, 121618_2, 121618_3, 121618_4,
+                          124220_1, 124220_2, 124220_3, 124220_4,
+                          124826_1, 124826_2, 124826_3, 124826_4,
+                          139233_1, 139233_2, 139233_3, 139233_4]
         tracts_idx = list_sample_id.index(sample_id)
         tracts = self.tractography_list_vtk[tracts_idx]
         n = randint(0,tracts.GetNumberOfCells()-1)
@@ -161,7 +169,12 @@ class Bundles_Dataset_tractography(Dataset):
         sample_min_max = [sample_x_min, sample_x_max, sample_y_min, sample_y_max, sample_z_min, sample_z_max]
         mean_s, scale_factor_s = get_mean_scale_factor(sample_min_max)
         TubeNormals = torch.tensor(vtk_to_numpy(tracts_f.GetPointData().GetScalars("TubeNormals")))
-        vertex_features = torch.cat([TubeNormals], dim=1)
+        FA = torch.tensor(vtk_to_numpy(tracts_f.GetPointData().GetScalars("FA"))).unsqueeze(1)
+        MD = torch.tensor(vtk_to_numpy(tracts_f.GetPointData().GetScalars("MD"))).unsqueeze(1)
+        AD = torch.tensor(vtk_to_numpy(tracts_f.GetPointData().GetScalars("AD"))).unsqueeze(1)
+        RD = torch.tensor(vtk_to_numpy(tracts_f.GetPointData().GetScalars("RD"))).unsqueeze(1)
+        vertex_features = torch.cat([TubeNormals, FA, MD, AD, RD], dim=1)
+        # vertex_features = torch.cat([TubeNormals], dim=1)
         faces_pid0 = faces[:,0:1]
         nb_faces = len(faces)
         offset = torch.zeros((nb_faces, vertex_features.shape[1]), dtype=int) + torch.arange(vertex_features.shape[1]).to(torch.int64)

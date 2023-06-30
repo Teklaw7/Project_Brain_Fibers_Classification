@@ -9,12 +9,12 @@ obj = utils.ReadSurf("/CMF/data/timtey/tractography/all/tractogram_deterministic
 
 nb_cells = obj.GetNumberOfCells()
 
-obj1 = vtk.vtkPolyData()
-obj2 = vtk.vtkPolyData()
-cell = vtk.vtkCellArray()
-Points_ids = []
-cell_2 = vtk.vtkCellArray()
-Points_ids2 = []
+# obj1 = vtk.vtkPolyData()
+# obj2 = vtk.vtkPolyData()
+# cell = vtk.vtkCellArray()
+# Points_ids = []
+# cell_2 = vtk.vtkCellArray()
+# Points_ids2 = []
 
 list_id_1 = []
 list_id_2 = []
