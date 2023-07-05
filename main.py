@@ -85,7 +85,7 @@ from Transformations.transformations import *
 
 num_classes = 57
 nb_epochs = 500
-batch_size= 10
+batch_size= 8#10
 dropout_lvl=0.1
 radius=1
 ico_lvl=1
@@ -102,7 +102,7 @@ path_valid_final = "/home/timtey/Documents/datasets/dataset4/tracts_filtered_tra
 path_test_final = "/home/timtey/Documents/datasets/dataset4/tracts_filtered_train_test_label_to_number_nb_cells_without_missing_2_part.csv"
 
 checkpoint_callback = ModelCheckpoint(
-    dirpath='/home/timtey/Documents/Models_tensorboard/models/Loss_combine/062823',
+    dirpath='/home/timtey/Documents/Models_tensorboard/models/Loss_combine/063023',
     filename='{epoch}-{val_loss:.2f}',
     monitor='val_loss',
     save_top_k=3
@@ -113,18 +113,8 @@ df_tract_dataset = pd.read_csv(path_tract_dataset)
 tractography_list_vtk = []
 for i in range(len(df_tract_dataset)):
     tractography_list_vtk.append(utils.ReadSurf(df_tract_dataset["surf"][i]))
+    print("ligne ", i+1, "/", len(df_tract_dataset)," done")
 print("Number of tracts: ", len(tractography_list_vtk))
-# tractography_list_vtk.append(utils.ReadSurf("/CMF/data/timtey/tractography/all/tractogram_deterministic_102008_dg.vtp"))
-# tractography_list_vtk.append(utils.ReadSurf("/CMF/data/timtey/tractography/all/tractogram_deterministic_103515_dg.vtp"))
-# tractography_list_vtk.append(utils.ReadSurf("/CMF/data/timtey/tractography/all/tractogram_deterministic_108525_dg.vtp"))
-# tractography_list_vtk.append(utils.ReadSurf("/CMF/data/timtey/tractography/all/tractogram_deterministic_113215_dg.vtp"))
-# tractography_list_vtk.append(utils.ReadSurf("/CMF/data/timtey/tractography/all/tractogram_deterministic_119833_dg.vtp"))
-# tractography_list_vtk.append(utils.ReadSurf("/CMF/data/timtey/tractography/all/tractogram_deterministic_121618_dg.vtp"))
-# tractography_list_vtk.append(utils.ReadSurf("/CMF/data/timtey/tractography/all/tractogram_deterministic_124220_dg.vtp"))
-# tractography_list_vtk.append(utils.ReadSurf("/CMF/data/timtey/tractography/all/tractogram_deterministic_124826_dg.vtp"))
-# tractography_list_vtk.append(utils.ReadSurf("/CMF/data/timtey/tractography/all/tractogram_deterministic_139233_dg.vtp"))
-
-# contrastive = True
 
 df = pd.read_csv(path_test_final)
 logger = TensorBoardLogger(save_dir="/home/timtey/Documents/Models_tensorboard/tensorboard_photos", name='Resnet')

@@ -64,15 +64,16 @@ def randomrot(verts):
     verts_i = verts.clone()
     lim = 5*np.pi/180
     gauss_law = torch.distributions.normal.Normal(torch.tensor([0.0]), torch.tensor([lim/3]))
-    x_sample = gauss_law.sample().item()
-    Rx = torch.tensor([[1,0,0],[0,torch.cos(x_sample),-torch.sin(x_sample)],[0,torch.sin(x_sample),torch.cos(x_sample)]]).to(verts.get_device())
-    y_sample = gauss_law.sample().item()
-    Ry = torch.tensor([[torch.cos(y_sample),0,torch.sin(y_sample)],[0,1,0],[-torch.sin(y_sample),0,torch.cos(y_sample)]]).to(verts.get_device())
-    z_sample = gauss_law.sample().item()
-    Rz = torch.tensor([[torch.cos(z_sample),-torch.sin(z_sample),0],[torch.sin(z_sample),torch.cos(z_sample),0],[0,0,1]]).to(verts.get_device())
-    verts_i[:,:,0] = verts[:,:,0]@Rx #multiplication btw the 2 matrix
-    verts_i[:,:,1] = verts[:,:,1]@Ry
-    verts_i[:,:,2] = verts[:,:,2]@Rz
+    for i in range(verts_i.shape[0]):
+        x_sample = torch.tensor(gauss_law.sample().item())
+        Rx = torch.tensor([[1,0,0],[0,torch.cos(x_sample),-torch.sin(x_sample)],[0,torch.sin(x_sample),torch.cos(x_sample)]]).to(verts.get_device()).double()
+        y_sample = torch.tensor(gauss_law.sample().item())
+        Ry = torch.tensor([[torch.cos(y_sample),0,torch.sin(y_sample)],[0,1,0],[-torch.sin(y_sample),0,torch.cos(y_sample)]]).to(verts.get_device()).double()
+        z_sample = torch.tensor(gauss_law.sample().item())
+        Rz = torch.tensor([[torch.cos(z_sample),-torch.sin(z_sample),0],[torch.sin(z_sample),torch.cos(z_sample),0],[0,0,1]]).to(verts.get_device()).double()
+        verts_i[i,:,:] = verts[i,:,:]@Rx #multiplication btw the 2 matrix
+        verts_i[i,:,:] = verts[i,:,:]@Ry
+        verts_i[i,:,:] = verts[i,:,:]@Rz
     return verts_i
 
 
@@ -81,7 +82,7 @@ def randomstretching(verts):
     gauss_law = torch.distributions.normal.Normal(torch.tensor([1.0]), torch.tensor([0.1]))
     for i in range(verts_i.shape[0]):
         M = torch.tensor([[gauss_law.sample().item(),0,0],[0,gauss_law.sample().item(),0],[0,0,gauss_law.sample().item()]]).to(verts.get_device())
-        M = M.to(torch.float32)
+        M = M.to(torch.float64)
         verts_i[i,:,:] = verts[i,:,:]@M #multiplication btw the 2 matrix
     return verts_i
 

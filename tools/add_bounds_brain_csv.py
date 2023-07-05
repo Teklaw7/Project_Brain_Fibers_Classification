@@ -2,20 +2,12 @@ import utils
 from os import listdir
 import pandas as pd
 bundles = utils.ReadSurf("/MEDUSA_STOR/timtey/tractography/validation/tractogram_deterministic_103515_dg.vtp")
-print(bundles)
-print(bundles.GetBounds())
 a = bundles.GetBounds()
 bundles2 = utils.ReadSurf("/MEDUSA_STOR/timtey/tractography/validation/tractogram_deterministic_139233_dg.vtp")
-print(bundles2)
 b = bundles2.GetBounds()
-print(bundles2.GetBounds())
 bundles3 = utils.ReadSurf("/MEDUSA_STOR/timtey/tractography/validation/tractogram_deterministic_108525_dg.vtp")
-print(bundles3)
 c = bundles3.GetBounds()
-print(bundles3.GetBounds())
 bundles4 = utils.ReadSurf("/MEDUSA_STOR/timtey/tractography/validation/tractogram_deterministic_124220_dg.vtp")
-print(bundles4)
-print(bundles4.GetBounds())
 d = bundles4.GetBounds()
 l_valid = listdir("/MEDUSA_STOR/timtey/tractography/validation")
 
@@ -41,5 +33,4 @@ informations2 = {
 }
 
 df2 = pd.DataFrame(informations2)
-print(df2)
 df2.to_csv("/home/timtey/Documents/Projet/dataset3/whole_brain_tractography_validation.csv")

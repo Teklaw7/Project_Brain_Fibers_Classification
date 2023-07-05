@@ -44,17 +44,11 @@ class Bundles_Dataset_contrastive_labeled(Dataset):
         return len(self.data)
 
     def __getitem__(self, idx):
-        # print("data", self.data)
-        # print("path_data", self.path_data)
-        # print("idx", idx)
         sample_row = self.data.loc[idx]
         
         sample_id, sample_class, sample_label = sample_row[self.column_id], sample_row[self.column_class], sample_row[self.column_label]
         sample_x_min, sample_x_max, sample_y_min, sample_y_max, sample_z_min, sample_z_max = sample_row[self.column_x_min], sample_row[self.column_x_max], sample_row[self.column_y_min], sample_row[self.column_y_max], sample_row[self.column_z_min], sample_row[self.column_z_max]
         path_cc1 = f"/CMF/data/timtey/tracts/archives/{sample_id}_tracts/{sample_class}.vtp"
-        # print("path_cc1",path_cc1)
-        
-        #x_min, x_max, y_min, y_max, z_min, z_max = bounding_box(sample_id)
         cc1 = utils.ReadSurf(path_cc1)
         n = randint(0,cc1.GetNumberOfCells()-1)
         cc1_extract = utils.ExtractFiber(cc1,n)
@@ -63,49 +57,16 @@ class Bundles_Dataset_contrastive_labeled(Dataset):
         cc1_tf.Update()
         cc1_extract_tf = cc1_tf.GetOutput()
         
-        verts, faces, edges = utils.PolyDataToTensors(cc1_extract_tf)
-        # verts = verts.to(self.device)
-        # print("cc1_extract_tf", cc1_extract_tf)
-        # cc1_extract_tf, mean, scale = utils.ScaleSurf(cc1_extract_tf)
-        # print("cc1_extract_tf", cc1_extract_tf)
-        # cc1_extract_tf = utils.ComputeNormals(cc1_extract_tf)
-        # cc1_extract_tf = utils.ComputeNormals(cc1_extract_tf)
-        # print("cc1_extract_tf", cc1_extract_tf)
-        # verts_fiber, faces_fiber, edges_fiber = utils.PolyDataToTensors(cc1_extract_tf)        
+        verts, faces, edges = utils.PolyDataToTensors(cc1_extract_tf)    
         verts_fiber = torch.clone(verts)
         faces_fiber = torch.clone(faces)
         edges_fiber = torch.clone(edges)
-        # verts_fiber = torch.clone(verts)
-
-        # def transformation_verts(verts):
-            
-        #     verts[:,0] = ((verts[:,0] - sample_x_min)/(sample_x_max - sample_x_min)) - 0.5
-        #     verts[:,1] = ((verts[:,1] - sample_y_min)/(sample_y_max - sample_y_min)) - 0.5
-        #     verts[:,2] = ((verts[:,2] - sample_z_min)/(sample_z_max - sample_z_min)) - 0.5
-        #     return verts
-
-        # verts = transformation_verts(verts)
         verts_fiber_bounds = cc1_extract_tf.GetBounds()
         verts_fiber_bounds = list(verts_fiber_bounds)
         max_bounds = max(verts_fiber_bounds)
         min_bounds = min(verts_fiber_bounds)
         verts_fiber_bounds = [min_bounds,max_bounds,min_bounds,max_bounds,min_bounds,max_bounds]
         sample_min_max = [sample_x_min, sample_x_max, sample_y_min, sample_y_max, sample_z_min, sample_z_max]
-
-        # print("verts_fiber_bounds", verts_fiber_bounds)
-        # print("verts", verts.shape)
-        # print("verts_fiber", verts_fiber.shape)
-        # print("verts_fiber", verts_fiber)
-        # print("verts", verts)
-        # def transformation_verts_by_fiber(verts):
-
-        #     verts_fiber[:,0] = (0.8*(verts_fiber[:,0] - verts_fiber_bounds[0])/(verts_fiber_bounds[1] - verts_fiber_bounds[0])) - 0.4
-        #     verts_fiber[:,1] = (0.8*(verts_fiber[:,1] - verts_fiber_bounds[2])/(verts_fiber_bounds[3] - verts_fiber_bounds[2])) - 0.4
-        #     verts_fiber[:,2] = (0.8*(verts_fiber[:,2] - verts_fiber_bounds[4])/(verts_fiber_bounds[5] - verts_fiber_bounds[4])) - 0.4
-
-        #     return verts_fiber
-        
-        # verts_fiber = transformation_verts_by_fiber(verts_fiber)
 
         EstimatedUncertainty = torch.tensor(vtk_to_numpy(cc1_extract_tf.GetPointData().GetScalars("EstimatedUncertainty"))).unsqueeze(1)
         FA1 = torch.tensor(vtk_to_numpy(cc1_extract_tf.GetPointData().GetScalars("FA1"))).unsqueeze(1)
@@ -119,83 +80,23 @@ class Bundles_Dataset_contrastive_labeled(Dataset):
 
 
         vertex_features = torch.cat([EstimatedUncertainty, FA1, FA2, HemisphereLocataion, trace1, trace2, TubeNormals], dim=1)
-        # print("vertex_features 2", vertex_features.shape)
-        #print("vertex_features", vertex_features.shape)
         faces_pid0 = faces[:,0:1]
         faces_pid0_fiber = faces_fiber[:,0:1]
-        #print("faces_pid0", faces_pid0.shape)
         nb_faces = len(faces)
         nb_faces_fiber = len(faces_fiber)
-        # offset = torch.zeros((nb_faces,vertex_features.shape[1]), dtype=int) + torch.Tensor([i for i in range(vertex_features.shape[1])]).to(torch.int64)
         offset = torch.zeros((nb_faces, vertex_features.shape[1]), dtype=int) + torch.arange(vertex_features.shape[1]).to(torch.int64)
         offset_fiber = torch.zeros((nb_faces_fiber, vertex_features.shape[1]), dtype=int) + torch.arange(vertex_features.shape[1]).to(torch.int64)
-        #print("offset", offset.shape)
         faces_pid0_offset = offset + torch.multiply(faces_pid0, vertex_features.shape[1])
         faces_pid0_offset_fiber = offset_fiber + torch.multiply(faces_pid0_fiber, vertex_features.shape[1])
-        #print("faces", faces_pid0_offset.shape)
         face_features = torch.take(vertex_features, faces_pid0_offset)
         face_features_fiber = torch.take(vertex_features, faces_pid0_offset_fiber)
-        #print("face_features", face_features.shape)
-        #vertex_features_mesh=vertex_features.unsqueeze(dim=0)
-        
-        #texture =TexturesVertex(verts_features=vertex_features_mesh)
-        #mesh = Meshes(verts=[verts], faces=[faces], textures=texture) 
-
         ### labels ###
         labels = torch.tensor([sample_label])
         labels_fiber = torch.tensor([sample_label])
-        # #Load  Icosahedron
-        # reader = utils.ReadSurf(self.path_ico)
-        # verts_ico, faces_ico, edges_ico = utils.PolyDataToTensors(reader)
-        # nb_faces = len(faces_ico)
-        # print(labels)
-        # print("FF_brain")
-        # FF_brain = torch.ones(self.faces_brain.shape[0],8)
-        # print("FF_brain", FF_brain.shape)
-        # print(self.face_features_brain.shape)
-        # print(sample_id)
-
-        # list_id = [120515, 102816, 111413, 134324, 136227, 137633, 142828, 143325]
-        # if sample_id in list_id:
-        #     return verts,faces,face_features,labels,verts_fiber,faces_fiber,face_features_fiber,labels_fiber, self.verts_brain, self.faces_brain, self.face_features_brain
-        # else:
-        ###
-        # path_brain = f"/CMF/data/timtey/tractography/all/brain_mask_{sample_id}.vtk"
-        # # print("path_brain", path_brain)
-        # brain_mask = utils.ReadSurf(path_brain)
-        # # print("brain_mask", brain_mask)
-        # brain_tf = vtk.vtkTriangleFilter()
-        # brain_tf.SetInputData(brain_mask)
-        # brain_tf.Update()
-        # brain_mask_f = brain_tf.GetOutput()
-        # # print("brain_mask_f", brain_mask_f)
-        # brain_mask_f, mean, std = utils.ScaleSurf(brain_mask_f, scale_factor=0.005)
-        # normal_brain = utils.ComputeNormals(brain_mask_f)
-        # # print("brain_mask_f", normal_brain)
-        # # print("brain_mask_f", brain_mask_f)
-        # # print("sample_id", sample_id)
-        # verts_brain, faces_brain, edges_brain = utils.PolyDataToTensors(brain_mask_f)
-        # normals_brain = torch.tensor(vtk_to_numpy(normal_brain.GetPointData().GetScalars("Normals")))
-        # vertex_features_brain = torch.cat([normals_brain], dim=1)
-        # # print("vertex_features_brain", vertex_features_brain.shape)
-        # faces_pid0_brain = faces_brain[:,0:1]
-        # nb_faces_brain = faces_brain.shape[0]
-        # offset_brain = torch.zeros((nb_faces_brain,vertex_features_brain.shape[1]), dtype=int) + torch.arange(vertex_features_brain.shape[1]).to(torch.int64)
-        # faces_pid0_offset_brain = offset_brain + torch.multiply(faces_pid0_brain, vertex_features_brain.shape[1])
-        # face_features_brain = torch.take(vertex_features_brain, faces_pid0_offset_brain)
-        # complete = torch.ones((faces_brain.shape[0],6))
-        # face_features_brain = torch.cat((face_features_brain, complete), 1)
-        ###
-
         verts_brain = torch.load(f"brain_structures/verts_brain_{sample_id}.pt")
         faces_brain = torch.load(f"brain_structures/faces_brain_{sample_id}.pt")
         face_features_brain = torch.load(f"brain_structures/face_features_brain_{sample_id}.pt")
-        # print("face_features_brain", face_features_brain.shape)
-        # print(kjzdgfsdh)
         return verts,faces,face_features,labels,verts_fiber,faces_fiber,face_features_fiber,labels_fiber, verts_brain, faces_brain, face_features_brain, verts_fiber_bounds, sample_min_max
-        # return verts,faces,face_features,labels,verts_fiber,faces_fiber,face_features_fiber,labels_fiber, self.verts_brain, self.faces_brain, self.face_features_brain
-        # return verts, faces, face_features, labels, verts_fiber     #24 images
-        # return verts, faces, face_features, labels    #12images
 
 
 
@@ -236,20 +137,8 @@ class Bundles_Dataset_test_contrastive_labeled(Dataset):
         sample_label = sample_row[self.column_label]
         sample_x_min, sample_x_max, sample_y_min, sample_y_max, sample_z_min, sample_z_max = sample_row[self.column_x_min], sample_row[self.column_x_max], sample_row[self.column_y_min], sample_row[self.column_y_max], sample_row[self.column_z_min], sample_row[self.column_z_max]
         sample_id = sample_row[self.column_id]
-
-
-        ###
         bundle_extract_tf = self.L[idx]
-        ###
-        # bundle_extract = utils.ExtractFiber(self.bundle,idx)
-        # bundle_tf=vtk.vtkTriangleFilter()
-        # bundle_tf.SetInputData(bundle_extract)
-        # bundle_tf.Update()
-        # bundle_extract_tf = bundle_tf.GetOutput()
-        ###
         verts, faces, edges = utils.PolyDataToTensors(bundle_extract_tf)  
-        # bundle_extract_tf, mean, scale = utils.ScaleSurf(bundle_extract_tf)
-        # verts_fiber, faces_fiber, edges_fiber = utils.PolyDataToTensors(bundle_extract_tf)        
         verts_fiber = torch.clone(verts)
         faces_fiber = torch.clone(faces)
         edges_fiber = torch.clone(edges)
@@ -262,7 +151,6 @@ class Bundles_Dataset_test_contrastive_labeled(Dataset):
         sample_min_max = [sample_x_min, sample_x_max, sample_y_min, sample_y_max, sample_z_min, sample_z_max]
 
         if self.contrastive:
-            # ldjs = bundle_extract_tf.GetPointData().GetScalars("colors")
             EstimatedUncertainty = torch.tensor(vtk_to_numpy(bundle_extract_tf.GetPointData().GetScalars("EstimatedUncertainty"))).unsqueeze(1)
             FA1 = torch.tensor(vtk_to_numpy(bundle_extract_tf.GetPointData().GetScalars("FA1"))).unsqueeze(1)
             FA2 = torch.tensor(vtk_to_numpy(bundle_extract_tf.GetPointData().GetScalars("FA2"))).unsqueeze(1)
@@ -286,81 +174,24 @@ class Bundles_Dataset_test_contrastive_labeled(Dataset):
             
             #EstimatedUncertainty.unsqueeze(dim=1), FA1.unsqueeze(dim=1), FA2.unsqueeze(dim=1), HemisphereLocataion.unsqueeze(dim=1), cluster_idx.unsqueeze(dim=1), trace1.unsqueeze(dim=1), trace2.unsqueeze(dim=1), vtkOriginalPointIds.unsqueeze(dim=1), 
             vertex_features = torch.cat([EstimatedUncertainty, FA1, FA2, HemisphereLocataion, trace1, trace2, TubeNormals], dim=1)
-        # print("vertex_features 1 ", vertex_features.shape)
         faces_pid0 = faces[:,0:1]
         faces_pid0_fiber = faces_fiber[:,0:1]
-        #print("faces_pid0", faces_pid0.shape)
         nb_faces = len(faces)
         nb_faces_fiber = len(faces_fiber)
-        # offset = torch.zeros((nb_faces,vertex_features.shape[1]), dtype=int) + torch.Tensor([i for i in range(vertex_features.shape[1])]).to(torch.int64)
         offset = torch.zeros((nb_faces, vertex_features.shape[1]), dtype=int) + torch.arange(vertex_features.shape[1]).to(torch.int64)
         offset_fiber = torch.zeros((nb_faces_fiber, vertex_features.shape[1]), dtype=int) + torch.arange(vertex_features.shape[1]).to(torch.int64)
-        #print("offset", offset.shape)
         faces_pid0_offset = offset + torch.multiply(faces_pid0, vertex_features.shape[1])
         faces_pid0_offset_fiber = offset_fiber + torch.multiply(faces_pid0_fiber, vertex_features.shape[1])
-        #print("faces", faces_pid0_offset.shape)
         face_features = torch.take(vertex_features, faces_pid0_offset)
         face_features_fiber = torch.take(vertex_features, faces_pid0_offset_fiber)
-        #print("face_features", face_features.shape)
-        #vertex_features_mesh=vertex_features.unsqueeze(dim=0)
-        #texture =TexturesVertex(verts_features=vertex_features_mesh)
-        #mesh = Meshes(verts=[verts], faces=[faces], textures=texture) 
         ### labels ###
         labels = torch.tensor([sample_label])
         labels_fiber = torch.tensor([sample_label])
-        # if self.contrastive:
-            # labels = torch.tensor([1])
-        #Load  Icosahedron
-        # reader = utils.ReadSurf(self.path_ico)
-        # verts_ico, faces_ico, edges_ico = utils.PolyDataToTensors(reader)
-        # nb_faces = len(faces_ico)
-        # print(verts_fiber)
-        # print("FF_brain")
-        # FF_brain = torch.ones(self.faces_brain.shape[0],8)
-        # print("FF_brain", FF_brain.shape)
-        # print(self.face_features_brain.shape)
-        # list_id = [120515, 102816, 111413, 134324, 136227, 137633, 142828, 143325]
-        # if sample_id in list_id:
-        #     return verts,faces,face_features,labels,verts_fiber,faces_fiber,face_features_fiber,labels_fiber, self.verts_brain, self.faces_brain, self.face_features_brain
-        # else:
-        ###
-        # path_brain = f"/CMF/data/timtey/tractography/all/brain_mask_{sample_id}.vtk"
-        # # print("path_brain", path_brain)
-        # brain_mask = utils.ReadSurf(path_brain)
-        # # print("brain_mask", brain_mask)
-        # brain_tf = vtk.vtkTriangleFilter()
-        # brain_tf.SetInputData(brain_mask)
-        # brain_tf.Update()
-        # brain_mask_f = brain_tf.GetOutput()
-        # # print("brain_mask_f", brain_mask_f)
-        # brain_mask_f, mean, std = utils.ScaleSurf(brain_mask_f, scale_factor=0.005)
-        # normal_brain = utils.ComputeNormals(brain_mask_f)
-        # # print("brain_mask_f", normal_brain)
-        # # print("brain_mask_f", brain_mask_f)
-        # # print("sample_id", sample_id)
-        # verts_brain, faces_brain, edges_brain = utils.PolyDataToTensors(brain_mask_f)
-        # normals_brain = torch.tensor(vtk_to_numpy(normal_brain.GetPointData().GetScalars("Normals")))
-        # vertex_features_brain = torch.cat([normals_brain], dim=1)
-        # # print("vertex_features_brain", vertex_features_brain.shape)
-        # faces_pid0_brain = faces_brain[:,0:1]
-        # nb_faces_brain = faces_brain.shape[0]
-        # offset_brain = torch.zeros((nb_faces_brain,vertex_features_brain.shape[1]), dtype=int) + torch.arange(vertex_features_brain.shape[1]).to(torch.int64)
-        # faces_pid0_offset_brain = offset_brain + torch.multiply(faces_pid0_brain, vertex_features_brain.shape[1])
-        # face_features_brain = torch.take(vertex_features_brain, faces_pid0_offset_brain)
-        # complete = torch.ones((faces_brain.shape[0],6))
-        # face_features_brain = torch.cat((face_features_brain, complete), 1)
-        ###
 
         verts_brain = torch.load(f"brain_structures/verts_brain_{sample_id}.pt")
         faces_brain = torch.load(f"brain_structures/faces_brain_{sample_id}.pt")
         face_features_brain = torch.load(f"brain_structures/face_features_brain_{sample_id}.pt")
-        # print("face_features_brain", face_features_brain.shape)
-        # print(kjzdgfsdh)
         return verts,faces,face_features,labels,verts_fiber,faces_fiber,face_features_fiber,labels_fiber, verts_brain, faces_brain, face_features_brain, verts_fiber_bounds, sample_min_max
-
-        # return verts, faces, face_features, labels, verts_fiber, faces_fiber, face_features_fiber, labels_fiber, self.verts_brain, self.faces_brain, self.face_features_brain   #24 images
-        # return verts, faces, face_features, labels, verts_fiber   #24 images
-        # return verts, faces, face_features, labels    #12images
 
 
 
@@ -420,17 +251,12 @@ class Bundles_Dataset_contrastive_labeled(pl.LightningDataModule):
 
     def setup(self, stage=None):
 
-        #list_train_data = open(self.train_path, "r").read().splitlines()
-        #list_val_data = open(self.val_path, "r").read().splitlines()
-        #list_test_data = open(self.test_path, "r").read().splitlines()
         list_train_data = pd.read_csv(self.train_path)
         list_val_data = pd.read_csv(self.val_path)
         list_test_data = pd.read_csv(self.test_path)
         
         
-        # self.train_dataset = Bundles_Dataset(list_train_data, self.path_data, self.path_ico, self.transform)
         if self.contrastive:
-            # print("contrastive")
             self.train_dataset = Bundles_Dataset_contrastive_labeled(list_train_data, self.path_data, self.path_ico, self.verts_brain, self.faces_brain, self.face_features_brain, self.transform)
             self.val_dataset = Bundles_Dataset_contrastive_labeled(list_val_data, self.path_data, self.path_ico, self.verts_brain, self.faces_brain, self.face_features_brain, self.transform)
             self.test_dataset = Bundles_Dataset_test_contrastive_labeled(self.contrastive, list_test_data, self.bundle, self.L, self.fibers, self.index_csv, self.path_data, self.path_ico, self.verts_brain, self.faces_brain, self.face_features_brain, self.transform)
@@ -457,18 +283,10 @@ class Bundles_Dataset_contrastive_labeled(pl.LightningDataModule):
         return self.weights
 
     def pad_verts_faces(self, batch):
-        # verts = [v for v, f, vdf, l, vfi in batch]
-        
         verts = [v for v, f, vdf, l, vfi, ffi, vdffi, lfi, vb, fb, ffb, vfb, smm in batch]
-        # print("verts deb", len(verts))
-        # faces = [f for v, f, vdf, l, vfi in batch]
         faces = [f for v, f, vdf, l, vfi, ffi, vdffi, lfi, vb, fb, ffb, vfb, smm in batch]        
-        # verts_data_vertex = [vdv for v, f, vdv, vdf, l in batch]        
-        # verts_data_faces = [vdf for v, f, vdf, l, vfi in batch]
         verts_data_faces = [vdf for v, f, vdf, l, vfi, ffi, vdffi, lfi, vb, fb, ffb, vfb, smm in batch]        
-        # labels = [l for v, f, vdf, l, vfi in batch]  
         labels = [l for v, f, vdf, l, vfi, ffi, vdffi, lfi, vb, fb, ffb, vfb, smm in batch]      
-        # verts_fiber = [vfi for v, f, vdf, l, vfi in batch]
         verts_fiber = [vfi for v, f, vdf, l, vfi, ffi, vdffi, lfi, vb, fb, ffb, vfb, smm in batch]
         faces_fiber = [ffi for v, f, vdf, l, vfi, ffi, vdffi, lfi, vb, fb, ffb, vfb, smm in batch]
         verts_data_faces_fiber = [vdffi for v, f, vdf, l, vfi, ffi, vdffi, lfi, vb, fb, ffb, vfb, smm in batch]

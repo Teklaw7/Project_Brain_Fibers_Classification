@@ -6,7 +6,7 @@ import pytorch_lightning as pl
 import torchvision.models as models
 from torch.nn.functional import softmax
 import torchmetrics
-import utils
+# import utils
 import torch.nn.functional as F
 import torchvision.transforms as T
 from torchvision.models import resnet18, ResNet18_Weights
@@ -36,6 +36,7 @@ import os
 
 liste = os.listdir("/CMF/data/timtey/results_contrastive_learning")
 print(liste[0])
+liste = liste[:-4]
 print("l",len(liste))
 matrix = [] #should be shape = (56*100,128)
 for i in range(len(liste)):
@@ -43,13 +44,6 @@ for i in range(len(liste)):
 print("m",len(matrix))
 MATR = torch.cat(matrix, dim=0)
 print(MATR.shape)
-# print(jhg)
-# sum = 0
-# for i in range(len(matrix)):
-    # print(matrix[i].shape[0])
-    # sum += matrix[i].shape[0]
-# print(sum) # 11685 
-# print(kajsghf)
 MATR = MATR.cpu()
 
 tsne = TSNE(n_components=2)
@@ -61,46 +55,12 @@ plt.show()
 kmean_lab = KMeans(n_clusters=57, random_state=0)
 kmeans_labels = kmean_lab.fit_predict(tsne_results_test)
 centers  = kmean_lab.cluster_centers_
-# print("ceneters",centers)
-# print(kmeans_labels.shape)
-# print(type(kmeans_labels))
 uniq = torch.unique(torch.tensor(kmeans_labels))
 uniq = uniq.numpy()
-# uniq = [str(i) for i in uniq]
 print("unique",uniq)
-# print(centers.shape)
-
-# print("jzhfdsg",kmeans_labels.shape)
 plt.scatter(tsne_results_test[:, 0], tsne_results_test[:, 1], c=kmeans_labels,s=50, cmap='viridis')
 print(str(uniq[0]))
 for i in range(len(centers)):
     plt.text(centers[i, 0], centers[i, 1], str(uniq[i]), fontsize=12)
-# plt.text(centers[:, 0], centers[:, 1], 'coucou', fontsize=12)
-# plt.text(3.5, 0.9, 'Sine wave', fontsize = 23)
-# kmeans_labels = kmeans_labels.to("cuda:0")
-# kmeans_labels = torch.tensor(kmeans_labels)
-# centers = kmeans_labels.cluster_centers_
-# print(centers.shape)
-# print(centers)
-# plt.scatter(centers[:, 0], centers[:, 1], c='black', s=200, alpha=0.5)
-# plt.contourf(tsne_results_test[:, 0], tsne_results_test[:, 1], kmeans_labels, cmap='viridis')
 plt.colorbar()
-# plt.legend()
 plt.show()
-# print(str(uniq[0]))
-# for i in range(len(centers)):
-# plt.text(centers[:, 0], centers[:, 1], "coucou", fontsize=12)
-# plt.colorbar()
-# plt.show()
-# print(tsne_results_test)
-# print(kmeans_labels)
-# filtered_0 = tsne_results_test[kmeans_labels==0]
-# print(filtered_0.shape)
-# print(filtered_0)
-# plt.scatter(filtered_0[:, 0], filtered_0[:, 1],kmeans_labels[0], cmap='viridis')
-# plt.colorbar()
-# plt.show()
-# for i in uniq:
-    # plt.scatter(tsne_results_test[kmeans_labels==i, 0], tsne_results_test[kmeans_labels==i, 1])
-# plt.legend()
-# plt.show()

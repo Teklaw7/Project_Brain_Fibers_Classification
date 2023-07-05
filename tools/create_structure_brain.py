@@ -59,32 +59,13 @@ def MarchingCubes(image,threshold):
 
 poly = MarchingCubes(im, 1)
 poly2 = MarchingCubes(im2, 1)
-# print("poly",poly)
-
-# f = utils.Ex
-# print("poly",poly)
-# writer = vtk.vtkPolyDataWriter()
-# writer.SetInputData(poly)
-# writer.SetFileName('/CMF/data/timtey/tractography/training/102008/brain_mask_102008.vtp')
-
-# # writer.Write()
-# # writer.Update()
-# writer.Write()
-
 utils.WriteSurf(poly, '/CMF/data/timtey/tractography/training/135528/brain_mask_135528.vtk')
-# bbb = utils.ReadSurf("/CMF/data/timtey/tractography/validation/139233/brain_mask_139233.vtk")
-# print(bbb)  
-
-
 
 verts, faces, edges = utils.PolyDataToTensors(poly)
 verts2, faces2, edges2 = utils.PolyDataToTensors(poly2)
 mesh = Meshes(verts=[verts], faces=[faces], textures=None)
 mesh2 = Meshes(verts=[verts2], faces=[faces2], textures=None)
-# print(mesh)
-# mesh.update_meshes_lists(mesh, 0.5)
-# mesh.transparent = False
-# a = sigmoid_alpha_blend(mesh, mesh2, 0.5)
+
 fig2 = plot_scene({
            "whiteMatterFA_smooth_mask": {
                "mesh": mesh,
@@ -97,12 +78,3 @@ fig2 = plot_scene({
        },
        ncols=2)
 # fig2.show()
-
-# vertsb, facesb, edgesb = utils.PolyDataToTensors(bbb)
-# mesh = Meshes(verts=[vertsb], faces=[facesb], textures=None)
-
-
-
-
-
-
