@@ -4,7 +4,7 @@ from torch import nn
 import torch.optim as optim
 import pytorch_lightning as pl 
 import torchvision.models as models
-from torch.nn.functional import softmax
+# from torch.nn.functional import softmax
 import torchmetrics
 from tools import utils
 import torch.nn.functional as F
@@ -15,24 +15,23 @@ from pytorch3d.renderer import (
     RasterizationSettings, MeshRenderer, MeshRasterizer, BlendParams,
     SoftSilhouetteShader, HardPhongShader, SoftPhongShader, AmbientLights, PointLights, TexturesUV, TexturesVertex,
 )
-from pytorch3d.renderer.blending import sigmoid_alpha_blend, hard_rgb_blend
+# from pytorch3d.renderer.blending import sigmoid_alpha_blend, hard_rgb_blend
 from pytorch3d.structures import Meshes, join_meshes_as_scene
 from sklearn.metrics import classification_report, confusion_matrix, accuracy_score
-from pytorch3d.vis.plotly_vis import plot_scene
+# from pytorch3d.vis.plotly_vis import plot_scene
 import os
 os.environ['CUDA_LAUNCH_BLOCKING'] = "1"
 from sklearn.utils.class_weight import compute_class_weight
-import random
-import pytorch3d.transforms as T3d
-import matplotlib.pyplot as plt
-from sklearn.manifold import TSNE
-from sklearn.cluster import KMeans
+# import pytorch3d.transforms as T3d
+# import matplotlib.pyplot as plt
+# from sklearn.manifold import TSNE
+# from sklearn.cluster import KMeans
 # import MLP
 import random
 from torch.nn.utils.rnn import pad_sequence, pack_padded_sequence as pack_sequence, pad_packed_sequence as unpack_sequence
 import pandas as pd
 from Transformations.transformations import *
-from tools.loss_function_ts_ss import TS_SS
+# from tools.loss_function_ts_ss import TS_SS
 
 def GetView(meshes,phong_renderer,R,T):
     R = R.to(torch.float32)
@@ -307,8 +306,8 @@ class Fly_by_CNN_contrastive_tractography_labeled(pl.LightningModule):
         self.model_original = Fly_by_Contrastive()
         self.model_brain = Fly_by_Contrastive()
         self.Classification = nn.Linear(1024, 57)
-        self.Projection = ProjectionHead(input_dim=1024, hidden_dim=512, output_dim=128)
-        # self.Projection = ProjectionHead(input_dim=1024, hidden_dim=512, output_dim=3)
+        # self.Projection = ProjectionHead(input_dim=1024, hidden_dim=512, output_dim=128)
+        self.Projection = ProjectionHead(input_dim=1024, hidden_dim=512, output_dim=3)
 
         self.cameras = FoVPerspectiveCameras()
 
@@ -330,11 +329,11 @@ class Fly_by_CNN_contrastive_tractography_labeled(pl.LightningModule):
             shader=HardPhongShader(cameras=self.cameras, lights=lights)
         )
 
-        self.lights = torch.tensor(pd.read_pickle(r'lights_good_on_sphere.pickle')).to(self.device) #normalized
+        # self.lights = torch.tensor(pd.read_pickle(r'lights_good_on_sphere.pickle')).to(self.device) #normalized
         # self.lights = torch.tensor(pd.read_pickle(r'lights_good_on_sphere_without_norm.pickle')).to(self.device) #no normalized
         # self.lights = torch.tensor(pd.read_pickle(r'lights_57_3d_on_positive_sphere.pickle')).to(self.device) #no normalized
         # self.closest_lights = torch.load('closest_lights_57_3d_on_positive_sphere.pt').to(self.device) #no normalized
-        # self.lights = torch.tensor(pd.read_pickle(r'lights_57_3d_on_sphere.pickle')).to(self.device) #no normalized
+        self.lights = torch.tensor(pd.read_pickle(r'lights_57_3d_on_sphere.pickle')).to(self.device) #no normalized
         self.loss_cossine = nn.CosineSimilarity()
         self.loss_cossine_dim2 = nn.CosineSimilarity(dim=2)
         self.loss_cross_entropy = nn.CrossEntropyLoss()
@@ -358,10 +357,13 @@ class Fly_by_CNN_contrastive_tractography_labeled(pl.LightningModule):
         middle = proj_fiber.shape[0]//2
         x = torch.cat((proj_fiber, proj_brain), dim=1) #bs,1024
         x_class = torch.cat((proj_fiber[:middle], proj_brain[:middle]), dim=1) # we take just the first half from labeled fibers
+        xb1 = torch.cat((proj_fiber_1[:middle], proj_brain_1[:middle]), dim=1)
+        xb2 = torch.cat((proj_fiber_2[:middle], proj_brain_2[:middle]), dim=1)
         x1 = torch.cat((proj_fiber_1[middle:], proj_brain_1[middle:]), dim=1)
         x2 = torch.cat((proj_fiber_2[middle:], proj_brain_2[middle:]), dim=1)
-        res_for_class = self.Classification(x_class) #bs,57
-        return self.Projection(x), res_for_class, self.Projection(x1), self.Projection(x2)
+        # res_for_class = self.Classification(x_class) #bs,57
+        # return self.Projection(x), res_for_class, self.Projection(x1), self.Projection(x2)
+        return self.Projection(xb1), self.Projection(xb2), self.Projection(x1), self.Projection(x2)
 
     
     def configure_optimizers(self):
@@ -437,18 +439,20 @@ class Fly_by_CNN_contrastive_tractography_labeled(pl.LightningModule):
         V2 = randomrot(V2).to(self.device)
         VFI1 = randomrot(VFI1).to(self.device)
         VFI2 = randomrot(VFI2).to(self.device)
+        # proj_test, x_class, proj_1, proj_2 = self((Vo, V1, V2, F, FF, VFI, VFI1, VFI2, FFI, FFFI))
         proj_test, x_class, proj_1, proj_2 = self((Vo, V1, V2, F, FF, VFI, VFI1, VFI2, FFI, FFFI))
+
         middle = proj_test.shape[0]//2
         labels_b = labels[:middle].to(self.device)
         proj_test_b = proj_test[:middle].to(self.device)
         x1_t = proj_1.to(self.device)
         x2_t = proj_2.to(self.device)
         lights = self.lights.to(self.device)
-        add_noise = False
-        if add_noise:
-            noise = torch.distributions.normal.Normal(torch.tensor([0.0]), torch.tensor([0.1]))
-            lights += noise
-            lights = lights / torch.norm(lights, dim=1, keepdim=True)
+        # add_noise = False
+        # if add_noise:
+        #     noise = torch.distributions.normal.Normal(torch.tensor([0.0]), torch.tensor([0.1]))
+        #     lights += noise
+        #     lights = lights / torch.norm(lights, dim=1, keepdim=True)
 
         loss_cross_entropy = self.loss_cross_entropy(x_class, labels_b)
         lam = 1
@@ -586,7 +590,7 @@ class Fly_by_CNN_contrastive_tractography_labeled(pl.LightningModule):
         data_lab = data_lab.unsqueeze(dim = 1)
         proj_test_save = torch.cat((proj_test, labels2, name_labels, data_lab), dim=1)
         lab = np.array(torch.unique(labels).cpu())
-        torch.save(proj_test_save, f"/CMF/data/timtey/results_contrastive_learning_063023/proj_test_{lab[-1]}_{tot}.pt")
+        torch.save(proj_test_save, f"/CMF/data/timtey/results_contrastive_learning_071023_best_2/proj_test_{lab[-1]}_{tot}.pt")
 
     def test_epoch_end(self, outputs):
         self.y_pred = []

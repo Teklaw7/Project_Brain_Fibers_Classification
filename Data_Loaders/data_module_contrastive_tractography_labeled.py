@@ -1,16 +1,14 @@
 from torch.utils.data import Dataset, DataLoader#, ConcatDataset
 import torch
-#import split_train_eval
 from tools import utils
 import pytorch_lightning as pl 
 import vtk
 from pytorch3d.structures import Meshes
 from random import *
 from pytorch3d.vis.plotly_vis import plot_scene
-from vtk.util.numpy_support import vtk_to_numpy
-from vtk.util.numpy_support import numpy_to_vtk
-from pytorch3d.renderer import TexturesVertex
-from torch.utils.data._utils.collate import default_collate
+from vtk.util.numpy_support import vtk_to_numpy, numpy_to_vtk
+# from pytorch3d.renderer import TexturesVertex
+# from torch.utils.data._utils.collate import default_collate
 import pandas as pd
 import numpy as np
 import os
@@ -31,12 +29,8 @@ class ConcatDataset(torch.utils.data.Dataset):
         return min(len(d) for d in self.datasets)
 
 class Bundles_Dataset_contrastive_tractography_labeled(Dataset):
-    # def __init__(self, data, path_data, path_ico, verts_brain, faces_brain, face_features_brain, transform=True, column_class='class',column_id='id', column_label='label', column_x_min = 'x_min', column_x_max = 'x_max', column_y_min = 'y_min', column_y_max = 'y_max', column_z_min = 'z_min', column_z_max = 'z_max'):
     def __init__(self, data, column_class='class',column_id='id', column_label='label', column_x_min = 'x_min', column_x_max = 'x_max', column_y_min = 'y_min', column_y_max = 'y_max', column_z_min = 'z_min', column_z_max = 'z_max'):
         self.data = data    #csv file with the data
-        # self.transform = transform
-        # self.path_data = path_data #path to the data
-        # self.path_ico = path_ico
         self.column_class = column_class
         self.column_id = column_id
         self.column_label = column_label
@@ -72,21 +66,13 @@ class Bundles_Dataset_contrastive_tractography_labeled(Dataset):
         mean_v, scale_factor_v = get_mean_scale_factor(verts_fiber_bounds)
         sample_min_max = [sample_x_min, sample_x_max, sample_y_min, sample_y_max, sample_z_min, sample_z_max]
         mean_s, scale_factor_s = get_mean_scale_factor(sample_min_max)
-        # EstimatedUncertainty = torch.tensor(vtk_to_numpy(cc1_extract_tf.GetPointData().GetScalars("EstimatedUncertainty"))).unsqueeze(1)
-        # FA1 = torch.tensor(vtk_to_numpy(cc1_extract_tf.GetPointData().GetScalars("FA1"))).unsqueeze(1)
-        # FA2 = torch.tensor(vtk_to_numpy(cc1_extract_tf.GetPointData().GetScalars("FA2"))).unsqueeze(1)
-        # HemisphereLocataion = torch.tensor(vtk_to_numpy(cc1_extract_tf.GetPointData().GetScalars("HemisphereLocataion"))).unsqueeze(1)
-        # cluster_idx = vtk_to_numpy(cc1_extract_tf.GetPointData().GetScalars("cluster_idx"))
-        # trace1 = torch.tensor(vtk_to_numpy(cc1_extract_tf.GetPointData().GetScalars("trace1"))).unsqueeze(1)
-        # trace2 = torch.tensor(vtk_to_numpy(cc1_extract_tf.GetPointData().GetScalars("trace2"))).unsqueeze(1)
-        # vtkOriginalPointIds = vtk_to_numpy(cc1_extract_tf.GetPointData().GetScalars("vtkOriginalPointIds"))
+
         TubeNormals = torch.tensor(vtk_to_numpy(cc1_extract_tf.GetPointData().GetScalars("TubeNormals")))
         FA = torch.tensor(vtk_to_numpy(cc1_extract_tf.GetPointData().GetScalars("FA"))).unsqueeze(1)
         MD = torch.tensor(vtk_to_numpy(cc1_extract_tf.GetPointData().GetScalars("MD"))).unsqueeze(1)
         AD = torch.tensor(vtk_to_numpy(cc1_extract_tf.GetPointData().GetScalars("AD"))).unsqueeze(1)
         RD = torch.tensor(vtk_to_numpy(cc1_extract_tf.GetPointData().GetScalars("RD"))).unsqueeze(1)
-        # vertex_features = torch.cat([EstimatedUncertainty, FA1, FA2, HemisphereLocataion, trace1, trace2, TubeNormals], dim=1)
-        # vertex_features = torch.cat([TubeNormals], dim=1)
+
         vertex_features = torch.cat([TubeNormals, FA, MD, AD, RD], dim=1)
         faces_pid0 = faces[:,0:1]
         nb_faces = len(faces)
@@ -105,13 +91,8 @@ class Bundles_Dataset_contrastive_tractography_labeled(Dataset):
     
 
 class Bundles_Dataset_tractography(Dataset):
-    # def __init__(self, data, path_data, path_ico, verts_brain, faces_brain, face_features_brain, length, tractography_list_vtk, transform=True, column_surf='surf',column_class='class',column_id='id', column_label='label', column_x_min = 'x_min', column_x_max = 'x_max', column_y_min = 'y_min', column_y_max = 'y_max', column_z_min = 'z_min', column_z_max = 'z_max'):
     def __init__(self, data, tractography_list_vtk, column_surf='surf',column_class='class',column_id='id', column_label='label', column_x_min = 'x_min', column_x_max = 'x_max', column_y_min = 'y_min', column_y_max = 'y_max', column_z_min = 'z_min', column_z_max = 'z_max'):
         self.data = data # csv file
-        # self.transform = transform
-        # self.path_data = path_data #path where to find the data
-        # self.path_ico = path_ico
-        # self.length = length
         self.tractography_list_vtk = tractography_list_vtk
         self.column_surf = column_surf
         self.column_class = column_class
@@ -174,7 +155,6 @@ class Bundles_Dataset_tractography(Dataset):
         AD = torch.tensor(vtk_to_numpy(tracts_f.GetPointData().GetScalars("AD"))).unsqueeze(1)
         RD = torch.tensor(vtk_to_numpy(tracts_f.GetPointData().GetScalars("RD"))).unsqueeze(1)
         vertex_features = torch.cat([TubeNormals, FA, MD, AD, RD], dim=1)
-        # vertex_features = torch.cat([TubeNormals], dim=1)
         faces_pid0 = faces[:,0:1]
         nb_faces = len(faces)
         offset = torch.zeros((nb_faces, vertex_features.shape[1]), dtype=int) + torch.arange(vertex_features.shape[1]).to(torch.int64)
@@ -194,18 +174,11 @@ class Bundles_Dataset_tractography(Dataset):
 
 
 class Bundles_Dataset_test_contrastive_tractography_labeled(Dataset):
-    # def __init__(self, contrastive, data, bundle, L, fibers, index_csv, path_data, path_ico, verts_brain, faces_brain, face_features_brain, transform=True, column_class='class',column_id='id', column_label='label', column_x_min = 'x_min', column_x_max = 'x_max', column_y_min = 'y_min', column_y_max = 'y_max', column_z_min = 'z_min', column_z_max = 'z_max'):
-    # def __init__(self, data, bundle, L, fibers, index_csv, path_data, path_ico, column_class='class',column_id='id', column_label='label', column_x_min = 'x_min', column_x_max = 'x_max', column_y_min = 'y_min', column_y_max = 'y_max', column_z_min = 'z_min', column_z_max = 'z_max'):
     def __init__(self, data, L, fibers, index_csv, column_class='class',column_id='id', column_label='label', column_x_min = 'x_min', column_x_max = 'x_max', column_y_min = 'y_min', column_y_max = 'y_max', column_z_min = 'z_min', column_z_max = 'z_max'):
-        # self.contrastive = contrastive
         self.data = data
-        # self.bundle = bundle
         self.L = L
         self.fibers = fibers
         self.index_csv = index_csv
-        # self.transform = transform
-        # self.path_data = path_data
-        # self.path_ico = path_ico
         self.column_class = column_class
         self.column_id = column_id
         self.column_label = column_label
@@ -235,21 +208,12 @@ class Bundles_Dataset_test_contrastive_tractography_labeled(Dataset):
         sample_min_max = [sample_x_min, sample_x_max, sample_y_min, sample_y_max, sample_z_min, sample_z_max]
         mean_s, scale_factor_s = get_mean_scale_factor(sample_min_max)
 
-        # EstimatedUncertainty = torch.tensor(vtk_to_numpy(bundle_extract_tf.GetPointData().GetScalars("EstimatedUncertainty"))).unsqueeze(1)
-        # FA1 = torch.tensor(vtk_to_numpy(bundle_extract_tf.GetPointData().GetScalars("FA1"))).unsqueeze(1)
-        # FA2 = torch.tensor(vtk_to_numpy(bundle_extract_tf.GetPointData().GetScalars("FA2"))).unsqueeze(1)
-        # HemisphereLocataion = torch.tensor(vtk_to_numpy(bundle_extract_tf.GetPointData().GetScalars("HemisphereLocataion"))).unsqueeze(1)
-        # cluster_idx = vtk_to_numpy(cc1_extract_tf.GetPointData().GetScalars("cluster_idx"))
-        # trace1 = torch.tensor(vtk_to_numpy(bundle_extract_tf.GetPointData().GetScalars("trace1"))).unsqueeze(1)
-        # trace2 = torch.tensor(vtk_to_numpy(bundle_extract_tf.GetPointData().GetScalars("trace2"))).unsqueeze(1)
-        # vtkOriginalPointIds = vtk_to_numpy(cc1_extract_tf.GetPointData().GetScalars("vtkOriginalPointIds"))
         TubeNormals = torch.tensor(vtk_to_numpy(bundle_extract_tf.GetPointData().GetScalars("TubeNormals")))
         FA = torch.tensor(vtk_to_numpy(bundle_extract_tf.GetPointData().GetScalars("FA"))).unsqueeze(1)
         MD = torch.tensor(vtk_to_numpy(bundle_extract_tf.GetPointData().GetScalars("MD"))).unsqueeze(1)
         AD = torch.tensor(vtk_to_numpy(bundle_extract_tf.GetPointData().GetScalars("AD"))).unsqueeze(1)
         RD = torch.tensor(vtk_to_numpy(bundle_extract_tf.GetPointData().GetScalars("RD"))).unsqueeze(1)
-        # vertex_features = torch.cat([EstimatedUncertainty, FA1, FA2, HemisphereLocataion, trace1, trace2, TubeNormals], dim=1)
-        # vertex_features = torch.cat([TubeNormals], dim=1)
+
         vertex_features = torch.cat([TubeNormals, FA, MD, AD, RD], dim=1)
         faces_pid0 = faces[:,0:1]
         nb_faces = len(faces)
@@ -273,19 +237,13 @@ class Bundles_Dataset_test_contrastive_tractography_labeled(Dataset):
 
 
 class Bundles_DataModule_tractography_labeled_fibers(pl.LightningDataModule):
-    # def __init__(self, contrastive, bundle, L, fibers, fibers_valid, index_csv, path_data, path_ico, batch_size, train_path, val_path, test_path, verts_brain, faces_brain, face_features_brain, path_tractography_train, path_tractography_valid, path_tractography_test, tractography_list_vtk, num_workers=12, transform=True, persistent_workers=False):
-    # def __init__(self, bundle, L, fibers, fibers_valid, index_csv, path_data, path_ico, batch_size, train_path, val_path, test_path, path_tractography_train, path_tractography_valid, path_tractography_test, tractography_list_vtk, num_workers=12, persistent_workers=False):
     def __init__(self, L, fibers, index_csv, path_data, batch_size, train_path, val_path, test_path, path_tractography_train, path_tractography_valid, path_tractography_test, tractography_list_vtk, num_workers=12, persistent_workers=False):
     
         super().__init__()
-        # self.contrastive = contrastive
-        # self.bundle = bundle
         self.L = L
         self.fibers = fibers
-        # self.fibers_valid = fibers_valid
         self.index_csv = index_csv
         self.path_data = path_data
-        # self.path_ico = path_ico
         self.batch_size = batch_size
         self.train_path = train_path
         self.val_path = val_path
@@ -295,7 +253,6 @@ class Bundles_DataModule_tractography_labeled_fibers(pl.LightningDataModule):
         self.path_tractography_test = path_tractography_test
         self.tractography_list_vtk = tractography_list_vtk
         self.num_workers = num_workers
-        # self.transform = transform
         self.persistent_workers = persistent_workers
         self.weights = []
         self.df_train = pd.read_csv(self.train_path)
@@ -360,7 +317,7 @@ class Bundles_DataModule_tractography_labeled_fibers(pl.LightningDataModule):
     def test_dataloader(self):
         # return DataLoader(self.test_dataset, batch_size=self.batch_size, collate_fn=self.pad_verts_faces_simple, shuffle=False, num_workers=self.num_workers, persistent_workers=self.persistent_workers)
         # return DataLoader(self.test_tractography_dataset, batch_size=self.batch_size, collate_fn=self.pad_verts_faces_simple, shuffle=False, num_workers=self.num_workers, persistent_workers=self.persistent_workers)
-        return DataLoader(self.concatenated_test_dataset, batch_size=self.batch_size, collate_fn=self.pad_verts_faces, shuffle=False, num_workers=self.num_workers, persistent_workers=self.persistent_workers)
+        return DataLoader(self.concatenated_test_dataset, batch_size=self.batch_size, collate_fn=self.pad_verts_faces, shuffle=True, num_workers=self.num_workers, persistent_workers=self.persistent_workers)
     
     def get_weights(self):
         return self.weights

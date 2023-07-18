@@ -96,9 +96,9 @@ patience_early_stopping= 10
 num_workers=12
 path_data="/CMF/data/timtey/tracts/archives"
 path_ico = "/NIRAL/tools/atlas/Surface/Sphere_Template/sphere_f327680_v163842.vtk"
-path_tractography_train = "/home/timtey/Documents/datasets/dataset4/tractography_2_train.csv"
-path_tractography_valid = "/home/timtey/Documents/datasets/dataset4/tractography_2_valid.csv"
-path_tractography_test = "/home/timtey/Documents/datasets/dataset4/tractography_2_test.csv"
+path_tractography_train = "/home/timtey/Documents/datasets/dataset4/tractography_3_train.csv"
+path_tractography_valid = "/home/timtey/Documents/datasets/dataset4/tractography_3_valid.csv"
+path_tractography_test = "/home/timtey/Documents/datasets/dataset4/tractography_3_test.csv"
 path_train_final = "/home/timtey/Documents/datasets/dataset4/tracts_filtered_train_train_label_to_number_without_missing.csv"
 path_valid_final = "/home/timtey/Documents/datasets/dataset4/tracts_filtered_train_valid_label_to_number_without_missing.csv"
 path_test_final = "/home/timtey/Documents/datasets/dataset4/tracts_filtered_train_test_label_to_number_nb_cells_without_missing_2_part.csv"
@@ -110,16 +110,13 @@ path_test_final = "/home/timtey/Documents/datasets/dataset4/tracts_filtered_trai
 #     save_top_k=3
 # )
 
+path_tract_dataset = "/home/timtey/Documents/datasets/dataset4/tractography_3.csv"
+df_tract_dataset = pd.read_csv(path_tract_dataset)
 tractography_list_vtk = []
-# tractography_list_vtk.append(utils.ReadSurf("/CMF/data/timtey/tractography/all/tractogram_deterministic_102008_dg.vtp"))
-# tractography_list_vtk.append(utils.ReadSurf("/CMF/data/timtey/tractography/all/tractogram_deterministic_103515_dg.vtp"))
-# tractography_list_vtk.append(utils.ReadSurf("/CMF/data/timtey/tractography/all/tractogram_deterministic_108525_dg.vtp"))
-# tractography_list_vtk.append(utils.ReadSurf("/CMF/data/timtey/tractography/all/tractogram_deterministic_113215_dg.vtp"))
-# tractography_list_vtk.append(utils.ReadSurf("/CMF/data/timtey/tractography/all/tractogram_deterministic_119833_dg.vtp"))
-# tractography_list_vtk.append(utils.ReadSurf("/CMF/data/timtey/tractography/all/tractogram_deterministic_121618_dg.vtp"))
-# tractography_list_vtk.append(utils.ReadSurf("/CMF/data/timtey/tractography/all/tractogram_deterministic_124220_dg.vtp"))
-# tractography_list_vtk.append(utils.ReadSurf("/CMF/data/timtey/tractography/all/tractogram_deterministic_124826_dg.vtp"))
-# tractography_list_vtk.append(utils.ReadSurf("/CMF/data/timtey/tractography/all/tractogram_deterministic_139233_dg.vtp"))
+for i in range(len(df_tract_dataset)):
+    tractography_list_vtk.append(utils.ReadSurf(df_tract_dataset["surf"][i]))
+    print("ligne ", i+1, "/", len(df_tract_dataset)," done")
+print("Number of tracts: ", len(tractography_list_vtk))
 
 # contrastive = True
 
@@ -140,7 +137,7 @@ brain_data=Bundles_DataModule_tractography_labeled_fibers(0,0,0,path_data, batch
 weights = brain_data.get_weights()
 # model= Fly_by_CNN_contrastive_tractography_labeled(contrastive, radius, ico_lvl, dropout_lvl, batch_size, weights, num_classes, verts_left, faces_left, verts_right, faces_right, learning_rate=0.001)
 # model= Fly_by_CNN_contrastive_tractography_labeled(contrastive, radius, ico_lvl, dropout_lvl, batch_size, weights, num_classes, learning_rate=0.001)
-model_path ="/home/timtey/Documents/Models_tensorboard/models/Loss_combine/062223/epoch=56-val_loss=1.53.ckpt"
+model_path ="/home/timtey/Documents/Models_tensorboard/models/Loss_combine/071023/epoch=111-val_loss=-0.25.ckpt"
 
 model= Fly_by_CNN_contrastive_tractography_labeled(radius, ico_lvl, dropout_lvl, batch_size, weights, num_classes, learning_rate=0.0001)
 checkpoint = torch.load(model_path)
