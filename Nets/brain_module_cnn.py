@@ -10,7 +10,6 @@ from tools import utils
 import torch.nn.functional as F
 import torchvision.transforms as T
 from torchvision.models import resnet18, ResNet18_Weights
-# rendering components
 from pytorch3d.renderer import (
     FoVPerspectiveCameras, look_at_view_transform, look_at_rotation, 
     RasterizationSettings, MeshRenderer, MeshRasterizer, BlendParams,
@@ -38,20 +37,6 @@ def GetView(meshes,phong_renderer,R,T):
     images = images.permute(0,3,1,2)
     pix_to_face = pix_to_face.permute(0,3,1,2)
     return pix_to_face, images
-
-# def transformation_verts_by_fiber(verts, verts_fiber_bounds):
-#     for i in range (verts.shape[0]):
-#         verts[i,:,0] = (0.8*(verts[i,:,0] - verts_fiber_bounds[i][0])/(verts_fiber_bounds[i][1] - verts_fiber_bounds[i][0])) - 0.4
-#         verts[i,:,1] = (0.8*(verts[i,:,1] - verts_fiber_bounds[i][2])/(verts_fiber_bounds[i][3] - verts_fiber_bounds[i][2])) - 0.4
-#         verts[i,:,2] = (0.8*(verts[i,:,2] - verts_fiber_bounds[i][4])/(verts_fiber_bounds[i][5] - verts_fiber_bounds[i][4])) - 0.4
-#     return verts
-
-# def transformation_verts(verts, sample_min_max):
-#     for i in range (verts.shape[0]):
-#         verts[i,:,0] = ((verts[i,:,0] - sample_min_max[i][0])/(sample_min_max[i][1] - sample_min_max[i][0])) - 0.5
-#         verts[i,:,1] = ((verts[i,:,1] - sample_min_max[i][2])/(sample_min_max[i][3] - sample_min_max[i][2])) - 0.5
-#         verts[i,:,2] = ((verts[i,:,2] - sample_min_max[i][4])/(sample_min_max[i][5] - sample_min_max[i][4])) - 0.5
-#     return verts
 
 class Identity(nn.Module):
     def __init__(self):
@@ -348,7 +333,6 @@ class Fly_by_CNN(pl.LightningModule):
                 raster_settings=raster_settings
             )
 
-        # sigmoid_blend_params = BlendParams(sigma=1e-8, gamma=1e-8)
 
         self.phong_renderer = MeshRenderer(
             rasterizer=rasterizer,
@@ -363,31 +347,11 @@ class Fly_by_CNN(pl.LightningModule):
         self.loss_val = nn.CrossEntropyLoss(weight = self.weights[1])
         self.loss_test = nn.CrossEntropyLoss(weight = self.weights[2])
 
-        # mesh_left = Meshes(verts=[self.verts_left], faces=[self.faces_left]) # with brain
-        # mesh_right = Meshes(verts=[self.verts_right], faces=[self.faces_right]) # with brain
-        # mesh_left = mesh_left.to(self.device) # with brain
-        # mesh_right = mesh_right.to(self.device) # with brain
-        # self.mesh_left.textures = textures # with brain
-        # self.mesh_right.textures = textures # with brain
-        # self.meshes_brain = join_meshes_as_scene([mesh_left, mesh_right]) # with brain
-        # self.meshes_brain = self.meshes_brain.to(self.device) # with brain
-
-        # len_faces_brain = meshes_brain.GetNumberOfFaces() 
-        # self.len_faces_brain = 327680*2 # with brain
-        # self.len_faces_brain = len(self.faces_right) + len(self.faces_left) # with brain
-
     def forward(self, x):
         V, F, FF, VFI, FFI, FFFI, VB, FB, FFB = x
         x, PF = self.render(V,F,FF)
         x_fiber, PF_fiber = self.render(VFI,FFI,FFFI)
-        # FF_brain = torch.ones(self.len_faces_brain,8) # with brain
-        # FF_brain = FF_brain.to(self.device) # with brain
         x_brain, PF_brain = self.render(VB, FB, FFB) # with brain
-        # x_fiber, PF_fiber, x_brain_fiber, PF_brain_fiber = self.render(V,F,FF) # with brain
-        # x_brain = torch.cat((x_brain,x_brain),1)
-        # PF_brain = torch.cat((PF_brain,PF_brain),1)
-        # x = torch.cat((x,x_brain),1) # with brain
-        # x_fiber = torch.cat((x_fiber,x_brain_fiber),1) # with brain
         query = self.TimeDistributed(x)
         query_fiber = self.TimeDistributed_fiber(x_fiber)
         query_brain = self.TimeDistributed_brain(x_brain)
@@ -397,40 +361,22 @@ class Fly_by_CNN(pl.LightningModule):
             x= self.IcosahedronConv2d(query)
             x_fiber = self.IcosahedronConv2d_fiber(query_fiber)
             x_brain = self.IcosahedronConv2d_brain(query_brain)
-            # print("x ",x.shape) #(batch_size, 12, 256)
             if pool:
                 x = self.pooling(x)
                 x_fiber = self.pooling(x_fiber)
                 x_brain = self.pooling(x_brain)
             else:
-                # print("x ",x.shape) #(batch_size, 12, 256)
                 x_a =self.linear(x)
                 x_a_fiber =self.linear_fiber(x_fiber)
                 x_a_brain =self.linear_brain(x_brain)
-                # print("x ",x_a.shape) #(batch_size, 12, 256)
-                # print("x ",x.shape) #(batch_size, 12, 256)
-                # print("x_fiber ",x_a_fiber.shape) #(batch_size, 12, 256)
-                # print("x_brain ",x_a_brain.shape) #(batch_size, 12, 256)
         else:
             values = self.WV(query)
             x_a, w_a = self.Attention(query, values)
-        # print("x_a ",x_a.shape) #(batch_size,256)
-        # print("x_a_fiber ",x_a_fiber.shape) #(batch_size,256)
-        # print("x_a_brain ",x_a_brain.shape) #(batch_size,256)
-        # x_a_brain  = torch.tile(x_a_brain,(self.batch_size,1))
-        # print("x_a_brain ",x_a_brain.shape) #(batch_size,256)
         x_a = torch.cat((x_a,x_a_fiber,x_a_brain),2)
-        # print("x_a ",x_a.shape) #(batch_size,12,768)
         values = self.WV2(x_a)
-        # print("values ",values.shape) #(batch_size,12,768)
         x_a, w_a = self.Attention2(x_a, values)
-        # print("x_a ",x_a.shape) #(batch_size,256) 768 si attention2
         x_a = self.drop(x_a)
-        # print("x_a ",x_a.shape) #(batch_size,256) 768 si attention2
         x = self.Classification(x_a)
-        # print("x classsif ",x.shape)  #(batch_size,nb class)
-
-        
         return x
 
     def configure_optimizers(self):
@@ -450,111 +396,34 @@ class Fly_by_CNN(pl.LightningModule):
             textures=textures
         )
 
-        # t_left = [0]*self.verts_left.shape[0] # with brain
-        # print(len(t_left))
-        # self.verts_left = self.verts_left.to(self.device) # with brain
-        # self.verts_right = self.verts_right.to(self.device) # with brain
-        # print(self.verts_left.shape[0])
-        # t_left[:] = np.sqrt(self.verts_left[:,0]**2 + self.verts_left[:,1]**2 + self.verts_left[:,2]**2) # with brain
-        # print("done")
-        # for i in range(self.verts_left.shape[0]): # with brain
-            # print(i)
-            # t_left.append(np.sqrt(self.verts_left[i,0]**2 + self.verts_left[i,1]**2 + self.verts_left[i,2]**2)) # with brain
-        # t_right = [0]*self.verts_right.shape[0] # with brain
-        # t_right[:] = np.sqrt(self.verts_right[:,0]**2 + self.verts_right[:,1]**2 + self.verts_right[:,2]**2) # with brain
-        # print("done")
-        # for i in range(self.verts_right.shape[0]): # with brain
-            # print(i)
-            # t_right.append(np.sqrt(self.verts_right[i,0]**2 + self.verts_right[i,1]**2 + self.verts_right[i,2]**2)) # with brain
-        # t_left = torch.tensor(t_left).unsqueeze(1) # with brain
-        # print("coucou")
-        # t_right = torch.tensor(t_right).unsqueeze(1) # with brain
-        # t_left = t_left.unsqueeze(0) # with brain
-        # print("coucou2")
-        # t_right = t_right.unsqueeze(0) # with brain
-        # t_left = t_left.to(self.device) # with brain
-        # t_right = t_right.to(self.device) # with brain
-        
-        # texture_left = TexturesVertex(verts_features= t_left) # with brain
-        # texture_right = TexturesVertex(verts_features= t_right) # with brain
-        
-        # print(self.mesh_left)
-        # print(self.mesh_right)
-        
-        # print("len_faces_brain ",len_faces_brain)
-        # len_faces_fiber = meshes_fiber.GetNumberOfFaces()
-        # print("len_faces_fiber ",len_faces_fiber)
-        # print("len_faces_brain ",len_faces_brain)
-        # sigmoid_alpha_blend()
-        # fig2 = plot_scene({
-        #            "display of all fibers": {
-        #             #    "mesh": meshes_fiber,
-        #                "mesh2": meshes_fiber,
-        #            }
-        #        })
-        # fig2.show()
-        
         phong_renderer = self.phong_renderer.to(self.device)
-        # phong_renderer_brain = self.phong_renderer_brain.to(self.device)
         meshes_fiber = meshes_fiber.to(self.device)
         PF = []
         X = []
-        # PF_brain = []
         for i in range(len(self.R)):
             R = self.R[i][None].to(self.device)
             T = self.T[i][None].to(self.device)
             pixel_to_face, images = GetView(meshes_fiber,phong_renderer,R,T)
-            # pixel_to_face_brain = GetView(meshes_brain,phong_renderer_brain,R,T) # with brain
             images = images.to(self.device)
             PF.append(pixel_to_face.unsqueeze(dim=1))
             X.append(images.unsqueeze(dim=1))
-            # PF_brain.append(pixel_to_face_brain.unsqueeze(dim=1)) # with brain
 
         PF = torch.cat(PF,dim=1)
         X = torch.cat(X,dim=1)
         X = X[:,:,3,:,:] # the last one who has the picture in black and white of depth
-        # torch.save(X, "X.pt")
         X = X.unsqueeze(dim=2)
-        # print("PF", PF.shape) # (batch_size, nb_views, 1, 224, 224)
-        # print("X", X.shape) # (batch_size, nb_views, 4, 224, 224)
-        # PF_brain = torch.cat(PF_brain,dim=1) # with brain
-
         l_features = []
-        # l_features_brain = [] # with brain
-        # print("FF.shape", FF.shape)
-
-        # FF_brain = torch.ones(len_faces_brain,8) # with brain
-        # FF_brain = FF_brain.to(self.device) # with brain
-        
-        # print("FF_brain.shape", FF_brain.shape)
-        # print("FF_brain", FF_brain[0].shape)
         for index in range(FF.shape[-1]):
             l_features.append(torch.take(FF[:,index],PF)*(PF >= 0)) # take each feature
-            # a = torch.take(FF[:,index],PF)*(PF >= 0)
-            # print("ca",)
-        # for index in range(FF_brain.shape[-1]): # with brain
-            # l_features_brain.append(torch.take(FF_brain[:,index],PF_brain)*(PF_brain >= 0)) # take each feature # with brain
 
         x = torch.cat(l_features,dim=2)
         x = torch.cat((x,X),dim=2)
-        # print("x.shape", x.shape) # (batch_size, nb_views, 8, 224, 224)  sans depthmap infos
-        # print("x.shape", x.shape) # (batch_size, nb_views, 12, 224, 224)  avec depthmap infos
-        # x_brain = torch.cat(l_features_brain,dim=2) # with brain
-
-        # x === mes 12 images de 224*224*8
-        #x.shape(batch_size,nb_cameras,8,224,224)
-        # x_brain_f = torch.tile(x_brain,(x.shape[0],1,1,1,1)) # with brain
-        
-        # x = torch.cat((x,x_brain_f),dim=1) # with brain
-        
         return x, PF
-        # return x, PF, x_brain, PF_brain # with brain
 
     def training_step(self, train_batch, train_batch_idx):
 
         V, F, FF, labels, VFI, FFI, FFFI, labelsFI, VB, FB, FFB, vfbounds, sample_min_max = train_batch
 
-        # labels = labels.squeeze(dim=1)
         V = V.to(self.device)
         F = F.to(self.device)
         FF = FF.to(self.device)
@@ -570,22 +439,9 @@ class Fly_by_CNN(pl.LightningModule):
         V = transformation_verts(V, sample_min_max)
         VFI = transformation_verts_by_fiber(VFI, vfbounds)
         x = self((V, F, FF, VFI, FFI, FFFI, VB, FB, FFB))
-        # x_fiber = self((VFI, F, FF))
-        # if self.contrastive:
-        #     x1 = torch.cat((x1, x1, x1), dim=1)
-        #     x2 = torch.cat((x2, x2, x2), dim=1)
-        # x1, x2 = self.augment(x)
-        # z1 = self.model(x1)
-        # z2 = self.model(x2)
-        # loss_contrastive = self.loss_contrastive(z1, z2)
-        # x = self.Sigmoid(x).squeeze(dim=1)
-        print("labels", labels)
         predictions = torch.argmax(x, dim=1)
-        print("predictions", predictions)
         loss = self.loss_train(x, labels)
-        print("loss", loss)
         self.log('train_loss', loss, batch_size=self.batch_size)
-        # print("accuracy", self.train_accuracy(x, labels))
         self.train_accuracy(predictions.reshape(-1,1), labels.reshape(-1,1))
         self.log('train_accuracy', self.train_accuracy, batch_size=self.batch_size)
 
@@ -595,7 +451,6 @@ class Fly_by_CNN(pl.LightningModule):
     def validation_step(self, val_batch, val_batch_idx):
 
         V, F, FF, labels, VFI, FFI, FFFI, labelsFI, VB, FB, FFB, vfbounds, sample_min_max = val_batch
-        # labels = labels.squeeze(dim=1)
         V = V.to(self.device)
         F = F.to(self.device)
         FF = FF.to(self.device)
@@ -609,27 +464,16 @@ class Fly_by_CNN(pl.LightningModule):
         labelsFI = labelsFI.to(self.device)
         V = transformation_verts(V, sample_min_max)
         VFI = transformation_verts_by_fiber(VFI, vfbounds)
-        x = self((V, F, FF, VFI, FFI, FFFI, VB, FB, FFB))    #.shape = (batch_size, num classes)
-        # x_fiber = self((VFI, F, FF)) #.shape = (batch_size, num classes)
-        # z1 = self.model(x1)
-        # z2 = self.model(x2)
-        # loss_contrastive = self.loss(z1, z2)
-        # x = self.Sigmoid(x).squeeze(dim=1)
-        print("labels", labels)
+        x = self((V, F, FF, VFI, FFI, FFFI, VB, FB, FFB))
         loss = self.loss_val(x, labels)
-        print("loss", loss)
         self.log('val_loss', loss.item(), batch_size=self.batch_size)
         predictions = torch.argmax(x, dim=1)
-        print("predictions", predictions)
         self.val_accuracy(predictions.reshape(-1,1), labels.reshape(-1,1))
-        
         self.log('val_accuracy', self.val_accuracy, batch_size=self.batch_size)
 
-        # return loss
 
     def test_step(self, test_batch, test_batch_idx):
         V, F, FF, labels, VFI, FFI, FFFI, labelsFI, VB, FB, FFB, vfbounds, sample_min_max = test_batch
-        # labels = labels.squeeze(dim=1)
         V = V.to(self.device)
         F = F.to(self.device)
         FF = FF.to(self.device)
@@ -645,7 +489,6 @@ class Fly_by_CNN(pl.LightningModule):
         V = transformation_verts(V, sample_min_max)
         VFI = transformation_verts_by_fiber(VFI, vfbounds)
         x = self((V, F, FF, VFI, FFI, FFFI, VB, FB, FFB))
-        # x_fiber = self((VFI, F, FF))
         loss = self.loss_test(x, labels)
         self.log('test_loss', loss, batch_size=self.batch_size)
         
@@ -665,12 +508,7 @@ class Fly_by_CNN(pl.LightningModule):
 
         self.y_pred = [ele for sousliste in self.y_pred for ele in sousliste]
         self.y_true = [ele for sousliste in self.y_true for ele in sousliste]
-        
-        
         self.y_pred = [[int(ele)] for ele in self.y_pred]
-        
-        # print("y_pred", self.y_pred)
-        # print("y_true", self.y_true)
         self.accuracy = accuracy_score(self.y_true, self.y_pred)
         print("accuracy", self.accuracy)
         print(classification_report(self.y_true, self.y_pred))
@@ -683,14 +521,3 @@ class Fly_by_CNN(pl.LightningModule):
     
     def get_accuracy(self):
         return self.accuracy
-    
-
-
-
-
-
-
-
-
-
-

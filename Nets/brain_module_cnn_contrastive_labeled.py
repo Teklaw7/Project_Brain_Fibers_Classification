@@ -225,7 +225,7 @@ class Fly_by_CNN_contrastive_labeled(pl.LightningModule):
         self.ico_lvl = ico_lvl
         self.dropout_lvl = dropout_lvl
         self.image_size = 224
-        self.augment = Augment(self.image_size)
+        # self.augment = Augment(self.image_size)
         self.batch_size = batch_size
         self.weights = weights
         self.num_classes = num_classes
@@ -322,7 +322,7 @@ class Fly_by_CNN_contrastive_labeled(pl.LightningModule):
         self.loss_test = nn.CrossEntropyLoss(weight = self.weights[2])
 
     def forward(self, x):
-        V, V1, V2, F, FF, VFI, VFI1, VFI2, FFI, FFFI, VB, FB, FFB, condition = x
+        V, V1, V2, F, FF, VFI, VFI1, VFI2, FFI, FFFI, VB, FB, FFB = x
 
         x, PF = self.render(V,F,FF)
         X1, PF1 = self.render(V1,F,FF)
@@ -422,6 +422,7 @@ class Fly_by_CNN_contrastive_labeled(pl.LightningModule):
 
         V, F, FF, labels, VFI, FFI, FFFI, labelsFI, VB, FB, FFB, vfbounds, sample_min_max = train_batch
         V = V.to(self.device)
+        Vo = torch.detach(V).to(self.device)
         F = F.to(self.device)
         FF = FF.to(self.device)
         VFI = VFI.to(self.device)
@@ -436,22 +437,15 @@ class Fly_by_CNN_contrastive_labeled(pl.LightningModule):
         V = transformation_verts(V, sample_min_max)
         VFI = transformation_verts_by_fiber(VFI, vfbounds)
         
-        V1 = V +torch.normal(0, 0.03, size=V.shape).to(self.device)
-        V2 = V +torch.normal(0, 0.03, size=V.shape).to(self.device)
-        VFI1 = VFI +torch.normal(0, 0.03, size=VFI.shape).to(self.device)
-        VFI2 = VFI +torch.normal(0, 0.03, size=VFI.shape).to(self.device)
-
-        V1 = V1.to(self.device)
-        V2 = V2.to(self.device)
-        VFI1 = VFI1.to(self.device)
-        VFI2 = VFI2.to(self.device)
-        for i in range(V1.shape[0]):
-            V1[i] = randomrotation(V1[i])
-            V2[i] = randomrotation(V2[i])
-            VFI1[i] = randomrotation(VFI1[i])
-            VFI2[i] = randomrotation(VFI2[i])
-        condition = True
-        x, proj_test, x1, x2 = self((V, V1, V2, F, FF, VFI, VFI1, VFI2, FFI, FFFI, VB, FB, FFB, condition))
+        V1 = randomstretching(Vo.double()).to(self.device)            #random stretching
+        V2 = randomstretching(Vo.double()).to(self.device)
+        VFI1 = randomstretching(VFI.double()).to(self.device)
+        VFI2 = randomstretching(VFI.double()).to(self.device)
+        V1 = randomrot(V1).to(self.device)
+        V2 = randomrot(V2).to(self.device)
+        VFI1 = randomrot(VFI1).to(self.device)
+        VFI2 = randomrot(VFI2).to(self.device)
+        x, proj_test, x1, x2 = self((Vo, V1, V2, F, FF, VFI, VFI1, VFI2, FFI, FFFI, VB, FB, FFB))
 
         loss_contrastive = self.loss_contrastive(x1, x2)
 
@@ -465,6 +459,7 @@ class Fly_by_CNN_contrastive_labeled(pl.LightningModule):
 
         V, F, FF, labels, VFI, FFI, FFFI, labelsFI, VB, FB, FFB, vfbounds, sample_min_max= val_batch
         V = V.to(self.device)
+        Vo = torch.detach(V).to(self.device)
         F = F.to(self.device)
         FF = FF.to(self.device)
         VFI = VFI.to(self.device)
@@ -477,21 +472,15 @@ class Fly_by_CNN_contrastive_labeled(pl.LightningModule):
         labelsFI = labelsFI.to(self.device)
         V = transformation_verts(V, sample_min_max)
         VFI = transformation_verts_by_fiber(VFI, vfbounds)
-        V1 = V +torch.normal(0, 0.03, size=V.shape).to(self.device)
-        V2 = V +torch.normal(0, 0.03, size=V.shape).to(self.device)
-        VFI1 = VFI +torch.normal(0, 0.03, size=VFI.shape).to(self.device)
-        VFI2 = VFI +torch.normal(0, 0.03, size=VFI.shape).to(self.device)
-        V1 = V1.to(self.device)
-        V2 = V2.to(self.device)
-        VFI1 = VFI1.to(self.device)
-        VFI2 = VFI2.to(self.device)
-        for i in range(V1.shape[0]):
-            V1[i] = randomrotation(V1[i])
-            V2[i] = randomrotation(V2[i])
-            VFI1[i] = randomrotation(VFI1[i])
-            VFI2[i] = randomrotation(VFI2[i])
-        condition = True
-        x, proj_test, x1, x2 = self((V, V1, V2, F, FF, VFI, VFI1, VFI2, FFI, FFFI, VB, FB, FFB, condition))    #.shape = (batch_size, num classes)
+        V1 = randomstretching(Vo.double()).to(self.device)            #random stretching
+        V2 = randomstretching(Vo.double()).to(self.device)
+        VFI1 = randomstretching(VFI.double()).to(self.device)
+        VFI2 = randomstretching(VFI.double()).to(self.device)
+        V1 = randomrot(V1).to(self.device)
+        V2 = randomrot(V2).to(self.device)
+        VFI1 = randomrot(VFI1).to(self.device)
+        VFI2 = randomrot(VFI2).to(self.device)
+        x, proj_test, x1, x2 = self((V, V1, V2, F, FF, VFI, VFI1, VFI2, FFI, FFFI, VB, FB, FFB))    #.shape = (batch_size, num classes)
         loss_contrastive = self.loss_contrastive(x1, x2)
         
         self.log('val_loss', loss_contrastive.item(), batch_size=self.batch_size)
@@ -503,6 +492,7 @@ class Fly_by_CNN_contrastive_labeled(pl.LightningModule):
     def test_step(self, test_batch, test_batch_idx):
         V, F, FF, labels, VFI, FFI, FFFI, labelsFI, VB, FB, FFB, vfbounds, sample_min_max = test_batch
         V = V.to(self.device)
+        Vo = torch.detach(V).to(self.device)
         F = F.to(self.device)
         FF = FF.to(self.device)
         VFI = VFI.to(self.device)
@@ -515,21 +505,15 @@ class Fly_by_CNN_contrastive_labeled(pl.LightningModule):
         labelsFI = labelsFI.to(self.device)
         V = transformation_verts(V, sample_min_max)
         VFI = transformation_verts_by_fiber(VFI, vfbounds)
-        V1 = V +torch.normal(0, 0.03, size=V.shape).to(self.device)
-        V2 = V +torch.normal(0, 0.03, size=V.shape).to(self.device)
-        VFI1 = VFI +torch.normal(0, 0.03, size=VFI.shape).to(self.device)
-        VFI2 = VFI +torch.normal(0, 0.03, size=VFI.shape).to(self.device)
-        V1 = V1.to(self.device)
-        V2 = V2.to(self.device)
-        VFI1 = VFI1.to(self.device)
-        VFI2 = VFI2.to(self.device)
-        for i in range(V1.shape[0]):
-            V1[i] = randomrotation(V1[i])
-            V2[i] = randomrotation(V2[i])
-            VFI1[i] = randomrotation(VFI1[i])
-            VFI2[i] = randomrotation(VFI2[i])
-        condition = False
-        x,  proj_test, x1, x2 = self((V, V1, V2, F, FF, VFI, VFI1, VFI2, FFI, FFFI, VB, FB, FFB, condition))
+        V1 = randomstretching(Vo.double()).to(self.device)            #random stretching
+        V2 = randomstretching(Vo.double()).to(self.device)
+        VFI1 = randomstretching(VFI.double()).to(self.device)
+        VFI2 = randomstretching(VFI.double()).to(self.device)
+        V1 = randomrot(V1).to(self.device)
+        V2 = randomrot(V2).to(self.device)
+        VFI1 = randomrot(VFI1).to(self.device)
+        VFI2 = randomrot(VFI2).to(self.device)
+        x,  proj_test, x1, x2 = self((V, V1, V2, F, FF, VFI, VFI1, VFI2, FFI, FFFI, VB, FB, FFB))
         tot = np.random.randint(0, 1000000)
         labels2 = labels.unsqueeze(dim = 1)
         proj_test = torch.cat((proj_test, labels2), dim=1)
@@ -538,30 +522,30 @@ class Fly_by_CNN_contrastive_labeled(pl.LightningModule):
         lab = np.array(lab)
         torch.save(proj_test, f"/CMF/data/timtey/results_contrastive_learning/results2_pretrained_true_t_04/proj_test_{lab[0]}_{tot}.pt")
 
-    def test_epoch_end(self, outputs):
-        self.y_pred = []
-        self.y_true = []
+    # def test_epoch_end(self, outputs):
+    #     self.y_pred = []
+    #     self.y_true = []
 
-        for output in outputs:
-            self.y_pred.append(output[0].tolist())
-            self.y_true.append(output[1].tolist())
+    #     for output in outputs:
+    #         self.y_pred.append(output[0].tolist())
+    #         self.y_true.append(output[1].tolist())
 
-        self.y_pred = [ele for sousliste in self.y_pred for ele in sousliste]
-        self.y_true = [ele for sousliste in self.y_true for ele in sousliste]
+    #     self.y_pred = [ele for sousliste in self.y_pred for ele in sousliste]
+    #     self.y_true = [ele for sousliste in self.y_true for ele in sousliste]
         
         
-        self.y_pred = [[int(ele)] for ele in self.y_pred]
+    #     self.y_pred = [[int(ele)] for ele in self.y_pred]
         
-        self.accuracy = accuracy_score(self.y_true, self.y_pred)
+    #     self.accuracy = accuracy_score(self.y_true, self.y_pred)
         
-    def get_y_pred(self):
-        return self.y_pred
+    # def get_y_pred(self):
+    #     return self.y_pred
     
-    def get_y_true(self):
-        return self.y_true
+    # def get_y_true(self):
+    #     return self.y_true
     
-    def get_accuracy(self):
-        return self.accuracy
+    # def get_accuracy(self):
+    #     return self.accuracy
 
 
 

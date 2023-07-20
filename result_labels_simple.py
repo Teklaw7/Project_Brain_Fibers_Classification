@@ -39,7 +39,7 @@ import matplotlib.colors as colors
 import umap
 import pandas as pd
 
-lights = pd.read_pickle(r'lights_good_on_sphere.pickle')
+lights = pd.read_pickle(r'lights_57_128d_on_sphere.pickle')
 # liste = os.listdir("/CMF/data/timtey/results_contrastive_loss_combine_loss_tract_cluster_bundle")
 liste = os.listdir("/CMF/data/timtey/results_contrastive_learning_062623")
 l_colors = colors.ListedColormap ( np.random.rand (57,3))

@@ -20,14 +20,8 @@ from torch.nn.utils.rnn import pad_sequence, pack_padded_sequence as pack_sequen
 from sklearn.utils.class_weight import compute_class_weight
 
 class Bundles_Dataset_contrastive_labeled(Dataset):
-    def __init__(self, data, path_data, path_ico, verts_brain, faces_brain, face_features_brain, transform=True, column_class='class',column_id='id', column_label='label', column_x_min = 'x_min', column_x_max = 'x_max', column_y_min = 'y_min', column_y_max = 'y_max', column_z_min = 'z_min', column_z_max = 'z_max'):
+    def __init__(self, data, column_class='class',column_id='id', column_label='label', column_x_min = 'x_min', column_x_max = 'x_max', column_y_min = 'y_min', column_y_max = 'y_max', column_z_min = 'z_min', column_z_max = 'z_max'):
         self.data = data
-        self.transform = transform
-        self.path_data = path_data
-        self.path_ico = path_ico
-        self.verts_brain = verts_brain
-        self.faces_brain = faces_brain
-        self.face_features_brain = face_features_brain
         self.column_class = column_class
         self.column_id = column_id
         self.column_label = column_label
@@ -37,9 +31,7 @@ class Bundles_Dataset_contrastive_labeled(Dataset):
         self.column_y_max = column_y_max
         self.column_z_min = column_z_min
         self.column_z_max = column_z_max
-        # self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-
-     
+    
     def __len__(self):
         return len(self.data)
 
@@ -60,7 +52,6 @@ class Bundles_Dataset_contrastive_labeled(Dataset):
         verts, faces, edges = utils.PolyDataToTensors(cc1_extract_tf)    
         verts_fiber = torch.clone(verts)
         faces_fiber = torch.clone(faces)
-        edges_fiber = torch.clone(edges)
         verts_fiber_bounds = cc1_extract_tf.GetBounds()
         verts_fiber_bounds = list(verts_fiber_bounds)
         max_bounds = max(verts_fiber_bounds)
@@ -101,19 +92,12 @@ class Bundles_Dataset_contrastive_labeled(Dataset):
 
 
 class Bundles_Dataset_test_contrastive_labeled(Dataset):
-    def __init__(self, contrastive, data, bundle, L, fibers, index_csv, path_data, path_ico, verts_brain, faces_brain, face_features_brain, transform=True, column_class='class',column_id='id', column_label='label', column_x_min = 'x_min', column_x_max = 'x_max', column_y_min = 'y_min', column_y_max = 'y_max', column_z_min = 'z_min', column_z_max = 'z_max'):
-        self.contrastive = contrastive
+    def __init__(self, data, bundle, L, fibers, index_csv, column_class='class',column_id='id', column_label='label', column_x_min = 'x_min', column_x_max = 'x_max', column_y_min = 'y_min', column_y_max = 'y_max', column_z_min = 'z_min', column_z_max = 'z_max'):
         self.data = data
         self.bundle = bundle
         self.L = L
         self.fibers = fibers
         self.index_csv = index_csv
-        self.transform = transform
-        self.path_data = path_data
-        self.path_ico = path_ico
-        self.verts_brain = verts_brain
-        self.faces_brain = faces_brain
-        self.face_features_brain = face_features_brain
         self.column_class = column_class
         self.column_id = column_id
         self.column_label = column_label
@@ -126,14 +110,10 @@ class Bundles_Dataset_test_contrastive_labeled(Dataset):
 
      
     def __len__(self):
-        # print("len", self.fibers)
         return self.fibers
 
     def __getitem__(self, idx):
-        # print("idx", idx)
-        
         sample_row = self.data.loc[self.index_csv]
-
         sample_label = sample_row[self.column_label]
         sample_x_min, sample_x_max, sample_y_min, sample_y_max, sample_z_min, sample_z_max = sample_row[self.column_x_min], sample_row[self.column_x_max], sample_row[self.column_y_min], sample_row[self.column_y_max], sample_row[self.column_z_min], sample_row[self.column_z_max]
         sample_id = sample_row[self.column_id]
@@ -141,7 +121,6 @@ class Bundles_Dataset_test_contrastive_labeled(Dataset):
         verts, faces, edges = utils.PolyDataToTensors(bundle_extract_tf)  
         verts_fiber = torch.clone(verts)
         faces_fiber = torch.clone(faces)
-        edges_fiber = torch.clone(edges)
 
         verts_fiber_bounds = bundle_extract_tf.GetBounds()
         verts_fiber_bounds = list(verts_fiber_bounds)
@@ -150,30 +129,17 @@ class Bundles_Dataset_test_contrastive_labeled(Dataset):
         verts_fiber_bounds = [min_bounds,max_bounds,min_bounds,max_bounds,min_bounds,max_bounds]
         sample_min_max = [sample_x_min, sample_x_max, sample_y_min, sample_y_max, sample_z_min, sample_z_max]
 
-        if self.contrastive:
-            EstimatedUncertainty = torch.tensor(vtk_to_numpy(bundle_extract_tf.GetPointData().GetScalars("EstimatedUncertainty"))).unsqueeze(1)
-            FA1 = torch.tensor(vtk_to_numpy(bundle_extract_tf.GetPointData().GetScalars("FA1"))).unsqueeze(1)
-            FA2 = torch.tensor(vtk_to_numpy(bundle_extract_tf.GetPointData().GetScalars("FA2"))).unsqueeze(1)
-            HemisphereLocataion = torch.tensor(vtk_to_numpy(bundle_extract_tf.GetPointData().GetScalars("HemisphereLocataion"))).unsqueeze(1)
-            # cluster_idx = vtk_to_numpy(cc1_extract_tf.GetPointData().GetScalars("cluster_idx"))
-            trace1 = torch.tensor(vtk_to_numpy(bundle_extract_tf.GetPointData().GetScalars("trace1"))).unsqueeze(1)
-            trace2 = torch.tensor(vtk_to_numpy(bundle_extract_tf.GetPointData().GetScalars("trace2"))).unsqueeze(1)
-            # vtkOriginalPointIds = vtk_to_numpy(cc1_extract_tf.GetPointData().GetScalars("vtkOriginalPointIds"))
-            TubeNormals = torch.tensor(vtk_to_numpy(bundle_extract_tf.GetPointData().GetScalars("TubeNormals")))
-            vertex_features = torch.cat([EstimatedUncertainty, FA1, FA2, HemisphereLocataion, trace1, trace2, TubeNormals], dim=1)
-        else :
-            EstimatedUncertainty = torch.tensor(vtk_to_numpy(bundle_extract_tf.GetPointData().GetScalars("EstimatedUncertainty"))).unsqueeze(1)
-            FA1 = torch.tensor(vtk_to_numpy(bundle_extract_tf.GetPointData().GetScalars("FA1"))).unsqueeze(1)
-            FA2 = torch.tensor(vtk_to_numpy(bundle_extract_tf.GetPointData().GetScalars("FA2"))).unsqueeze(1)
-            HemisphereLocataion = torch.tensor(vtk_to_numpy(bundle_extract_tf.GetPointData().GetScalars("HemisphereLocataion"))).unsqueeze(1)
-            # cluster_idx = vtk_to_numpy(cc1_extract_tf.GetPointData().GetScalars("cluster_idx"))
-            trace1 = torch.tensor(vtk_to_numpy(bundle_extract_tf.GetPointData().GetScalars("trace1"))).unsqueeze(1)
-            trace2 = torch.tensor(vtk_to_numpy(bundle_extract_tf.GetPointData().GetScalars("trace2"))).unsqueeze(1)
-            # vtkOriginalPointIds = vtk_to_numpy(cc1_extract_tf.GetPointData().GetScalars("vtkOriginalPointIds"))
-            TubeNormals = torch.tensor(vtk_to_numpy(bundle_extract_tf.GetPointData().GetScalars("TubeNormals")))
-            
-            #EstimatedUncertainty.unsqueeze(dim=1), FA1.unsqueeze(dim=1), FA2.unsqueeze(dim=1), HemisphereLocataion.unsqueeze(dim=1), cluster_idx.unsqueeze(dim=1), trace1.unsqueeze(dim=1), trace2.unsqueeze(dim=1), vtkOriginalPointIds.unsqueeze(dim=1), 
-            vertex_features = torch.cat([EstimatedUncertainty, FA1, FA2, HemisphereLocataion, trace1, trace2, TubeNormals], dim=1)
+        EstimatedUncertainty = torch.tensor(vtk_to_numpy(bundle_extract_tf.GetPointData().GetScalars("EstimatedUncertainty"))).unsqueeze(1)
+        FA1 = torch.tensor(vtk_to_numpy(bundle_extract_tf.GetPointData().GetScalars("FA1"))).unsqueeze(1)
+        FA2 = torch.tensor(vtk_to_numpy(bundle_extract_tf.GetPointData().GetScalars("FA2"))).unsqueeze(1)
+        HemisphereLocataion = torch.tensor(vtk_to_numpy(bundle_extract_tf.GetPointData().GetScalars("HemisphereLocataion"))).unsqueeze(1)
+        # cluster_idx = vtk_to_numpy(cc1_extract_tf.GetPointData().GetScalars("cluster_idx"))
+        trace1 = torch.tensor(vtk_to_numpy(bundle_extract_tf.GetPointData().GetScalars("trace1"))).unsqueeze(1)
+        trace2 = torch.tensor(vtk_to_numpy(bundle_extract_tf.GetPointData().GetScalars("trace2"))).unsqueeze(1)
+        # vtkOriginalPointIds = vtk_to_numpy(cc1_extract_tf.GetPointData().GetScalars("vtkOriginalPointIds"))
+        TubeNormals = torch.tensor(vtk_to_numpy(bundle_extract_tf.GetPointData().GetScalars("TubeNormals")))
+        vertex_features = torch.cat([EstimatedUncertainty, FA1, FA2, HemisphereLocataion, trace1, trace2, TubeNormals], dim=1)
+
         faces_pid0 = faces[:,0:1]
         faces_pid0_fiber = faces_fiber[:,0:1]
         nb_faces = len(faces)
@@ -197,31 +163,22 @@ class Bundles_Dataset_test_contrastive_labeled(Dataset):
 
 
 class Bundles_Dataset_contrastive_labeled(pl.LightningDataModule):
-    def __init__(self, contrastive, bundle, L, fibers, fibers_valid, index_csv, path_data, path_ico, batch_size, train_path, val_path, test_path, verts_brain, faces_brain, face_features_brain, num_workers=12, transform=True, persistent_workers=False):
+    def __init__(self, bundle, L, fibers, index_csv, batch_size, train_path, val_path, test_path, num_workers=12, transform=True, persistent_workers=False):
         super().__init__()
-        self.contrastive = contrastive
         self.bundle = bundle
         self.L = L
         self.fibers = fibers
-        self.fibers_valid = fibers_valid
         self.index_csv = index_csv
-        self.path_data = path_data
-        self.path_ico = path_ico
         self.batch_size = batch_size
         self.train_path = train_path
         self.val_path = val_path
         self.test_path = test_path
-        self.verts_brain = verts_brain
-        self.faces_brain = faces_brain
-        self.face_features_brain = face_features_brain
         self.num_workers = num_workers
-        self.transform = transform
         self.persistent_workers = persistent_workers
         self.weights = []
         self.df_train = pd.read_csv(self.train_path)
         self.df_val = pd.read_csv(self.val_path)
         self.df_test = pd.read_csv(self.test_path)
-        # print("df_train", self.df_train.loc[:,'label'])
         y_train = np.array(self.df_train.loc[:,'label'])
 
         labels = np.unique(y_train)
@@ -231,10 +188,8 @@ class Bundles_Dataset_contrastive_labeled(pl.LightningDataModule):
         y_val = np.array(self.df_val.loc[:,'label'])
 
         labels = np.unique(y_val)
-
         weights_val = torch.tensor(compute_class_weight('balanced', classes = labels, y = y_val)).to(torch.float32)
         self.weights.append(weights_val)
-
 
         y_test2 = []
         for i in range(len(self.df_test)):
@@ -255,19 +210,9 @@ class Bundles_Dataset_contrastive_labeled(pl.LightningDataModule):
         list_val_data = pd.read_csv(self.val_path)
         list_test_data = pd.read_csv(self.test_path)
         
-        
-        if self.contrastive:
-            self.train_dataset = Bundles_Dataset_contrastive_labeled(list_train_data, self.path_data, self.path_ico, self.verts_brain, self.faces_brain, self.face_features_brain, self.transform)
-            self.val_dataset = Bundles_Dataset_contrastive_labeled(list_val_data, self.path_data, self.path_ico, self.verts_brain, self.faces_brain, self.face_features_brain, self.transform)
-            self.test_dataset = Bundles_Dataset_test_contrastive_labeled(self.contrastive, list_test_data, self.bundle, self.L, self.fibers, self.index_csv, self.path_data, self.path_ico, self.verts_brain, self.faces_brain, self.face_features_brain, self.transform)
-        
-        else:
-            self.train_dataset = Bundles_Dataset_contrastive_labeled(list_train_data, self.path_data, self.path_ico, self.verts_brain, self.faces_brain, self.face_features_brain, self.transform)
-            self.val_dataset = Bundles_Dataset_contrastive_labeled(list_val_data, self.path_data, self.path_ico, self.verts_brain, self.faces_brain, self.face_features_brain, self.transform)
-            self.test_dataset = Bundles_Dataset_test_contrastive_labeled(self.contrastive, list_test_data, self.bundle, self.L, self.fibers, self.index_csv, self.path_data, self.path_ico, self.verts_brain, self.faces_brain, self.face_features_brain, self.transform)
-            # self.test_dataset = Bundles_Dataset(list_test_data, self.path_data, self.path_ico, self.transform)#change si 24 images
-
-    
+        self.train_dataset = Bundles_Dataset_contrastive_labeled(list_train_data)
+        self.val_dataset = Bundles_Dataset_contrastive_labeled(list_val_data)
+        self.test_dataset = Bundles_Dataset_test_contrastive_labeled(list_test_data, self.bundle, self.L, self.fibers, self.index_csv)
         
 
     def train_dataloader(self):
