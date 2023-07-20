@@ -1,5 +1,6 @@
 import vtk
 from tools import LinearSubdivisionFilter as lsf
+# import LinearSubdivisionFilter as lsf
 import numpy as np
 import math 
 import os

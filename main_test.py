@@ -16,8 +16,6 @@ import torch.nn.functional as F
 import matplotlib.pyplot as plt
 from logger import BrainNetImageLogger_contrastive_tractography_labeled, BrainNetImageLogger
 from pytorch_lightning.loggers import TensorBoardLogger
-#from torch_geometric.data import Batch as gBatch
-#from torch_geometric.data import DataListLoader as gDataLoader
 from vtkmodules.vtkFiltersGeneral import (
     vtkCurvatures,
     vtkTransformFilter
@@ -33,9 +31,6 @@ from vtkmodules.vtkCommonCore import (
     vtkIdList,
     vtkVersion
 )
-#from sDEC import DECSeq
-#import datasets as ds
-#from utils import ReadSurf , PolyDataToNumpy
 from tools import utils
 import pytorch3d
 import pytorch3d.renderer as pyr
@@ -76,7 +71,6 @@ from vtk.util.numpy_support import vtk_to_numpy, numpy_to_vtk
 import pandas as pd
 
 from sklearn.metrics import classification_report, confusion_matrix
-#DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 import torch.multiprocessing
 torch.multiprocessing.set_sharing_strategy('file_system')
 
@@ -137,7 +131,7 @@ brain_data=Bundles_DataModule_tractography_labeled_fibers(0,0,0,path_data, batch
 weights = brain_data.get_weights()
 # model= Fly_by_CNN_contrastive_tractography_labeled(contrastive, radius, ico_lvl, dropout_lvl, batch_size, weights, num_classes, verts_left, faces_left, verts_right, faces_right, learning_rate=0.001)
 # model= Fly_by_CNN_contrastive_tractography_labeled(contrastive, radius, ico_lvl, dropout_lvl, batch_size, weights, num_classes, learning_rate=0.001)
-model_path ="/home/timtey/Documents/Models_tensorboard/models/Loss_combine/071023/epoch=111-val_loss=-0.25.ckpt"
+model_path ="/home/timtey/Documents/Models_tensorboard/models/Loss_combine/063023/epoch=114-val_loss=-0.07.ckpt"
 
 model= Fly_by_CNN_contrastive_tractography_labeled(radius, ico_lvl, dropout_lvl, batch_size, weights, num_classes, learning_rate=0.0001)
 checkpoint = torch.load(model_path)

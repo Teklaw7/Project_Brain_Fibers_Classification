@@ -233,10 +233,10 @@ print(LAB_2.shape)
 
 to_reject = n_lab[L_reject]
 print("to_reject", to_reject.shape)
-file_name = "to_reject.pkl"
-open_file = open(file_name, "wb")
-pickle.dump(to_reject, open_file)
-open_file.close()
+# file_name = "to_reject.pkl"
+# open_file = open(file_name, "wb")
+# pickle.dump(to_reject, open_file)
+# open_file.close()
 
 n_lab = n_lab[L_D_128D_int]
 print("n_lab", n_lab.shape)

@@ -9,16 +9,6 @@ import torchmetrics
 from tools import utils
 import torch.nn.functional as F
 import torchvision.transforms as T
-from torchvision.models import resnet18, ResNet18_Weights
-# rendering components
-from pytorch3d.renderer import (
-    FoVPerspectiveCameras, look_at_view_transform, look_at_rotation, 
-    RasterizationSettings, MeshRenderer, MeshRasterizer, BlendParams,
-    SoftSilhouetteShader, HardPhongShader, SoftPhongShader, AmbientLights, PointLights, TexturesUV, TexturesVertex,
-)
-from pytorch3d.renderer.blending import sigmoid_alpha_blend, hard_rgb_blend
-from pytorch3d.structures import Meshes, join_meshes_as_scene
-
 from sklearn.metrics import classification_report, confusion_matrix, accuracy_score
 from pytorch3d.vis.plotly_vis import plot_scene
 import os
@@ -48,7 +38,7 @@ import pickle
 lights = pd.read_pickle(r'lights_57_3d_on_sphere.pickle')
 # liste = os.listdir("/CMF/data/timtey/results_contrastive_loss_combine_loss_tract_cluster_bundle")
 # liste = os.listdir("/CMF/data/timtey/results_contrastive_learning_063023_best_model")
-liste = os.listdir("/CMF/data/timtey/results_contrastive_learning_071023_best")
+liste = os.listdir("/CMF/data/timtey/results_contrastive_learning_071023")
 l_colors = colors.ListedColormap ( np.random.rand (57,3))
 l_colors1 = colors.ListedColormap ( np.random.rand (20,3))
 l_colors2 = colors.ListedColormap ( np.random.rand (20,3))
@@ -61,7 +51,7 @@ matrix_1 = []
 matrix_2 = []
 for i in range(len(liste)):
     # matrix = torch.load(f"/CMF/data/timtey/results_contrastive_learning_063023_best_model/{liste[i]}")
-    matrix = torch.load(f"/CMF/data/timtey/results_contrastive_learning_071023_best/{liste[i]}")
+    matrix = torch.load(f"/CMF/data/timtey/results_contrastive_learning_071023/{liste[i]}")
     matrix_bundle = matrix[:matrix.shape[0]//2]
     matrix_tract = matrix[matrix.shape[0]//2:]
     # if i==0:
@@ -122,30 +112,30 @@ for j in range(lights.shape[0]):
 # print(Mean_pos.shape)
 
 # print(LABt)
-# L_accept = []
-# for i in range(MATRT.shape[0]):
-    # print(i)
-    # distance = torch.tensor([])
-    # for j in range(Mean_pos.shape[0]):
-        # dist = 1 * np.arccos(MATRT[i][0]*Mean_pos[j][0] + MATRT[i][1]*Mean_pos[j][1] + MATRT[i][2]*Mean_pos[j][2])
-        # dist = torch.tensor(dist)
-        # distance = torch.cat((distance, dist.unsqueeze(0)), dim=0)
-    # min_dist = torch.argmin(distance).item()
+L_accept = []
+for i in range(MATRT.shape[0]):
+    print(i)
+    distance = torch.tensor([])
+    for j in range(Mean_pos.shape[0]):
+        dist = 1 * np.arccos(MATRT[i][0]*Mean_pos[j][0] + MATRT[i][1]*Mean_pos[j][1] + MATRT[i][2]*Mean_pos[j][2])
+        dist = torch.tensor(dist)
+        distance = torch.cat((distance, dist.unsqueeze(0)), dim=0)
+    min_dist = torch.argmin(distance).item()
     # print(torch.min(distance).item())
-    # LABt[i] = min_dist
-    # if torch.min(distance).item() < 0.1:
-        # L_accept.append(i)
+    LABt[i] = min_dist
+    if torch.min(distance).item() < 0.1:
+        L_accept.append(i)
 
 # 
 # print(LABt)
-# torch.save(LABt, "LABt_071023_best_mean_pos.pt")
-LABt = torch.load("LABt_071023_best_mean_pos.pt")
+torch.save(LABt, "LABt_071023_mean_pos.pt")
+# LABt = torch.load("LABt_071023_best_mean_pos.pt")
 
 # len(L_accept)
-# file_name = "to_accept_01.pkl"
-# open_file = open(file_name, "wb")
-# pickle.dump(L_accept, open_file)
-# open_file.close()
+file_name = "to_accept_01_071023.pkl"
+open_file = open(file_name, "wb")
+pickle.dump(L_accept, open_file)
+open_file.close()
 
 
 lights = lights.cpu()
@@ -165,9 +155,9 @@ Data_labT = Data_labT.cpu()
 # Data_labB = Data_labB[L_accept]
 
 
-openfile = open("to_accept_01.pkl", "rb")
-L_accept = pickle.load(openfile)
-openfile.close()
+# openfile = open("to_accept_01.pkl", "rb")
+# L_accept = pickle.load(openfile)
+# openfile.close()
 
 MATRT = MATRT[L_accept]
 LABt = LABt[L_accept]
@@ -206,6 +196,7 @@ plt.show()
 
 ax = plt.axes(projection='3d')
 ax.scatter(MATRT[:,0], MATRT[:,1], MATRT[:,2], marker='*', c=LABt, cmap=l_colors)
+# ax.scatter(MATRT[:,0], MATRT[:,1], MATRT[:,2], marker='*')
 ax.scatter(lights[:,0], lights[:,1], lights[:,2], linewidths=5, c='black')
 ax.scatter(MATRB[:,0], MATRB[:,1], MATRB[:,2], c=LABb, cmap=l_colors)
 for i in range(lights.shape[0]):

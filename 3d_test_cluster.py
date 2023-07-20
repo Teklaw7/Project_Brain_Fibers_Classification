@@ -17,7 +17,7 @@ print(number_cells)
 lights = pd.read_pickle(r'lights_57_3d_on_sphere.pickle')
 # liste = os.listdir("/CMF/data/timtey/results_contrastive_loss_combine_loss_tract_cluster_bundle")
 # liste = os.listdir("/CMF/data/timtey/results_contrastive_learning_063023_best_model")
-liste = os.listdir("/CMF/data/timtey/results_contrastive_learning_071023_best")
+liste = os.listdir("/CMF/data/timtey/results_contrastive_learning_071023")
 l_colors = colors.ListedColormap ( np.random.rand (57,3))
 l_colors1 = colors.ListedColormap ( np.random.rand (20,3))
 l_colors2 = colors.ListedColormap ( np.random.rand (20,3))
@@ -30,7 +30,7 @@ matrix_1 = []
 matrix_2 = []
 for i in range(len(liste)):
     # matrix = torch.load(f"/CMF/data/timtey/results_contrastive_learning_063023_best_model/{liste[i]}")
-    matrix = torch.load(f"/CMF/data/timtey/results_contrastive_learning_071023_best/{liste[i]}")
+    matrix = torch.load(f"/CMF/data/timtey/results_contrastive_learning_071023/{liste[i]}")
     matrix_bundle = matrix[:matrix.shape[0]//2]
     matrix_tract = matrix[matrix.shape[0]//2:]
     # if i==0:
@@ -78,10 +78,10 @@ print(Data_labT.shape)
 
 
 
-LABt = torch.load("LABt_071023_best_mean_pos.pt")
+LABt = torch.load("LABt_071023_mean_pos.pt")
 
 
-openfile = open("to_accept_01.pkl", "rb")
+openfile = open("to_accept_01_071023.pkl", "rb")
 l_accept = pickle.load(openfile)
 openfile.close()
 print(LABt.shape)
@@ -111,6 +111,8 @@ n_labT = n_labT[l_accept]
 Data_labT = Data_labT[l_accept]
 print(MATRT.shape)
 
+# for j in range(MATRT.shape[0]):
+    # print(n_labT[j][0].item())
 L=[]
 for i in range(57):
     L.append([])
@@ -130,7 +132,7 @@ for l in range(len(L)):
         fiber = utils.ExtractFiber_test(bundle,int(L[l][i][-1].item()))
         l_fiber.append(fiber)
     merge =utils.Merge(l_fiber)
-    vtk_writer = vtk.vtkXMLPolyDataWriter()
-    vtk_writer.SetFileName(f"/CMF/data/timtey/tractography/all/test_tracts_slicer_3d/cluster_071023_best_mean_pos_dist_01/cluster_{l}.vtp")
-    vtk_writer.SetInputData(merge)
-    vtk_writer.Write()
+    # vtk_writer = vtk.vtkXMLPolyDataWriter()
+    # vtk_writer.SetFileName(f"/CMF/data/timtey/tractography/all/Test_tract_Slicer/test_tracts_slicer_3d/cluster_071023_mean_pos/cluster_{l}.vtp")
+    # vtk_writer.SetInputData(merge)
+    # vtk_writer.Write()

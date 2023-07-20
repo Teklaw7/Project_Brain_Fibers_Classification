@@ -59,7 +59,7 @@ def MarchingCubes(image,threshold):
 
 poly = MarchingCubes(im, 1)
 poly2 = MarchingCubes(im2, 1)
-utils.WriteSurf(poly, '/CMF/data/timtey/tractography/training/135528/brain_mask_135528.vtk')
+# utils.WriteSurf(poly, '/CMF/data/timtey/tractography/training/135528/brain_mask_135528.vtk')
 
 verts, faces, edges = utils.PolyDataToTensors(poly)
 verts2, faces2, edges2 = utils.PolyDataToTensors(poly2)
