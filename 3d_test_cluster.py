@@ -8,15 +8,9 @@ from matplotlib import colors
 import os
 path = "/CMF/data/timtey/tractography/all/tractogram_deterministic_139233_dg_flip_1_DTI.vtp"
 bundle = utils.ReadSurf(path)
-number_cells = bundle.GetNumberOfCells()
-print(number_cells)
-
-
-
+# number_cells = bundle.GetNumberOfCells()
 
 lights = pd.read_pickle(r'lights_57_3d_on_sphere.pickle')
-# liste = os.listdir("/CMF/data/timtey/results_contrastive_loss_combine_loss_tract_cluster_bundle")
-# liste = os.listdir("/CMF/data/timtey/results_contrastive_learning_063023_best_model")
 liste = os.listdir("/CMF/data/timtey/results_contrastive_learning_071023")
 l_colors = colors.ListedColormap ( np.random.rand (57,3))
 l_colors1 = colors.ListedColormap ( np.random.rand (20,3))
@@ -72,37 +66,12 @@ Data_labT = MATR_2[:,-1]
 print(Data_labB.shape, Data_labB[0])
 print(Data_labT.shape)
 
-
-
-
-
-
-
 LABt = torch.load("LABt_071023_mean_pos.pt")
-
 
 openfile = open("to_accept_01_071023.pkl", "rb")
 l_accept = pickle.load(openfile)
 openfile.close()
 print(LABt.shape)
-# output, indices = torch.unique(LABt, return_inverse=True)
-# print(output)
-# sum = 0
-# for i in range(len(output)):
-#     print(indices[i].item())    # print(torch.sum(indices==i))
-#     sum += indices[i].item()
-# print(sum)
-
-# CPT = []
-# for i in range(57):
-#     cpt_i = 0
-#     for j in range(len(LABt)):
-#         print(LABt[j].item())
-#         if int(LABt[j].item()) == i:
-#             cpt_i +=1
-#     CPT.append(cpt_i)
-
-# print(CPT)
 print(len(l_accept))
 print(MATRT.shape)
 MATRT = MATRT[l_accept]
@@ -111,20 +80,13 @@ n_labT = n_labT[l_accept]
 Data_labT = Data_labT[l_accept]
 print(MATRT.shape)
 
-# for j in range(MATRT.shape[0]):
-    # print(n_labT[j][0].item())
 L=[]
 for i in range(57):
     L.append([])
 
-
-# for i in range()
 for a in range(MATRT.shape[0]):
     lab = int(LABt[a].item())
     L[lab].append(n_labT[a])
-
-# print(L)
-# print(len(L))
 
 for l in range(len(L)):
     l_fiber=[]

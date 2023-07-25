@@ -4,7 +4,7 @@ from torch import nn
 import torch.optim as optim
 import pytorch_lightning as pl 
 import torchvision.models as models
-from torch.nn.functional import softmax
+# from torch.nn.functional import softmax
 import torchmetrics
 from tools import utils
 import torch.nn.functional as F
@@ -16,22 +16,16 @@ from pytorch3d.renderer import (
     RasterizationSettings, MeshRenderer, MeshRasterizer, BlendParams,
     SoftSilhouetteShader, HardPhongShader, SoftPhongShader, AmbientLights, PointLights, TexturesUV, TexturesVertex,
 )
-from pytorch3d.renderer.blending import sigmoid_alpha_blend, hard_rgb_blend
+# from pytorch3d.renderer.blending import sigmoid_alpha_blend, hard_rgb_blend
 from pytorch3d.structures import Meshes, join_meshes_as_scene
 
 from sklearn.metrics import classification_report, confusion_matrix, accuracy_score
-from pytorch3d.vis.plotly_vis import plot_scene
+# from pytorch3d.vis.plotly_vis import plot_scene
 import os
 os.environ['CUDA_LAUNCH_BLOCKING'] = "1"
 from sklearn.utils.class_weight import compute_class_weight
-import random
-import pytorch3d.transforms as T3d
-import matplotlib.pyplot as plt
-
-from sklearn.manifold import TSNE
-from sklearn.cluster import KMeans
 # import MLP
-import random
+# import random
 from  Transformations.transformations import *
 
 
@@ -546,10 +540,6 @@ class Fly_by_CNN_contrastive_labeled(pl.LightningModule):
     
     # def get_accuracy(self):
     #     return self.accuracy
-
-
-
-
 
 def device_as(t1, t2):
     """

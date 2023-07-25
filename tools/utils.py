@@ -867,6 +867,51 @@ def ExtractFiber_test(surf, list_random_id) :
 
     return tubefilter
 
+def ExtractFiber_test_lines(surf, list_random_id) :
+    ids = vtk.vtkIdTypeArray()
+    ids.SetNumberOfComponents(1)
+    ids.InsertNextValue(list_random_id) 
+
+    # extract a subset from a dataset
+    selectionNode = vtk.vtkSelectionNode() 
+    selectionNode.SetFieldType(0)
+    selectionNode.SetContentType(3)
+    selectionNode.SetSelectionList(ids) 
+
+    # set containing cell to 1 = extract cell
+    selectionNode.GetProperties().Set(vtk.vtkSelectionNode.CONTAINING_CELLS(), 1) 
+
+    selection = vtk.vtkSelection()
+    selection.AddNode(selectionNode)
+
+    # extract the cell from the cluster
+    extractSelection = vtk.vtkExtractSelection()
+    extractSelection.SetInputData(0, surf)
+    extractSelection.SetInputData(1, selection)
+    extractSelection.Update()
+
+    # convert the extract cell to a polygonal type (a line here)
+    geometryFilter = vtk.vtkGeometryFilter()
+    geometryFilter.SetInputData(extractSelection.GetOutput())
+    geometryFilter.Update()
+
+    # fiber = surf.GetCell(list_random_id)
+
+    # cells = vtk.vtkCellArray()
+    # points = vtk.vtkPoints()
+
+    # poly_fiber = vtk.vtkPolyData()    
+
+    # for pid in range(fiber.GetNumberOfPoints()):
+    #     points.InsertNextPoint(fiber.GetPoints().GetPoint(pid))
+
+    # poly_fiber.SetPoints(fiber.GetPoints())
+    # poly_fiber.
+
+
+    # tubefilter = GetTubeFilter_test(geometryFilter.GetOutput())
+
+    return geometryFilter.GetOutput()
 
 def ExtractPart(surf, list_random_id) :
     # L_tube = []

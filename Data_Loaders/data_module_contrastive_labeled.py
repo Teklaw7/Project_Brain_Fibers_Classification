@@ -19,7 +19,7 @@ os.environ['CUDA_LAUNCH_BLOCKING'] = "1"
 from torch.nn.utils.rnn import pad_sequence, pack_padded_sequence as pack_sequence, pad_packed_sequence as unpack_sequence
 from sklearn.utils.class_weight import compute_class_weight
 
-class Bundles_Dataset_contrastive_labeled(Dataset):
+class Bundles_Dataset_contrastive_labeled(Dataset): #dataset used for training and validation
     def __init__(self, data, column_class='class',column_id='id', column_label='label', column_x_min = 'x_min', column_x_max = 'x_max', column_y_min = 'y_min', column_y_max = 'y_max', column_z_min = 'z_min', column_z_max = 'z_max'):
         self.data = data
         self.column_class = column_class
@@ -84,14 +84,14 @@ class Bundles_Dataset_contrastive_labeled(Dataset):
         ### labels ###
         labels = torch.tensor([sample_label])
         labels_fiber = torch.tensor([sample_label])
-        verts_brain = torch.load(f"brain_structures/verts_brain_{sample_id}.pt")
-        faces_brain = torch.load(f"brain_structures/faces_brain_{sample_id}.pt")
-        face_features_brain = torch.load(f"brain_structures/face_features_brain_{sample_id}.pt")
+        verts_brain = torch.load(f"brain_structures/verts_brain_{sample_id}.pt")    #we load the brain structures
+        faces_brain = torch.load(f"brain_structures/faces_brain_{sample_id}.pt")    #we load the brain structures
+        face_features_brain = torch.load(f"brain_structures/face_features_brain_{sample_id}.pt")    #we load the brain structures
         return verts,faces,face_features,labels,verts_fiber,faces_fiber,face_features_fiber,labels_fiber, verts_brain, faces_brain, face_features_brain, verts_fiber_bounds, sample_min_max
 
 
 
-class Bundles_Dataset_test_contrastive_labeled(Dataset):
+class Bundles_Dataset_test_contrastive_labeled(Dataset):    #dataset used for testing
     def __init__(self, data, bundle, L, fibers, index_csv, column_class='class',column_id='id', column_label='label', column_x_min = 'x_min', column_x_max = 'x_max', column_y_min = 'y_min', column_y_max = 'y_max', column_z_min = 'z_min', column_z_max = 'z_max'):
         self.data = data
         self.bundle = bundle
@@ -108,7 +108,7 @@ class Bundles_Dataset_test_contrastive_labeled(Dataset):
         self.column_z_min = column_z_min
         self.column_z_max = column_z_max
 
-     
+    
     def __len__(self):
         return self.fibers
 
@@ -154,9 +154,9 @@ class Bundles_Dataset_test_contrastive_labeled(Dataset):
         labels = torch.tensor([sample_label])
         labels_fiber = torch.tensor([sample_label])
 
-        verts_brain = torch.load(f"brain_structures/verts_brain_{sample_id}.pt")
-        faces_brain = torch.load(f"brain_structures/faces_brain_{sample_id}.pt")
-        face_features_brain = torch.load(f"brain_structures/face_features_brain_{sample_id}.pt")
+        verts_brain = torch.load(f"brain_structures/verts_brain_{sample_id}.pt")    #we load the brain structures
+        faces_brain = torch.load(f"brain_structures/faces_brain_{sample_id}.pt")    #we load the brain structures
+        face_features_brain = torch.load(f"brain_structures/face_features_brain_{sample_id}.pt")    #we load the brain structures
         return verts,faces,face_features,labels,verts_fiber,faces_fiber,face_features_fiber,labels_fiber, verts_brain, faces_brain, face_features_brain, verts_fiber_bounds, sample_min_max
 
 
@@ -253,10 +253,6 @@ class Bundles_Dataset_contrastive_labeled(pl.LightningDataModule):
         verts_brain = pad_sequence(verts_brain, batch_first=True, padding_value=0.0)
         faces_brain = pad_sequence(faces_brain, batch_first=True, padding_value=-1)
         verts_data_faces_brain = torch.cat(verts_data_faces_brain)
-        
-        
-
-
 
         return verts, faces, verts_data_faces, labels, verts_fiber, faces_fiber, verts_data_faces_fiber, labels_fiber, verts_brain, faces_brain, verts_data_faces_brain, verts_fiber_bounds, sample_min_max
 

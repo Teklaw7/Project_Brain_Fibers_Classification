@@ -1,60 +1,16 @@
 from __future__ import print_function
-import argparse
-import configparser
-import glob
-import json
 import os
 from os import path as osp
 from os.path import basename as osbn
 from time import time
 os.environ['CUDA_LAUNCH_BLOCKING'] = "1"
-import ants
-import nibabel as nib
 import numpy as np
 import torch
-import torch.nn.functional as F
-import matplotlib.pyplot as plt
 from logger import BrainNetImageLogger_contrastive_tractography_labeled, BrainNetImageLogger
 from pytorch_lightning.loggers import TensorBoardLogger
-from vtkmodules.vtkFiltersGeneral import (
-    vtkCurvatures,
-    vtkTransformFilter
-)
-from vtkmodules.numpy_interface import dataset_adapter as dsa
-from vtkmodules.vtkFiltersCore import (
-    vtkFeatureEdges,
-    vtkIdFilter
-)
-from vtk.util import numpy_support
-from vtkmodules.vtkCommonCore import (
-    VTK_DOUBLE,
-    vtkIdList,
-    vtkVersion
-)
-from tools import utils
-import pytorch3d
-import pytorch3d.renderer as pyr
-from pytorch3d.utils import ico_sphere
-from pytorch3d.io import load_obj
-from pytorch3d.structures import Meshes, join_meshes_as_scene
-from pytorch3d.ops import sample_points_from_meshes
-from pytorch3d.loss import chamfer_distance
-from pytorch3d.vis.plotly_vis import plot_scene
-import vtk
-from pytorch3d.renderer import (
-    look_at_view_transform,
-    FoVPerspectiveCameras, 
-    PointLights, 
-    DirectionalLights, 
-    Materials, 
-    RasterizationSettings, 
-    MeshRenderer, 
-    MeshRasterizer,  
-    SoftPhongShader,
-    TexturesUV,
-    TexturesVertex
-)
 
+from tools import utils
+import vtk
 from Data_Loaders.data_module_contrastive_tractography_labeled import Bundles_DataModule_tractography_labeled_fibers, Bundles_Dataset_test_contrastive_tractography_labeled, Bundles_Dataset_tractography
 from Data_Loaders.data_module_contrastive_labeled import Bundles_Dataset_contrastive_labeled  #same for classification
 from tools.pad import pad_verts_faces, pad_verts_faces_simple
@@ -63,11 +19,9 @@ from Nets.brain_module_cnn_contrastive_labeled import Fly_by_CNN_contrastive_lab
 from Nets.brain_module_cnn import Fly_by_CNN
 from torch.utils.data import DataLoader
 
-
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 from pytorch_lightning.callbacks import ModelCheckpoint
-from vtk.util.numpy_support import vtk_to_numpy, numpy_to_vtk
 import pandas as pd
 
 from sklearn.metrics import classification_report, confusion_matrix
@@ -131,7 +85,7 @@ brain_data=Bundles_DataModule_tractography_labeled_fibers(0,0,0,path_data, batch
 weights = brain_data.get_weights()
 # model= Fly_by_CNN_contrastive_tractography_labeled(contrastive, radius, ico_lvl, dropout_lvl, batch_size, weights, num_classes, verts_left, faces_left, verts_right, faces_right, learning_rate=0.001)
 # model= Fly_by_CNN_contrastive_tractography_labeled(contrastive, radius, ico_lvl, dropout_lvl, batch_size, weights, num_classes, learning_rate=0.001)
-model_path ="/home/timtey/Documents/Models_tensorboard/models/Loss_combine/063023/epoch=114-val_loss=-0.07.ckpt"
+model_path ="/home/timtey/Documents/Models_tensorboard/models/Loss_combine/071823/epoch=74-val_loss=-0.69.ckpt"
 
 model= Fly_by_CNN_contrastive_tractography_labeled(radius, ico_lvl, dropout_lvl, batch_size, weights, num_classes, learning_rate=0.0001)
 checkpoint = torch.load(model_path)

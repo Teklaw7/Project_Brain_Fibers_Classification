@@ -55,4 +55,3 @@ if has_fury:
                  size=(800, 800))
    if interactive:
        window.show(scene)
-

@@ -3,17 +3,12 @@ import torch
 from tools import utils
 import pytorch_lightning as pl 
 import vtk
-from pytorch3d.structures import Meshes
 from random import *
-from pytorch3d.vis.plotly_vis import plot_scene
 from vtk.util.numpy_support import vtk_to_numpy, numpy_to_vtk
-# from pytorch3d.renderer import TexturesVertex
-# from torch.utils.data._utils.collate import default_collate
 import pandas as pd
 import numpy as np
 import os
 os.environ['CUDA_LAUNCH_BLOCKING'] = "1"
-from itertools import cycle
 from torch.nn.utils.rnn import pad_sequence, pack_padded_sequence as pack_sequence, pad_packed_sequence as unpack_sequence
 from sklearn.utils.class_weight import compute_class_weight
 from Transformations.transformations import *
@@ -28,7 +23,7 @@ class ConcatDataset(torch.utils.data.Dataset):
     def __len__(self):
         return min(len(d) for d in self.datasets)
 
-class Bundles_Dataset_contrastive_tractography_labeled(Dataset):
+class Bundles_Dataset_contrastive_tractography_labeled(Dataset):    #Dataset used labeled fibers in training and validation
     def __init__(self, data, column_class='class',column_id='id', column_label='label', column_x_min = 'x_min', column_x_max = 'x_max', column_y_min = 'y_min', column_y_max = 'y_max', column_z_min = 'z_min', column_z_max = 'z_max'):
         self.data = data    #csv file with the data
         self.column_class = column_class
@@ -50,7 +45,6 @@ class Bundles_Dataset_contrastive_tractography_labeled(Dataset):
         
         sample_id, sample_class, sample_label = sample_row[self.column_id], sample_row[self.column_class], sample_row[self.column_label]
         sample_x_min, sample_x_max, sample_y_min, sample_y_max, sample_z_min, sample_z_max = sample_row[self.column_x_min], sample_row[self.column_x_max], sample_row[self.column_y_min], sample_row[self.column_y_max], sample_row[self.column_z_min], sample_row[self.column_z_max]
-        # path_cc1 = f"/CMF/data/timtey/tracts/archives/{sample_id}_tracts/{sample_class}.vtp"
         path_cc1 = f"/CMF/data/timtey/tracts/archives/{sample_id}_tracts/{sample_class}_DTI.vtk"
         cc1 = utils.ReadSurf(path_cc1)
         n = randint(0,cc1.GetNumberOfCells()-1)
@@ -81,19 +75,19 @@ class Bundles_Dataset_contrastive_tractography_labeled(Dataset):
         face_features = torch.take(vertex_features, faces_pid0_offset)
 
         ### labels ###
-        labels = torch.tensor([sample_label])
-        data_lab = torch.tensor([0]).unsqueeze(0) #1x1
-        name_l = torch.tensor(name).unsqueeze(0) #1x3
-        Fiber_infos = torch.cat((data_lab, name_l), dim=1) #1x4
-        Mean = torch.cat((torch.tensor(mean_v).unsqueeze(0), torch.tensor(mean_s).unsqueeze(0)), dim=1) # 1 x 6
-        Scale = torch.cat((torch.tensor(scale_factor_v).unsqueeze(0), torch.tensor(scale_factor_s).unsqueeze(0)), dim=0).unsqueeze(0) # 1 x 2
+        labels = torch.tensor([sample_label])   # label of the fiber
+        data_lab = torch.tensor([0]).unsqueeze(0) #1x1  # label to know if it comes from bundle set or tractography set
+        name_l = torch.tensor(name).unsqueeze(0) #1x3   # informations about the fiber : subject id, label, id of the cell
+        Fiber_infos = torch.cat((data_lab, name_l), dim=1) #1x4 # in order to get the informations about the fiber for the test set : label, id, label, n
+        Mean = torch.cat((torch.tensor(mean_v).unsqueeze(0), torch.tensor(mean_s).unsqueeze(0)), dim=1) # 1 x 6 # informations for normalization
+        Scale = torch.cat((torch.tensor(scale_factor_v).unsqueeze(0), torch.tensor(scale_factor_s).unsqueeze(0)), dim=0).unsqueeze(0) # 1 x 2   # informations for normalization
         return verts,faces,face_features,labels, Fiber_infos, Mean, Scale
     
 
-class Bundles_Dataset_tractography(Dataset):
+class Bundles_Dataset_tractography(Dataset):    # dataset used for the tractography for training and validation
     def __init__(self, data, tractography_list_vtk, column_surf='surf',column_class='class',column_id='id', column_label='label', column_x_min = 'x_min', column_x_max = 'x_max', column_y_min = 'y_min', column_y_max = 'y_max', column_z_min = 'z_min', column_z_max = 'z_max'):
         self.data = data # csv file
-        self.tractography_list_vtk = tractography_list_vtk
+        self.tractography_list_vtk = tractography_list_vtk # list of vtk files from tractography
         self.column_surf = column_surf
         self.column_class = column_class
         self.column_id = column_id
@@ -122,8 +116,8 @@ class Bundles_Dataset_tractography(Dataset):
                           '121618_1', '121618_2', '121618_3', '121618_4',
                           '124220_1', '124220_2', '124220_3', '124220_4',
                           '124826_1', '124826_2', '124826_3', '124826_4',
-                          '139233_1', '139233_2', '139233_3', '139233_4']
-        tracts_idx = list_sample_id.index(str(sample_id))
+                          '139233_1', '139233_2', '139233_3', '139233_4'] # list of the subjects id for tractography
+        tracts_idx = list_sample_id.index(str(sample_id)) 
         tracts = self.tractography_list_vtk[tracts_idx]
         n = randint(0,tracts.GetNumberOfCells()-1)
 
@@ -135,7 +129,7 @@ class Bundles_Dataset_tractography(Dataset):
         tracts_f = tracts_tf.GetOutput()
         verts, faces, edges = utils.PolyDataToTensors(tracts_f)
         
-        while verts.shape[0] < 100:
+        while verts.shape[0] < 100: #test to include only fibers with more than 100 points
             n = randint(0,tracts.GetNumberOfCells()-1)
             tracts_extract = utils.ExtractFiber(tracts,n)
             name = [int(sample_id), sample_label, n]
@@ -161,19 +155,19 @@ class Bundles_Dataset_tractography(Dataset):
         faces_pid0_offset = offset + torch.multiply(faces_pid0, vertex_features.shape[1])
         face_features = torch.take(vertex_features, faces_pid0_offset)
 
-        labels = torch.tensor([sample_label])
-        data_lab = torch.tensor([1]).unsqueeze(0) #1x1
-        name_l = torch.tensor(name).unsqueeze(0) #1x3
-        Fiber_infos = torch.cat((data_lab, name_l), dim=1) #1x4
-        mean_v = torch.tensor(mean_v).unsqueeze(0) #1x3
+        labels = torch.tensor([sample_label]) # label which is 1 for the tractography but it's not important because it's not used after 
+        data_lab = torch.tensor([1]).unsqueeze(0) #1x1  # label to know if it comes from bundle set or tractography set 1 is for tractography
+        name_l = torch.tensor(name).unsqueeze(0) #1x3   # informations about the fiber : subject id, label, id of the cell
+        Fiber_infos = torch.cat((data_lab, name_l), dim=1) #1x4 # info about the fiber
+        mean_v = torch.tensor(mean_v).unsqueeze(0) #1x3 
         mean_s = torch.tensor(mean_s).unsqueeze(0) #1x3
-        Mean = torch.cat((mean_v, mean_s), dim=1) # 1x6
-        Scale = torch.cat((torch.tensor(scale_factor_v).unsqueeze(0), torch.tensor(scale_factor_s).unsqueeze(0)), dim=0).unsqueeze(0) #1x2
+        Mean = torch.cat((mean_v, mean_s), dim=1) # 1x6 #information for normalization
+        Scale = torch.cat((torch.tensor(scale_factor_v).unsqueeze(0), torch.tensor(scale_factor_s).unsqueeze(0)), dim=0).unsqueeze(0) #1x2  #information for normalization
 
         return verts,faces,face_features,labels, Fiber_infos, Mean, Scale
 
 
-class Bundles_Dataset_test_contrastive_tractography_labeled(Dataset):
+class Bundles_Dataset_test_contrastive_tractography_labeled(Dataset):   # dataset for testing
     def __init__(self, data, L, fibers, index_csv, column_class='class',column_id='id', column_label='label', column_x_min = 'x_min', column_x_max = 'x_max', column_y_min = 'y_min', column_y_max = 'y_max', column_z_min = 'z_min', column_z_max = 'z_max'):
         self.data = data
         self.L = L
@@ -221,16 +215,16 @@ class Bundles_Dataset_test_contrastive_tractography_labeled(Dataset):
         faces_pid0_offset = offset + torch.multiply(faces_pid0, vertex_features.shape[1])
         face_features = torch.take(vertex_features, faces_pid0_offset)
 
-        labels = torch.tensor([sample_label])
-        data_lab = torch.tensor([2]).unsqueeze(0) # 1 x 1
-        name_l = torch.tensor(name).unsqueeze(0) # 1 x 3
-        Fiber_infos = torch.cat((data_lab, name_l), dim=1) # 1 x 4
+        labels = torch.tensor([sample_label]) # label of the fiber
+        data_lab = torch.tensor([2]).unsqueeze(0) # 1 x 1 # label to know if it comes from bundle set or tractography set
+        name_l = torch.tensor(name).unsqueeze(0) # 1 x 3    # informations about the fiber : subject id, label, id of the cell
+        Fiber_infos = torch.cat((data_lab, name_l), dim=1) # 1 x 4  #information about the fiber
         mean_v = torch.tensor(mean_v).unsqueeze(0) # 1 x 3
         mean_s = torch.tensor(mean_s).unsqueeze(0) # 1 x 3
-        Mean = torch.cat((mean_v, mean_s), dim=1) # 1 x 6
+        Mean = torch.cat((mean_v, mean_s), dim=1) # 1 x 6   #information for normalization
         scale_factor_v = torch.tensor(scale_factor_v).unsqueeze(0) # 1 
         scale_factor_s = torch.tensor(scale_factor_s).unsqueeze(0) # 1 
-        Scale = torch.cat((scale_factor_v, scale_factor_s), dim=0).unsqueeze(0) # 1 x 2
+        Scale = torch.cat((scale_factor_v, scale_factor_s), dim=0).unsqueeze(0) # 1 x 2 #information for normalization
 
         return verts,faces,face_features,labels,Fiber_infos, Mean, Scale
 
@@ -292,14 +286,15 @@ class Bundles_DataModule_tractography_labeled_fibers(pl.LightningDataModule):
         list_train_tractography_data = pd.read_csv(self.path_tractography_train)
         list_val_tractography_data = pd.read_csv(self.path_tractography_valid)
         list_test_tractography_data = pd.read_csv(self.path_tractography_test)
-        
+        # dataset for labeled fibers
         self.train_dataset = Bundles_Dataset_contrastive_tractography_labeled(list_train_data)
         self.val_dataset = Bundles_Dataset_contrastive_tractography_labeled(list_val_data)
         self.test_dataset = Bundles_Dataset_test_contrastive_tractography_labeled(list_test_data, self.L, self.fibers, self.index_csv)
+        # dataset for tractography fibers
         self.train_tractography_dataset = Bundles_Dataset_tractography(list_train_tractography_data, self.tractography_list_vtk)
         self.val_tractography_dataset = Bundles_Dataset_tractography(list_val_tractography_data, self.tractography_list_vtk)
         self.test_tractography_dataset = Bundles_Dataset_tractography(list_test_tractography_data, self.tractography_list_vtk)
-
+        # concatenation of datasets when we want to train with labeled fibers and tractography fibers
         self.concatenated_train_dataset = ConcatDataset(self.train_dataset, self.train_tractography_dataset)
         self.concatenated_val_dataset = ConcatDataset(self.val_dataset, self.val_tractography_dataset)
         self.concatenated_test_dataset = ConcatDataset(self.test_dataset, self.test_tractography_dataset)
@@ -322,7 +317,7 @@ class Bundles_DataModule_tractography_labeled_fibers(pl.LightningDataModule):
     def get_weights(self):
         return self.weights
 
-    def pad_verts_faces_simple(self, batch):
+    def pad_verts_faces_simple(self, batch):    # fonction used for padding when we have just datas from one dataset
         verts = [v for v, f, vdf, l ,f_infos, m, s in batch]
         faces = [f for v, f, vdf, l ,f_infos, m, s  in batch]
         verts_data_faces = [vdf for v, f, vdf, l ,f_infos, m, s in batch]
@@ -341,7 +336,7 @@ class Bundles_DataModule_tractography_labeled_fibers(pl.LightningDataModule):
 
         return verts, faces, verts_data_faces, labels, f_infos, mean, scale
 
-    def pad_verts_faces(self, batch):
+    def pad_verts_faces(self, batch):   # fonction used for padding when we have datas from two datasets
         labeled_fibers = ()
         tractography_fibers = ()
         for i in range(len(batch)):

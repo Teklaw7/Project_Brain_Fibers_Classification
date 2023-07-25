@@ -2,9 +2,6 @@
 from pytorch_lightning.callbacks import Callback
 import torchvision
 import torch
-import torchvision.transforms as T
-import torchvision.transforms.functional as F
-import pytorch3d.transforms as T3d
 from torch.nn.utils.rnn import pad_sequence, pack_padded_sequence as pack_sequence, pad_packed_sequence as unpack_sequence
 from Transformations.transformations import *
 

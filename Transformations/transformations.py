@@ -1,36 +1,9 @@
 import numpy as np
 import torch
-from torch import nn
-import torch.optim as optim
-import pytorch_lightning as pl 
-import torchvision.models as models
-from torch.nn.functional import softmax
-import torchmetrics
-from tools import utils
-import torch.nn.functional as F
-import torchvision.transforms as T
-from torchvision.models import resnet18, ResNet18_Weights
-from pytorch3d.renderer import (
-    FoVPerspectiveCameras, look_at_view_transform, look_at_rotation, 
-    RasterizationSettings, MeshRenderer, MeshRasterizer, BlendParams,
-    SoftSilhouetteShader, HardPhongShader, SoftPhongShader, AmbientLights, PointLights, TexturesUV, TexturesVertex,
-)
-from pytorch3d.renderer.blending import sigmoid_alpha_blend, hard_rgb_blend
-from pytorch3d.structures import Meshes, join_meshes_as_scene
-from sklearn.metrics import classification_report, confusion_matrix, accuracy_score
-from pytorch3d.vis.plotly_vis import plot_scene
 import os
 os.environ['CUDA_LAUNCH_BLOCKING'] = "1"
-from sklearn.utils.class_weight import compute_class_weight
-import random
 import pytorch3d.transforms as T3d
-import matplotlib.pyplot as plt
-from sklearn.manifold import TSNE
-from sklearn.cluster import KMeans
-# import MLP
-import random
 from torch.nn.utils.rnn import pad_sequence, pack_padded_sequence as pack_sequence, pad_packed_sequence as unpack_sequence
-import pandas as pd
 
 def transformation_verts_by_fiber(verts, mean_f, scale_f):
     va = verts - mean_f

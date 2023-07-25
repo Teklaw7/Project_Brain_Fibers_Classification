@@ -1,64 +1,15 @@
 from __future__ import print_function
-import argparse
-import configparser
-import glob
-import json
 import os
 from os import path as osp
 from os.path import basename as osbn
 from time import time
 os.environ['CUDA_LAUNCH_BLOCKING'] = "1"
-import ants
-import nibabel as nib
 import numpy as np
 import torch
-import torch.nn.functional as F
-import matplotlib.pyplot as plt
 from logger import BrainNetImageLogger_contrastive_tractography_labeled, BrainNetImageLogger
 from pytorch_lightning.loggers import TensorBoardLogger
-#from torch_geometric.data import Batch as gBatch
-#from torch_geometric.data import DataListLoader as gDataLoader
-from vtkmodules.vtkFiltersGeneral import (
-    vtkCurvatures,
-    vtkTransformFilter
-)
-from vtkmodules.numpy_interface import dataset_adapter as dsa
-from vtkmodules.vtkFiltersCore import (
-    vtkFeatureEdges,
-    vtkIdFilter
-)
-from vtk.util import numpy_support
-from vtkmodules.vtkCommonCore import (
-    VTK_DOUBLE,
-    vtkIdList,
-    vtkVersion
-)
-#from sDEC import DECSeq
-#import datasets as ds
-#from utils import ReadSurf , PolyDataToNumpy
 from tools import utils
-import pytorch3d
-import pytorch3d.renderer as pyr
-from pytorch3d.utils import ico_sphere
-from pytorch3d.io import load_obj
-from pytorch3d.structures import Meshes, join_meshes_as_scene
-from pytorch3d.ops import sample_points_from_meshes
-from pytorch3d.loss import chamfer_distance
-from pytorch3d.vis.plotly_vis import plot_scene
 import vtk
-from pytorch3d.renderer import (
-    look_at_view_transform,
-    FoVPerspectiveCameras, 
-    PointLights, 
-    DirectionalLights, 
-    Materials, 
-    RasterizationSettings, 
-    MeshRenderer, 
-    MeshRasterizer,  
-    SoftPhongShader,
-    TexturesUV,
-    TexturesVertex
-)
 
 from Data_Loaders.data_module_contrastive_tractography_labeled import Bundles_DataModule_tractography_labeled_fibers
 from Data_Loaders.data_module_contrastive_labeled import Bundles_Dataset_contrastive_labeled  #same for classification
@@ -70,7 +21,6 @@ from Nets.brain_module_cnn import Fly_by_CNN
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 from pytorch_lightning.callbacks import ModelCheckpoint
-from vtk.util.numpy_support import vtk_to_numpy, numpy_to_vtk
 import pandas as pd
 
 from sklearn.metrics import classification_report, confusion_matrix

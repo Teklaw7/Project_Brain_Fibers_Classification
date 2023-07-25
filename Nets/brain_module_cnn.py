@@ -240,21 +240,21 @@ class Fly_by_CNN(pl.LightningModule):
 
         self.R = torch.cat(R)
         self.T = torch.cat(T)
-        if contrastive:
-            self.R = self.R.to(torch.float32)
-            self.T = self.T.to(torch.float32)
+        # if contrastive:
+            # self.R = self.R.to(torch.float32)
+            # self.T = self.T.to(torch.float32)
         efficient_net = models.resnet50(pretrained=True)
         efficient_net_fibers = models.resnet50(pretrained=True)
         efficient_net_brain = models.resnet50(pretrained=True)
-        if contrastive:
-            efficient_net.conv1 = nn.Conv2d(1, 64, kernel_size=(7, 7), stride=(2, 2), padding=(3, 3), bias=False)
-        else:
+        # if contrastive:
+            # efficient_net.conv1 = nn.Conv2d(1, 64, kernel_size=(7, 7), stride=(2, 2), padding=(3, 3), bias=False)
+        # else:
             # efficient_net.conv1 = nn.Conv2d(8, 64, kernel_size=(7, 7), stride=(2, 2), padding=(3, 3), bias=False)
             # efficient_net_fibers.conv1 = nn.Conv2d(8, 64, kernel_size=(7, 7), stride=(2, 2), padding=(3, 3), bias=False)
             # efficient_net_brain.conv1 = nn.Conv2d(8, 64, kernel_size=(7, 7), stride=(2, 2), padding=(3, 3), bias=False)
-            efficient_net.conv1 = nn.Conv2d(10, 64, kernel_size=(7, 7), stride=(2, 2), padding=(3, 3), bias=False)#depthmap
-            efficient_net_fibers.conv1 = nn.Conv2d(10, 64, kernel_size=(7, 7), stride=(2, 2), padding=(3, 3), bias=False)#depthmap
-            efficient_net_brain.conv1 = nn.Conv2d(10, 64, kernel_size=(7, 7), stride=(2, 2), padding=(3, 3), bias=False) #depthmap
+        efficient_net.conv1 = nn.Conv2d(10, 64, kernel_size=(7, 7), stride=(2, 2), padding=(3, 3), bias=False)#depthmap
+        efficient_net_fibers.conv1 = nn.Conv2d(10, 64, kernel_size=(7, 7), stride=(2, 2), padding=(3, 3), bias=False)#depthmap
+        efficient_net_brain.conv1 = nn.Conv2d(10, 64, kernel_size=(7, 7), stride=(2, 2), padding=(3, 3), bias=False) #depthmap
         efficient_net.fc = Identity()
         efficient_net_fibers.fc = Identity()
         efficient_net_brain.fc = Identity()
@@ -290,12 +290,6 @@ class Fly_by_CNN(pl.LightningModule):
         self.pooling_fiber = AvgPoolImages(nbr_images=12) #change if we want brains 24 with brains
         self.pooling_brain = AvgPoolImages(nbr_images=12) #change if we want brains 24 with brains
         #######
-
-        #conv2dForQuery = nn.Conv2d(1280, 1280, kernel_size=(3,3),stride=2,padding=0) #1280,512
-        #conv2dForValues = nn.Conv2d(512, 512, kernel_size=(3,3),stride=2,padding=0)  #512,512
-
-        #self.IcosahedronConv2dForQuery = IcosahedronConv2d(conv2dForQuery,self.ico_sphere_verts,self.ico_sphere_edges)
-        #self.IcosahedronConv2dForValues = IcosahedronConv2d(conv2dForValues,self.ico_sphere_verts,self.ico_sphere_edges)
         
         #######
         self.Attention = SelfAttention(512, 128)
@@ -306,15 +300,10 @@ class Fly_by_CNN(pl.LightningModule):
         #######
 
         self.Classification = nn.Linear(768, num_classes) #256, if just fiber normalized by brain, but 512 if fiber normalized by fiber and fiber normalized by brain
-        # self.Classification_fiber = nn.Linear(256, num_classes)
 
-
-        # self.Sigmoid = nn.Sigmoid()
         self.loss = nn.CrossEntropyLoss()
         self.train_accuracy = torchmetrics.Accuracy(task="multiclass", num_classes=57)
         self.val_accuracy = torchmetrics.Accuracy(task="multiclass", num_classes=57)
-
-        # compute_class_weight('balanced', np.unique(self.train_dataset.labels), self.train_dataset.labels)
 
         self.cameras = FoVPerspectiveCameras()
 
@@ -333,12 +322,7 @@ class Fly_by_CNN(pl.LightningModule):
                 raster_settings=raster_settings
             )
 
-
         self.phong_renderer = MeshRenderer(
-            rasterizer=rasterizer,
-            shader=HardPhongShader(cameras=self.cameras, lights=lights)
-        )
-        self.phong_renderer_brain = MeshRenderer(
             rasterizer=rasterizer,
             shader=HardPhongShader(cameras=self.cameras, lights=lights)
         )
@@ -434,13 +418,12 @@ class Fly_by_CNN(pl.LightningModule):
         FB = FB.to(self.device)
         FFB = FFB.to(self.device)
         labels = labels.to(self.device)
-        labelsFI = labelsFI.to(self.device)
         
-        V = transformation_verts(V, sample_min_max)
-        VFI = transformation_verts_by_fiber(VFI, vfbounds)
+        V = transformation_verts(V, sample_min_max) # normalization of the fiber by the bounds of brain structure
+        VFI = transformation_verts_by_fiber(VFI, vfbounds)  # normalization of the fiber by the bounds of fiber structure
         x = self((V, F, FF, VFI, FFI, FFFI, VB, FB, FFB))
         predictions = torch.argmax(x, dim=1)
-        loss = self.loss_train(x, labels)
+        loss = self.loss_train(x, labels) # loss cross entropy
         self.log('train_loss', loss, batch_size=self.batch_size)
         self.train_accuracy(predictions.reshape(-1,1), labels.reshape(-1,1))
         self.log('train_accuracy', self.train_accuracy, batch_size=self.batch_size)
@@ -461,11 +444,11 @@ class Fly_by_CNN(pl.LightningModule):
         FB = FB.to(self.device)
         FFB = FFB.to(self.device)
         labels = labels.to(self.device)
-        labelsFI = labelsFI.to(self.device)
-        V = transformation_verts(V, sample_min_max)
-        VFI = transformation_verts_by_fiber(VFI, vfbounds)
+
+        V = transformation_verts(V, sample_min_max) # normalization of the fiber by the bounds of brain structure
+        VFI = transformation_verts_by_fiber(VFI, vfbounds) # normalization of the fiber by the bounds of fiber structure
         x = self((V, F, FF, VFI, FFI, FFFI, VB, FB, FFB))
-        loss = self.loss_val(x, labels)
+        loss = self.loss_val(x, labels) # loss cross entropy
         self.log('val_loss', loss.item(), batch_size=self.batch_size)
         predictions = torch.argmax(x, dim=1)
         self.val_accuracy(predictions.reshape(-1,1), labels.reshape(-1,1))
@@ -484,12 +467,11 @@ class Fly_by_CNN(pl.LightningModule):
         FB = FB.to(self.device)
         FFB = FFB.to(self.device)
         labels = labels.to(self.device)
-        labelsFI = labelsFI.to(self.device)
 
-        V = transformation_verts(V, sample_min_max)
-        VFI = transformation_verts_by_fiber(VFI, vfbounds)
+        V = transformation_verts(V, sample_min_max) # normalization of the fiber by the bounds of brain structure
+        VFI = transformation_verts_by_fiber(VFI, vfbounds) # normalization of the fiber by the bounds of fiber structure
         x = self((V, F, FF, VFI, FFI, FFFI, VB, FB, FFB))
-        loss = self.loss_test(x, labels)
+        loss = self.loss_test(x, labels) # loss cross entropy
         self.log('test_loss', loss, batch_size=self.batch_size)
         
         predictions = torch.argmax(x, dim=1)

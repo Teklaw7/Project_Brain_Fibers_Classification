@@ -4,8 +4,6 @@ from torch import nn
 import torch.optim as optim
 import pytorch_lightning as pl 
 import torchvision.models as models
-# from torch.nn.functional import softmax
-import torchmetrics
 from tools import utils
 import torch.nn.functional as F
 import torchvision.transforms as T
@@ -15,19 +13,10 @@ from pytorch3d.renderer import (
     RasterizationSettings, MeshRenderer, MeshRasterizer, BlendParams,
     SoftSilhouetteShader, HardPhongShader, SoftPhongShader, AmbientLights, PointLights, TexturesUV, TexturesVertex,
 )
-# from pytorch3d.renderer.blending import sigmoid_alpha_blend, hard_rgb_blend
 from pytorch3d.structures import Meshes, join_meshes_as_scene
 from sklearn.metrics import classification_report, confusion_matrix, accuracy_score
-# from pytorch3d.vis.plotly_vis import plot_scene
 import os
 os.environ['CUDA_LAUNCH_BLOCKING'] = "1"
-from sklearn.utils.class_weight import compute_class_weight
-# import pytorch3d.transforms as T3d
-# import matplotlib.pyplot as plt
-# from sklearn.manifold import TSNE
-# from sklearn.cluster import KMeans
-# import MLP
-import random
 from torch.nn.utils.rnn import pad_sequence, pack_padded_sequence as pack_sequence, pad_packed_sequence as unpack_sequence
 import pandas as pd
 from Transformations.transformations import *
@@ -231,7 +220,7 @@ class SelfAttention(nn.Module):
 #         output = output.contiguous().view(size_initial)
 #         return output
 
-class ProjectionHead(nn.Module):
+class ProjectionHead(nn.Module): # class to create a projection of the fiber
     def __init__(self, input_dim=1280, hidden_dim=1280, output_dim=128):
         super().__init__()
         self.output_dim = output_dim
@@ -340,20 +329,20 @@ class Fly_by_CNN_contrastive_tractography_labeled(pl.LightningModule):
 
     def forward(self, x):
         V, V1, V2, F, FF, VFI, VFI1, VFI2, FFI, FFFI = x
-        x, PF = self.render(V,F,FF) # bs, 12,nb_features, 224, 224
-        X1, PF1 = self.render(V1,F,FF)
-        X2, PF2 = self.render(V2,F,FF)
-        x_fiber, PF_fiber = self.render(VFI,FFI,FFFI)   # bs, 12,nb_features, 224, 224
-        X1_fiber, PF1_fiber = self.render(VFI1,FFI,FFFI)
-        X2_fiber, PF2_fiber = self.render(VFI2,FFI,FFFI)
+        x, PF = self.render(V,F,FF) # bs, 12,nb_features, 224, 224 #fiber normalized by brain bounds
+        X1, PF1 = self.render(V1,F,FF)  #   fisrt augmentation of fiber normalized by brain bounds
+        X2, PF2 = self.render(V2,F,FF)  #   second augmentation of fiber normalized by brain bounds
+        x_fiber, PF_fiber = self.render(VFI,FFI,FFFI)   # bs, 12,nb_features, 224, 224  #fiber normalized by fiber bounds
+        X1_fiber, PF1_fiber = self.render(VFI1,FFI,FFFI)    #   fisrt augmentation of fiber normalized by fiber bounds
+        X2_fiber, PF2_fiber = self.render(VFI2,FFI,FFFI)    #   second augmentation of fiber normalized by fiber bounds
 
-        proj_fiber = self.model_original(x_fiber) #bs,512
-        proj_brain = self.model_brain(x) #bs,512
+        proj_fiber = self.model_original(x_fiber) #bs,512   # result of the model for the fiber normalized by fiber bounds
+        proj_brain = self.model_brain(x) #bs,512    # result of the model for the fiber normalized by brain bounds
 
-        proj_fiber_1 = self.model_original(X1_fiber)
-        proj_brain_1 = self.model_brain(X1)
-        proj_fiber_2 = self.model_original(X2_fiber)
-        proj_brain_2 = self.model_brain(X2)
+        proj_fiber_1 = self.model_original(X1_fiber)    #   fisrt augmentation of fiber normalized by fiber bounds
+        proj_brain_1 = self.model_brain(X1) #bs,512 #   fisrt augmentation of fiber normalized by brain bounds
+        proj_fiber_2 = self.model_original(X2_fiber)    #   second augmentation of fiber normalized by fiber bounds
+        proj_brain_2 = self.model_brain(X2) #bs,512 #   second augmentation of fiber normalized by brain bounds
         middle = proj_fiber.shape[0]//2
         x = torch.cat((proj_fiber, proj_brain), dim=1) #bs,1024
         x_class = torch.cat((proj_fiber[:middle], proj_brain[:middle]), dim=1) # we take just the first half from labeled fibers
@@ -361,9 +350,9 @@ class Fly_by_CNN_contrastive_tractography_labeled(pl.LightningModule):
         xb2 = torch.cat((proj_fiber_2[:middle], proj_brain_2[:middle]), dim=1)
         x1 = torch.cat((proj_fiber_1[middle:], proj_brain_1[middle:]), dim=1)
         x2 = torch.cat((proj_fiber_2[middle:], proj_brain_2[middle:]), dim=1)
-        # res_for_class = self.Classification(x_class) #bs,57
+        # res_for_class = self.Classification(x_class) #bs,57   #if we use the classification in the loss function
         # return self.Projection(x), res_for_class, self.Projection(x1), self.Projection(x2)
-        return self.Projection(x), self.Projection(xb1), self.Projection(xb2), self.Projection(x1), self.Projection(x2)
+        return self.Projection(x), self.Projection(xb1), self.Projection(xb2), self.Projection(x1), self.Projection(x2) #return projections of the augmentations and the original fibers
 
     
     def configure_optimizers(self):
@@ -455,7 +444,7 @@ class Fly_by_CNN_contrastive_tractography_labeled(pl.LightningModule):
         #     lights = lights / torch.norm(lights, dim=1, keepdim=True)
 
         # loss_cross_entropy = self.loss_cross_entropy(x_class, labels_b)
-        lam = 1
+        lam = 1 # hyperparameter for loss align and uniformity
         # loss_align_uniformity = align_loss(lights[labels_b], proj_test_b) + 0.1*lam * (uniform_loss(proj_test_b) + uniform_loss(lights[labels_b])) / 2 
         loss_align_uniformity = align_loss(proj_bundle1, proj_bundle2) + 0.1*lam * (uniform_loss(proj_bundle1) + uniform_loss(proj_bundle2)) / 2 
 
@@ -596,7 +585,7 @@ class Fly_by_CNN_contrastive_tractography_labeled(pl.LightningModule):
         data_lab = data_lab.unsqueeze(dim = 1)
         proj_test_save = torch.cat((proj_test, labels2, name_labels, data_lab), dim=1)
         lab = np.array(torch.unique(labels).cpu())
-        torch.save(proj_test_save, f"/CMF/data/timtey/results_contrastive_learning_071823/proj_test_{lab[-1]}_{tot}.pt")
+        # torch.save(proj_test_save, f"/CMF/data/timtey/results_contrastive_learning_071823_best/proj_test_{lab[-1]}_{tot}.pt")
 
     def test_epoch_end(self, outputs):
         self.y_pred = []
