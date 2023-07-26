@@ -42,12 +42,12 @@ min_delta_early_stopping = 0.00
 patience_early_stopping= 30
 num_workers=12
 path_data="/CMF/data/timtey/tracts/archives"
-path_tractography_train = "/CMF/data/timtey/datasets/dataset4/tractography_3_train.csv"
-path_tractography_valid = "/CMF/data/timtey/datasets/dataset4/tractography_3_valid.csv"
-path_tractography_test = "/CMF/data/timtey/datasets/dataset4/tractography_3_test.csv"
-path_train_final = "/CMF/data/timtey/datasets/dataset4/tracts_filtered_train_train_label_to_number_without_missing.csv"
-path_valid_final = "/CMF/data/timtey/datasets/dataset4/tracts_filtered_train_valid_label_to_number_without_missing.csv"
-path_test_final = "/CMF/data/timtey/datasets/dataset4/tracts_filtered_train_test_label_to_number_nb_cells_without_missing_2_part.csv"
+path_tractography_train = "/CMF/data/timtey/datasets/tractography_3_train.csv"
+path_tractography_valid = "/CMF/data/timtey/datasets/tractography_3_valid.csv"
+path_tractography_test = "/CMF/data/timtey/datasets/tractography_3_test.csv"
+path_train_final = "/CMF/data/timtey/datasets/tracts_filtered_train_train_label_to_number_without_missing.csv"
+path_valid_final = "/CMF/data/timtey/datasets/tracts_filtered_train_valid_label_to_number_without_missing.csv"
+path_test_final = "/CMF/data/timtey/datasets/tracts_filtered_train_test_label_to_number_nb_cells_without_missing_2_part.csv"
 
 checkpoint_callback = ModelCheckpoint(
     dirpath='/home/timtey/Documents/Models_tensorboard/models/Loss_combine/071823', # to change the folder for tensorboardlogger
@@ -56,7 +56,7 @@ checkpoint_callback = ModelCheckpoint(
     save_top_k=3
 )
 
-path_tract_dataset = "/CMF/data/timtey/datasets/dataset4/tractography_3.csv"  
+path_tract_dataset = "/CMF/data/timtey/datasets/tractography_3.csv"  
 df_tract_dataset = pd.read_csv(path_tract_dataset)
 tractography_list_vtk = []
 for i in range(len(df_tract_dataset)):
