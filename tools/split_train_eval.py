@@ -2,7 +2,6 @@ import argparse
 import os
 import pandas as pd 
 import numpy as np 
-from sklearn.model_selection import train_test_split
 
 parser = argparse.ArgumentParser(description='Splits data into train/eval', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 parser.add_argument('--csv', type=str, help='CSV file', required=True)

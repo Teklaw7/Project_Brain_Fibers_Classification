@@ -223,7 +223,6 @@ class Fly_by_CNN(pl.LightningModule):
         self.faces_left = faces_left
         self.verts_right = verts_right
         self.faces_right = faces_right
-        #ico_sphere, _a, _v = utils.RandomRotation(utils.CreateIcosahedron(self.radius, ico_lvl))
         ico_sphere = utils.CreateIcosahedron(self.radius, ico_lvl)
         ico_sphere_verts, ico_sphere_faces, self.ico_sphere_edges = utils.PolyDataToTensors(ico_sphere)
         self.ico_sphere_verts = ico_sphere_verts
@@ -240,18 +239,9 @@ class Fly_by_CNN(pl.LightningModule):
 
         self.R = torch.cat(R)
         self.T = torch.cat(T)
-        # if contrastive:
-            # self.R = self.R.to(torch.float32)
-            # self.T = self.T.to(torch.float32)
         efficient_net = models.resnet50(pretrained=True)
         efficient_net_fibers = models.resnet50(pretrained=True)
         efficient_net_brain = models.resnet50(pretrained=True)
-        # if contrastive:
-            # efficient_net.conv1 = nn.Conv2d(1, 64, kernel_size=(7, 7), stride=(2, 2), padding=(3, 3), bias=False)
-        # else:
-            # efficient_net.conv1 = nn.Conv2d(8, 64, kernel_size=(7, 7), stride=(2, 2), padding=(3, 3), bias=False)
-            # efficient_net_fibers.conv1 = nn.Conv2d(8, 64, kernel_size=(7, 7), stride=(2, 2), padding=(3, 3), bias=False)
-            # efficient_net_brain.conv1 = nn.Conv2d(8, 64, kernel_size=(7, 7), stride=(2, 2), padding=(3, 3), bias=False)
         efficient_net.conv1 = nn.Conv2d(10, 64, kernel_size=(7, 7), stride=(2, 2), padding=(3, 3), bias=False)#depthmap
         efficient_net_fibers.conv1 = nn.Conv2d(10, 64, kernel_size=(7, 7), stride=(2, 2), padding=(3, 3), bias=False)#depthmap
         efficient_net_brain.conv1 = nn.Conv2d(10, 64, kernel_size=(7, 7), stride=(2, 2), padding=(3, 3), bias=False) #depthmap
@@ -261,7 +251,6 @@ class Fly_by_CNN(pl.LightningModule):
 
         self.drop = nn.Dropout(p=dropout_lvl)
         self.TimeDistributed = TimeDistributed(efficient_net)
-        # print("TimeDistributed", self.TimeDistributed)
         self.TimeDistributed_fiber = TimeDistributed(efficient_net_fibers)
         self.TimeDistributed_brain = TimeDistributed(efficient_net_brain)
 
@@ -277,12 +266,9 @@ class Fly_by_CNN(pl.LightningModule):
         output_size = self.TimeDistributed.module.inplanes
         output_size_fiber = self.TimeDistributed_fiber.module.inplanes
         output_size_brain = self.TimeDistributed_brain.module.inplanes
-        # conv2d = nn.Conv2d(512, 256, kernel_size=(3,3),stride=2,padding=0) 
         conv2d = nn.Conv2d(2048, 256, kernel_size=(3,3),stride=2,padding=0)
         conv2d_fiber = nn.Conv2d(2048, 256, kernel_size=(3,3),stride=2,padding=0)
         conv2d_brain = nn.Conv2d(2048, 256, kernel_size=(3,3),stride=2,padding=0)
-        # conv2d_fiber = nn.Conv2d(512, 256, kernel_size=(3,3),stride=2,padding=0)
-        # conv2d_brain = nn.Conv2d(512, 256, kernel_size=(3,3),stride=2,padding=0)
         self.IcosahedronConv2d = IcosahedronConv2d(conv2d,self.ico_sphere_verts,self.ico_sphere_edges)
         self.IcosahedronConv2d_fiber = IcosahedronConv2d(conv2d_fiber,self.ico_sphere_verts,self.ico_sphere_edges)
         self.IcosahedronConv2d_brain = IcosahedronConv2d(conv2d_brain,self.ico_sphere_verts,self.ico_sphere_edges)

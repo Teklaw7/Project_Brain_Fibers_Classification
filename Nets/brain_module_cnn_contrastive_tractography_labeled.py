@@ -295,8 +295,8 @@ class Fly_by_CNN_contrastive_tractography_labeled(pl.LightningModule):
         self.model_original = Fly_by_Contrastive()
         self.model_brain = Fly_by_Contrastive()
         self.Classification = nn.Linear(1024, 57)
-        self.Projection = ProjectionHead(input_dim=1024, hidden_dim=512, output_dim=128)
-        # self.Projection = ProjectionHead(input_dim=1024, hidden_dim=512, output_dim=3)
+        self.Projection = ProjectionHead(input_dim=1024, hidden_dim=512, output_dim=128) # projections in 128D
+        # self.Projection = ProjectionHead(input_dim=1024, hidden_dim=512, output_dim=3) # projections in 3D
 
         self.cameras = FoVPerspectiveCameras()
 
@@ -318,11 +318,7 @@ class Fly_by_CNN_contrastive_tractography_labeled(pl.LightningModule):
             shader=HardPhongShader(cameras=self.cameras, lights=lights)
         )
 
-        # self.lights = torch.tensor(pd.read_pickle(r'lights_good_on_sphere.pickle')).to(self.device) #normalized
-        # self.lights = torch.tensor(pd.read_pickle(r'lights_good_on_sphere_without_norm.pickle')).to(self.device) #no normalized
-        # self.lights = torch.tensor(pd.read_pickle(r'lights_57_3d_on_positive_sphere.pickle')).to(self.device) #no normalized
-        # self.closest_lights = torch.load('closest_lights_57_3d_on_positive_sphere.pt').to(self.device) #no normalized
-        # self.lights = torch.tensor(pd.read_pickle(r'lights_57_3d_on_sphere.pickle')).to(self.device) #no normalized
+        # self.lights = torch.tensor(pd.read_pickle(r'lights_good_on_sphere.pickle')).to(self.device) #normalized # if lights are needed
         self.loss_cossine = nn.CosineSimilarity()
         self.loss_cossine_dim2 = nn.CosineSimilarity(dim=2)
         self.loss_cross_entropy = nn.CrossEntropyLoss()
@@ -345,7 +341,7 @@ class Fly_by_CNN_contrastive_tractography_labeled(pl.LightningModule):
         proj_brain_2 = self.model_brain(X2) #bs,512 #   second augmentation of fiber normalized by brain bounds
         middle = proj_fiber.shape[0]//2
         x = torch.cat((proj_fiber, proj_brain), dim=1) #bs,1024
-        x_class = torch.cat((proj_fiber[:middle], proj_brain[:middle]), dim=1) # we take just the first half from labeled fibers
+        x_class = torch.cat((proj_fiber[:middle], proj_brain[:middle]), dim=1) # we take just the first half from labeled fibers for the classification
         xb1 = torch.cat((proj_fiber_1[:middle], proj_brain_1[:middle]), dim=1)
         xb2 = torch.cat((proj_fiber_2[:middle], proj_brain_2[:middle]), dim=1)
         x1 = torch.cat((proj_fiber_1[middle:], proj_brain_1[middle:]), dim=1)
@@ -424,7 +420,7 @@ class Fly_by_CNN_contrastive_tractography_labeled(pl.LightningModule):
         V2 = randomstretching(Vo.double()).to(self.device)
         VFI1 = randomstretching(VFI.double()).to(self.device)
         VFI2 = randomstretching(VFI.double()).to(self.device)
-        V1 = randomrot(V1).to(self.device)
+        V1 = randomrot(V1).to(self.device)                            # random rotation
         V2 = randomrot(V2).to(self.device)
         VFI1 = randomrot(VFI1).to(self.device)
         VFI2 = randomrot(VFI2).to(self.device)
@@ -464,8 +460,6 @@ class Fly_by_CNN_contrastive_tractography_labeled(pl.LightningModule):
             # lights_topk = self.lights[topk_i_choosen].to(self.device) #(7,128)
             # loss_tract_cluster = self.loss_cossine(lights_topk, x1_t) #(7,57)
             # loss_tract_cluster = torch.sum(loss_tract_cluster).to(self.device)
-        else:
-            Loss_combine = 0#0loss_contrastive_bundle #+ loss_closest_point#+ 0.5*loss_contrastive_bundle_repulse #+ loss_contrastive_bundle_repulse
         # Loss_combine = loss_align_uniformity + loss_cross_entropy + loss_align_uniformity_tract#+ loss_contrastive
         Loss_combine = loss_align_uniformity + loss_align_uniformity_tract#+ loss_contrastive
         self.log('train_loss', Loss_combine.item(), batch_size=self.batch_size)
@@ -542,9 +536,6 @@ class Fly_by_CNN_contrastive_tractography_labeled(pl.LightningModule):
             # loss_tract_cluster = torch.sum(loss_tract_cluster).to(self.device)
 
             # Loss_combine = loss_contrastive_bundle + loss_contrastive_tractography + loss_contrastive_shuffle #+ loss_tract_cluster
-        else:
-            Loss_combine = 0#loss_contrastive_bundle #+ loss_closest_point#+ 0.5*loss_contrastive_bundle_repulse #+ loss_contrastive_bundle_repulse
-        # Loss_combine = loss_align_uniformity + loss_cross_entropy + loss_align_uniformity_tract#+ loss_contrastive
         Loss_combine = loss_align_uniformity + loss_align_uniformity_tract#+ loss_contrastive
         self.log('val_loss', Loss_combine.item(), batch_size=self.batch_size)
 
@@ -598,8 +589,6 @@ class Fly_by_CNN_contrastive_tractography_labeled(pl.LightningModule):
         self.y_true = [ele for sousliste in self.y_true for ele in sousliste]
         self.y_pred = [[int(ele)] for ele in self.y_pred]
         self.accuracy = accuracy_score(self.y_true, self.y_pred)
-        # print("accuracy", self.accuracy)
-        # print(classification_report(self.y_true, self.y_pred))
         
     def get_y_pred(self):
         return self.y_pred

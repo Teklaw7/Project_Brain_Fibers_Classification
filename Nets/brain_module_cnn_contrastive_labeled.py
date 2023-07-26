@@ -1,31 +1,22 @@
 import numpy as np
 import torch
 from torch import nn
-import torch.optim as optim
 import pytorch_lightning as pl 
 import torchvision.models as models
-# from torch.nn.functional import softmax
 import torchmetrics
 from tools import utils
 import torch.nn.functional as F
 import torchvision.transforms as T
 from torchvision.models import resnet18, ResNet18_Weights
-# rendering components
 from pytorch3d.renderer import (
     FoVPerspectiveCameras, look_at_view_transform, look_at_rotation, 
     RasterizationSettings, MeshRenderer, MeshRasterizer, BlendParams,
     SoftSilhouetteShader, HardPhongShader, SoftPhongShader, AmbientLights, PointLights, TexturesUV, TexturesVertex,
 )
-# from pytorch3d.renderer.blending import sigmoid_alpha_blend, hard_rgb_blend
 from pytorch3d.structures import Meshes, join_meshes_as_scene
 
-from sklearn.metrics import classification_report, confusion_matrix, accuracy_score
-# from pytorch3d.vis.plotly_vis import plot_scene
 import os
 os.environ['CUDA_LAUNCH_BLOCKING'] = "1"
-from sklearn.utils.class_weight import compute_class_weight
-# import MLP
-# import random
 from  Transformations.transformations import *
 
 
@@ -219,7 +210,6 @@ class Fly_by_CNN_contrastive_labeled(pl.LightningModule):
         self.ico_lvl = ico_lvl
         self.dropout_lvl = dropout_lvl
         self.image_size = 224
-        # self.augment = Augment(self.image_size)
         self.batch_size = batch_size
         self.weights = weights
         self.num_classes = num_classes
@@ -243,15 +233,9 @@ class Fly_by_CNN_contrastive_labeled(pl.LightningModule):
 
         self.R = torch.cat(R)
         self.T = torch.cat(T)
-        if contrastive:
-            self.R = self.R.to(torch.float32)
-            self.T = self.T.to(torch.float32)
         
         efficient_net = models.resnet18(pretrained = True)    ### maybe use weights instead of pretrained
-        if contrastive:
-            efficient_net.conv1 = nn.Conv2d(10, 64, kernel_size=(7, 7), stride=(2, 2), padding=(3, 3), bias=False)#depthmap
-        else:
-            efficient_net.conv1 = nn.Conv2d(10, 64, kernel_size=(7, 7), stride=(2, 2), padding=(3, 3), bias=False)#depthmap
+        efficient_net.conv1 = nn.Conv2d(10, 64, kernel_size=(7, 7), stride=(2, 2), padding=(3, 3), bias=False)#depthmap
         efficient_net.fc = Identity()
 
         self.drop = nn.Dropout(p=dropout_lvl)
@@ -262,7 +246,6 @@ class Fly_by_CNN_contrastive_labeled(pl.LightningModule):
         self.linear = nn.Linear(256, 256)
 
         #######
-        # output_size = self.TimeDistributed.module.inplanes
         conv2d = nn.Conv2d(512, 256, kernel_size=(3,3),stride=2,padding=0) 
         self.IcosahedronConv2d = IcosahedronConv2d(conv2d,self.ico_sphere_verts,self.ico_sphere_edges)
         self.pooling = AvgPoolImages(nbr_images=12) #change if we want brains 24 with brains
@@ -428,14 +411,14 @@ class Fly_by_CNN_contrastive_labeled(pl.LightningModule):
         labels = labels.to(self.device)
         labelsFI = labelsFI.to(self.device)
 
-        V = transformation_verts(V, sample_min_max)
+        V = transformation_verts(V, sample_min_max)     # normalisation
         VFI = transformation_verts_by_fiber(VFI, vfbounds)
         
         V1 = randomstretching(Vo.double()).to(self.device)            #random stretching
         V2 = randomstretching(Vo.double()).to(self.device)
         VFI1 = randomstretching(VFI.double()).to(self.device)
         VFI2 = randomstretching(VFI.double()).to(self.device)
-        V1 = randomrot(V1).to(self.device)
+        V1 = randomrot(V1).to(self.device)          #random rotation
         V2 = randomrot(V2).to(self.device)
         VFI1 = randomrot(VFI1).to(self.device)
         VFI2 = randomrot(VFI2).to(self.device)
@@ -464,13 +447,13 @@ class Fly_by_CNN_contrastive_labeled(pl.LightningModule):
         FFB = FFB.to(self.device)
         labels = labels.to(self.device)
         labelsFI = labelsFI.to(self.device)
-        V = transformation_verts(V, sample_min_max)
+        V = transformation_verts(V, sample_min_max)     # normalisation
         VFI = transformation_verts_by_fiber(VFI, vfbounds)
         V1 = randomstretching(Vo.double()).to(self.device)            #random stretching
         V2 = randomstretching(Vo.double()).to(self.device)
         VFI1 = randomstretching(VFI.double()).to(self.device)
         VFI2 = randomstretching(VFI.double()).to(self.device)
-        V1 = randomrot(V1).to(self.device)
+        V1 = randomrot(V1).to(self.device)          #random rotation
         V2 = randomrot(V2).to(self.device)
         VFI1 = randomrot(VFI1).to(self.device)
         VFI2 = randomrot(VFI2).to(self.device)
@@ -497,13 +480,13 @@ class Fly_by_CNN_contrastive_labeled(pl.LightningModule):
         FFB = FFB.to(self.device)
         labels = labels.to(self.device)
         labelsFI = labelsFI.to(self.device)
-        V = transformation_verts(V, sample_min_max)
+        V = transformation_verts(V, sample_min_max) # normalisation
         VFI = transformation_verts_by_fiber(VFI, vfbounds)
         V1 = randomstretching(Vo.double()).to(self.device)            #random stretching
         V2 = randomstretching(Vo.double()).to(self.device)
         VFI1 = randomstretching(VFI.double()).to(self.device)
         VFI2 = randomstretching(VFI.double()).to(self.device)
-        V1 = randomrot(V1).to(self.device)
+        V1 = randomrot(V1).to(self.device)                         #random rotation
         V2 = randomrot(V2).to(self.device)
         VFI1 = randomrot(VFI1).to(self.device)
         VFI2 = randomrot(VFI2).to(self.device)
@@ -514,32 +497,8 @@ class Fly_by_CNN_contrastive_labeled(pl.LightningModule):
         lab = torch.unique(labels)
         lab = lab.cpu()
         lab = np.array(lab)
-        torch.save(proj_test, f"/CMF/data/timtey/results_contrastive_learning/results2_pretrained_true_t_04/proj_test_{lab[0]}_{tot}.pt")
+        torch.save(proj_test, f"/CMF/data/timtey/results_contrastive_learning/results2_pretrained_true_t_04/proj_test_{lab[0]}_{tot}.pt") # path where to save the results
 
-    # def test_epoch_end(self, outputs):
-    #     self.y_pred = []
-    #     self.y_true = []
-
-    #     for output in outputs:
-    #         self.y_pred.append(output[0].tolist())
-    #         self.y_true.append(output[1].tolist())
-
-    #     self.y_pred = [ele for sousliste in self.y_pred for ele in sousliste]
-    #     self.y_true = [ele for sousliste in self.y_true for ele in sousliste]
-        
-        
-    #     self.y_pred = [[int(ele)] for ele in self.y_pred]
-        
-    #     self.accuracy = accuracy_score(self.y_true, self.y_pred)
-        
-    # def get_y_pred(self):
-    #     return self.y_pred
-    
-    # def get_y_true(self):
-    #     return self.y_true
-    
-    # def get_accuracy(self):
-    #     return self.accuracy
 
 def device_as(t1, t2):
     """

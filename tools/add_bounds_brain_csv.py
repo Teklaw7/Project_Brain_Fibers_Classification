@@ -1,13 +1,13 @@
-import utils
+from library import utils_lib
 from os import listdir
 import pandas as pd
-bundles = utils.ReadSurf("/MEDUSA_STOR/timtey/tractography/validation/tractogram_deterministic_103515_dg.vtp")
+bundles = utils_lib.ReadSurf("/MEDUSA_STOR/timtey/tractography/validation/tractogram_deterministic_103515_dg.vtp")
 a = bundles.GetBounds()
-bundles2 = utils.ReadSurf("/MEDUSA_STOR/timtey/tractography/validation/tractogram_deterministic_139233_dg.vtp")
+bundles2 = utils_lib.ReadSurf("/MEDUSA_STOR/timtey/tractography/validation/tractogram_deterministic_139233_dg.vtp")
 b = bundles2.GetBounds()
-bundles3 = utils.ReadSurf("/MEDUSA_STOR/timtey/tractography/validation/tractogram_deterministic_108525_dg.vtp")
+bundles3 = utils_lib.ReadSurf("/MEDUSA_STOR/timtey/tractography/validation/tractogram_deterministic_108525_dg.vtp")
 c = bundles3.GetBounds()
-bundles4 = utils.ReadSurf("/MEDUSA_STOR/timtey/tractography/validation/tractogram_deterministic_124220_dg.vtp")
+bundles4 = utils_lib.ReadSurf("/MEDUSA_STOR/timtey/tractography/validation/tractogram_deterministic_124220_dg.vtp")
 d = bundles4.GetBounds()
 l_valid = listdir("/MEDUSA_STOR/timtey/tractography/validation")
 

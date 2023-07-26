@@ -255,5 +255,3 @@ class Bundles_Dataset_contrastive_labeled(pl.LightningDataModule):
         verts_data_faces_brain = torch.cat(verts_data_faces_brain)
 
         return verts, faces, verts_data_faces, labels, verts_fiber, faces_fiber, verts_data_faces_fiber, labels_fiber, verts_brain, faces_brain, verts_data_faces_brain, verts_fiber_bounds, sample_min_max
-
-

@@ -49,10 +49,6 @@ class BrainNetImageLogger_contrastive_tractography_labeled(Callback):
             V2 = randomrot(V2).to(pl_module.device,non_blocking=True)
             VFI1 = randomrot(VFI1).to(pl_module.device,non_blocking=True)
             VFI2 = randomrot(VFI2).to(pl_module.device,non_blocking=True)
-            # V1 = torch.detach(Vo)
-            # V2 = torch.detach(Vo)
-            # VFI1 = torch.detach(VFI)
-            # VFI2 = torch.detach(VFI)
             
             with torch.no_grad():
 
@@ -104,10 +100,6 @@ class BrainNetImageLogger_contrastive_tractography_labeled(Callback):
             V2 = randomrot(V2).to(pl_module.device,non_blocking=True)
             VFI1 = randomrot(VFI1).to(pl_module.device,non_blocking=True)
             VFI2 = randomrot(VFI2).to(pl_module.device,non_blocking=True)
-            # V1 = torch.detach(Vo)
-            # V2 = torch.detach(Vo)
-            # VFI1 = torch.detach(VFI)
-            # VFI2 = torch.detach(VFI)
 
             with torch.no_grad():
                 images, PF = pl_module.render(Vo, F, FF)
@@ -116,7 +108,6 @@ class BrainNetImageLogger_contrastive_tractography_labeled(Callback):
                 images_fiber, PF_fiber = pl_module.render(VFI, FFI, FFFI) 
                 images_fiber_1, PF_fiber_1 = pl_module.render(VFI1, FFI, FFFI)
                 images_fiber_2, PF_fiber_2 = pl_module.render(VFI2, FFI, FFFI)
-                # images_brain, PF_brain = pl_module.render(VB, FB, FFB)   
                 images = torch.cat((images, images_fiber, images1, images2, images_fiber_1, images_fiber_2), dim=1)
                 grid_images = torchvision.utils.make_grid(images[0, 0:self.num_images, 0:self.num_features, :, :])
                 trainer.logger.experiment.add_image('Image val', grid_images, pl_module.global_step)
@@ -159,10 +150,7 @@ class BrainNetImageLogger_contrastive_tractography_labeled(Callback):
             V2 = randomrot(V2).to(pl_module.device,non_blocking=True)
             VFI1 = randomrot(VFI1).to(pl_module.device,non_blocking=True)
             VFI2 = randomrot(VFI2).to(pl_module.device,non_blocking=True)
-            # V1 = torch.detach(Vo)
-            # V2 = torch.detach(Vo)
-            # VFI1 = torch.detach(VFI)
-            # VFI2 = torch.detach(VFI)
+
             with torch.no_grad():
 
                 images, PF = pl_module.render(Vo, F, FF)       
@@ -171,7 +159,6 @@ class BrainNetImageLogger_contrastive_tractography_labeled(Callback):
                 images_fiber, PF_fiber = pl_module.render(VFI, FFI, FFFI)
                 images_fiber_1, PF_fiber_1 = pl_module.render(VFI1, FFI, FFFI)
                 images_fiber_2, PF_fiber_2 = pl_module.render(VFI2, FFI, FFFI)
-                # images_brain, PF_brain = pl_module.render(VB, FB, FFB)
                 images = torch.cat((images, images_fiber, images1, images2, images_fiber_1, images_fiber_2), dim=1)
                 grid_images = torchvision.utils.make_grid(images[0, 0:self.num_images, 0:self.num_features, :, :])
                 trainer.logger.experiment.add_image('Image test', grid_images, pl_module.global_step)

@@ -2,7 +2,6 @@ import numpy as np
 import math
 import torch
 
-
 class TS_SS:
         
     def __init__(self, question_vector, sentence_vector):
