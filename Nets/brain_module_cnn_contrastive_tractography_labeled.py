@@ -130,7 +130,6 @@ class Fly_by_CNN_contrastive_tractography_labeled(pl.LightningModule):
     def __init__(self, radius, ico_lvl, dropout_lvl, batch_size, weights, num_classes, learning_rate=0.0001):
         super().__init__()
         self.save_hyperparameters()
-        self.loss_contrastive = ContrastiveLoss(batch_size)
         self.radius = radius
         self.ico_lvl = ico_lvl
         self.dropout_lvl = dropout_lvl

@@ -40,35 +40,34 @@ class Bundles_Dataset_contrastive_labeled(Dataset): #dataset used for training a
         
         sample_id, sample_class, sample_label = sample_row[self.column_id], sample_row[self.column_class], sample_row[self.column_label]
         sample_x_min, sample_x_max, sample_y_min, sample_y_max, sample_z_min, sample_z_max = sample_row[self.column_x_min], sample_row[self.column_x_max], sample_row[self.column_y_min], sample_row[self.column_y_max], sample_row[self.column_z_min], sample_row[self.column_z_max]
-        path_cc1 = f"/CMF/data/timtey/tracts/archives/{sample_id}_tracts/{sample_class}.vtp"
-        cc1 = utils.ReadSurf(path_cc1)
-        n = randint(0,cc1.GetNumberOfCells()-1)
-        cc1_extract = utils.ExtractFiber(cc1,n)
-        cc1_tf=vtk.vtkTriangleFilter()
-        cc1_tf.SetInputData(cc1_extract)
-        cc1_tf.Update()
-        cc1_extract_tf = cc1_tf.GetOutput()
+        path_sample = f"/CMF/data/timtey/tracts/archives/{sample_id}_tracts/{sample_class}.vtp"
+        bundle = utils.ReadSurf(path_sample)
+        n = randint(0,bundle.GetNumberOfCells()-1)
+        fiber_extract = utils.ExtractFiber(bundle,n)
+        triangle_filter=vtk.vtkTriangleFilter()
+        triangle_filter.SetInputData(fiber_extract)
+        triangle_filter.Update()
+        fiber_extract_tf = triangle_filter.GetOutput()
         
-        verts, faces, edges = utils.PolyDataToTensors(cc1_extract_tf)    
+        verts, faces, edges = utils.PolyDataToTensors(fiber_extract_tf)    
         verts_fiber = torch.clone(verts)
         faces_fiber = torch.clone(faces)
-        verts_fiber_bounds = cc1_extract_tf.GetBounds()
+        verts_fiber_bounds = fiber_extract_tf.GetBounds()
         verts_fiber_bounds = list(verts_fiber_bounds)
         max_bounds = max(verts_fiber_bounds)
         min_bounds = min(verts_fiber_bounds)
-        verts_fiber_bounds = [min_bounds,max_bounds,min_bounds,max_bounds,min_bounds,max_bounds]
-        sample_min_max = [sample_x_min, sample_x_max, sample_y_min, sample_y_max, sample_z_min, sample_z_max]
+        verts_fiber_bounds = [min_bounds,max_bounds,min_bounds,max_bounds,min_bounds,max_bounds]    #bounds of the fiber
+        sample_min_max = [sample_x_min, sample_x_max, sample_y_min, sample_y_max, sample_z_min, sample_z_max]   #bounds of the brain subject
 
-        EstimatedUncertainty = torch.tensor(vtk_to_numpy(cc1_extract_tf.GetPointData().GetScalars("EstimatedUncertainty"))).unsqueeze(1)
-        FA1 = torch.tensor(vtk_to_numpy(cc1_extract_tf.GetPointData().GetScalars("FA1"))).unsqueeze(1)
-        FA2 = torch.tensor(vtk_to_numpy(cc1_extract_tf.GetPointData().GetScalars("FA2"))).unsqueeze(1)
-        HemisphereLocataion = torch.tensor(vtk_to_numpy(cc1_extract_tf.GetPointData().GetScalars("HemisphereLocataion"))).unsqueeze(1)
-        # cluster_idx = vtk_to_numpy(cc1_extract_tf.GetPointData().GetScalars("cluster_idx"))
-        trace1 = torch.tensor(vtk_to_numpy(cc1_extract_tf.GetPointData().GetScalars("trace1"))).unsqueeze(1)
-        trace2 = torch.tensor(vtk_to_numpy(cc1_extract_tf.GetPointData().GetScalars("trace2"))).unsqueeze(1)
-        # vtkOriginalPointIds = vtk_to_numpy(cc1_extract_tf.GetPointData().GetScalars("vtkOriginalPointIds"))
-        TubeNormals = torch.tensor(vtk_to_numpy(cc1_extract_tf.GetPointData().GetScalars("TubeNormals")))
-
+        EstimatedUncertainty = torch.tensor(vtk_to_numpy(fiber_extract_tf.GetPointData().GetScalars("EstimatedUncertainty"))).unsqueeze(1)
+        FA1 = torch.tensor(vtk_to_numpy(fiber_extract_tf.GetPointData().GetScalars("FA1"))).unsqueeze(1)
+        FA2 = torch.tensor(vtk_to_numpy(fiber_extract_tf.GetPointData().GetScalars("FA2"))).unsqueeze(1)
+        HemisphereLocataion = torch.tensor(vtk_to_numpy(fiber_extract_tf.GetPointData().GetScalars("HemisphereLocataion"))).unsqueeze(1)
+        # cluster_idx = vtk_to_numpy(fiber_extract_tf.GetPointData().GetScalars("cluster_idx"))
+        trace1 = torch.tensor(vtk_to_numpy(fiber_extract_tf.GetPointData().GetScalars("trace1"))).unsqueeze(1)
+        trace2 = torch.tensor(vtk_to_numpy(fiber_extract_tf.GetPointData().GetScalars("trace2"))).unsqueeze(1)
+        # vtkOriginalPointIds = vtk_to_numpy(fiber_extract_tf.GetPointData().GetScalars("vtkOriginalPointIds"))
+        TubeNormals = torch.tensor(vtk_to_numpy(fiber_extract_tf.GetPointData().GetScalars("TubeNormals")))
 
         vertex_features = torch.cat([EstimatedUncertainty, FA1, FA2, HemisphereLocataion, trace1, trace2, TubeNormals], dim=1)
         faces_pid0 = faces[:,0:1]
@@ -92,9 +91,8 @@ class Bundles_Dataset_contrastive_labeled(Dataset): #dataset used for training a
 
 
 class Bundles_Dataset_test_contrastive_labeled(Dataset):    #dataset used for testing
-    def __init__(self, data, bundle, L, fibers, index_csv, column_class='class',column_id='id', column_label='label', column_x_min = 'x_min', column_x_max = 'x_max', column_y_min = 'y_min', column_y_max = 'y_max', column_z_min = 'z_min', column_z_max = 'z_max'):
+    def __init__(self, data, L, fibers, index_csv, column_class='class',column_id='id', column_label='label', column_x_min = 'x_min', column_x_max = 'x_max', column_y_min = 'y_min', column_y_max = 'y_max', column_z_min = 'z_min', column_z_max = 'z_max'):
         self.data = data
-        self.bundle = bundle
         self.L = L
         self.fibers = fibers
         self.index_csv = index_csv
@@ -126,8 +124,8 @@ class Bundles_Dataset_test_contrastive_labeled(Dataset):    #dataset used for te
         verts_fiber_bounds = list(verts_fiber_bounds)
         max_bounds = max(verts_fiber_bounds)
         min_bounds = min(verts_fiber_bounds)
-        verts_fiber_bounds = [min_bounds,max_bounds,min_bounds,max_bounds,min_bounds,max_bounds]
-        sample_min_max = [sample_x_min, sample_x_max, sample_y_min, sample_y_max, sample_z_min, sample_z_max]
+        verts_fiber_bounds = [min_bounds,max_bounds,min_bounds,max_bounds,min_bounds,max_bounds]    # bounds of the fiber
+        sample_min_max = [sample_x_min, sample_x_max, sample_y_min, sample_y_max, sample_z_min, sample_z_max]   # bounds of the brain
 
         EstimatedUncertainty = torch.tensor(vtk_to_numpy(bundle_extract_tf.GetPointData().GetScalars("EstimatedUncertainty"))).unsqueeze(1)
         FA1 = torch.tensor(vtk_to_numpy(bundle_extract_tf.GetPointData().GetScalars("FA1"))).unsqueeze(1)
@@ -161,11 +159,9 @@ class Bundles_Dataset_test_contrastive_labeled(Dataset):    #dataset used for te
 
 
 
-
 class Bundles_Dataset_contrastive_labeled(pl.LightningDataModule):
-    def __init__(self, bundle, L, fibers, index_csv, batch_size, train_path, val_path, test_path, num_workers=12, transform=True, persistent_workers=False):
+    def __init__(self, L, fibers, index_csv, batch_size, train_path, val_path, test_path, num_workers=12, transform=True, persistent_workers=False):
         super().__init__()
-        self.bundle = bundle
         self.L = L
         self.fibers = fibers
         self.index_csv = index_csv
@@ -212,7 +208,7 @@ class Bundles_Dataset_contrastive_labeled(pl.LightningDataModule):
         
         self.train_dataset = Bundles_Dataset_contrastive_labeled(list_train_data)
         self.val_dataset = Bundles_Dataset_contrastive_labeled(list_val_data)
-        self.test_dataset = Bundles_Dataset_test_contrastive_labeled(list_test_data, self.bundle, self.L, self.fibers, self.index_csv)
+        self.test_dataset = Bundles_Dataset_test_contrastive_labeled(list_test_data, self.L, self.fibers, self.index_csv)
         
 
     def train_dataloader(self):

@@ -12,7 +12,7 @@ from tools import utils
 import vtk
 
 from Data_Loaders.data_module_contrastive_tractography_labeled import Bundles_DataModule_tractography_labeled_fibers    # used for clustering with labeled and tractography fibers
-from Data_Loaders.data_module_contrastive_labeled import Bundles_Dataset_contrastive_labeled  # used for classification and contrastive learning with Simclr
+from Data_Loaders.data_module_classification_or_contrastive_labeled import Bundles_Dataset_contrastive_labeled  # used for classification and contrastive learning with Simclr
 
 from Nets.brain_module_cnn_contrastive_tractography_labeled import Fly_by_CNN_contrastive_tractography_labeled  # used for clustering with labeled and tractography fibers
 from Nets.brain_module_cnn_contrastive_labeled import Fly_by_CNN_contrastive_labeled    # used for contrastive learning with Simclr
@@ -66,7 +66,11 @@ print("Number of tracts: ", len(tractography_list_vtk))
 
 df = pd.read_csv(path_test_final)
 logger = TensorBoardLogger(save_dir="/home/timtey/Documents/Models_tensorboard/tensorboard_photos", name='Resnet')
+
+#used for clustering with labeled and tractography fibers
 image_logger = BrainNetImageLogger_contrastive_tractography_labeled(num_features = 3,num_images = 24,mean = 0)
+#used for classification and contrastive learning with Simclr
+#image_logger = BrainNetImageLogger(num_features = 3,num_images = 24,mean = 0)
 
 early_stop_callback = EarlyStopping(monitor='val_loss', min_delta=min_delta_early_stopping, patience=patience_early_stopping, verbose=True, mode='min')
 trainer=Trainer(log_every_n_steps=5, max_epochs=nb_epochs, logger = logger, callbacks=[early_stop_callback, checkpoint_callback, image_logger], accelerator="gpu")
@@ -77,14 +81,24 @@ trainer=Trainer(log_every_n_steps=5, max_epochs=nb_epochs, logger = logger, call
 # Acc = []
 # Acc_details = []
 
+#Data_Module used for clustering with labeled and tractography fibers
 brain_data=Bundles_DataModule_tractography_labeled_fibers(0,0,0,path_data, batch_size, path_train_final, path_valid_final, path_test_final, path_tractography_train, path_tractography_valid, path_tractography_test, tractography_list_vtk, num_workers=num_workers)
+#Data_Module used for classification and contrastive learning with Simclr
+#brain_data=Bundles_Dataset_contrastive_labeled(0,0,0, batch_size, path_train_final, path_valid_final, path_test_final, num_workers=num_workers)
 
 weights = brain_data.get_weights()
+#model used for clustering with labeled and tractography fibers
 model= Fly_by_CNN_contrastive_tractography_labeled(radius, ico_lvl, dropout_lvl, batch_size, weights, num_classes, learning_rate=0.0001)
+#model used for classification
+#model = Fly_by_CNN(radius, ico_lvl, dropout_lvl, batch_size, weights, num_classes, learning_rate=0.0001)
+#model used for contrastive learning with Simclr
+#model = Fly_by_CNN_contrastive_labeled(radius, ico_lvl, dropout_lvl, batch_size, weights, num_classes, learning_rate=0.0001)
 
 trainer.fit(model, brain_data)
 for index_csv in range(len(df)):
-    path = f"/CMF/data/timtey/tracts/archives/{df['id'][index_csv]}_tracts/{df['class'][index_csv]}_DTI.vtk"
+    path = f"/CMF/data/timtey/tracts/archives/{df['id'][index_csv]}_tracts/{df['class'][index_csv]}_DTI.vtk"    # path used for clustering with labeled and tractography fibers
+    # path = f"/CMF/data/timtey/tracts/archives/{df['id'][index_csv]}_tracts/{df['class'][index_csv]}.vtp"    # path used for classification and contrastive learning with Simclr
+    # create a dataloader for this part to load and create the list of all the fibers as tubes
     bundle = utils.ReadSurf(path)
     L = []
     for i in range(bundle.GetNumberOfCells()):
@@ -96,8 +110,11 @@ for index_csv in range(len(df)):
         L.append(fiber_tf)
     fibers = min(df['num_cells'])
 
+    #Network used for clustering with labeled and tractography fibers
     brain_data=Bundles_DataModule_tractography_labeled_fibers(L, fibers, index_csv, path_data, batch_size, path_train_final, path_valid_final, path_test_final, path_tractography_train, path_tractography_valid, path_tractography_test, tractography_list_vtk, num_workers=num_workers)
-
+    #Network used for classification and contrastive learning with Simclr
+    #brain_data=Bundles_Dataset_contrastive_labeled(L, fibers, index_csv, batch_size, path_train_final, path_valid_final, path_test_final, num_workers=num_workers)
+    
     trainer.test(model, brain_data)
     
 # This part is to add if you want to do a classification, it will give you the accuracy of the classification test for each bundle and also the global accuracy, it also creates the confusion matrix

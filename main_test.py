@@ -10,13 +10,15 @@ from logger import BrainNetImageLogger_contrastive_tractography_labeled, BrainNe
 from pytorch_lightning.loggers import TensorBoardLogger
 
 from tools import utils
-import vtk                                                                   # used for clustering with labeled and tractography fibers 
-from Data_Loaders.data_module_contrastive_tractography_labeled import Bundles_DataModule_tractography_labeled_fibers, Bundles_Dataset_test_contrastive_tractography_labeled, Bundles_Dataset_tractography
-from Data_Loaders.data_module_contrastive_labeled import Bundles_Dataset_contrastive_labeled  # used for classification and contrastive learning with Simclr
-from tools.pad import pad_verts_faces, pad_verts_faces_simple
+import vtk           
+
+from Data_Loaders.data_module_contrastive_tractography_labeled import Bundles_DataModule_tractography_labeled_fibers    # used for clustering with labeled and tractography fibers
+from Data_Loaders.data_module_classification_or_contrastive_labeled import Bundles_Dataset_contrastive_labeled  # used for classification and contrastive learning with Simclr
+
 from Nets.brain_module_cnn_contrastive_tractography_labeled import Fly_by_CNN_contrastive_tractography_labeled  # used for clustering with labeled and tractography fibers
 from Nets.brain_module_cnn_contrastive_labeled import Fly_by_CNN_contrastive_labeled    # used for contrastive learning with Simclr
 from Nets.brain_module_cnn import Fly_by_CNN    # used for classification
+
 from torch.utils.data import DataLoader
 
 from pytorch_lightning import Trainer
@@ -60,23 +62,38 @@ print("Number of tracts: ", len(tractography_list_vtk))
 
 df = pd.read_csv(path_test_final)
 logger = TensorBoardLogger(save_dir="/home/timtey/Documents/Models_tensorboard/tensorboard_photos", name='Resnet') # to change the folder for tensorboardlogger
+
+#used for clustering with labeled and tractography fibers
 image_logger = BrainNetImageLogger_contrastive_tractography_labeled(num_features = 3,num_images = 24,mean = 0)
+#used for classification and contrastive learning with Simclr
+# image_logger = BrainNetImageLogger(num_features = 3,num_images = 24,mean = 0)
+
 # These four lists are used to compute the accuracy during the test when you want to use the classification
 # Y_TRUE = []
 # Y_PRED = []
 # Acc = []
 # Acc_details = []
+
 trainer = Trainer(log_every_n_steps=5, logger = logger, callbacks = [image_logger],accelerator="gpu")
+#Data_Module used for clustering with labeled and tractography fibers
 brain_data=Bundles_DataModule_tractography_labeled_fibers(0,0,0,path_data, batch_size, path_train_final, path_valid_final, path_test_final, path_tractography_train, path_tractography_valid, path_tractography_test, tractography_list_vtk, num_workers=num_workers)
+#Data_Module used for classification and contrastive learning with Simclr
+# brain_data=Bundles_Dataset_contrastive_labeled(0,0,0, batch_size, path_train_final, path_valid_final, path_test_final, num_workers=num_workers)
 
 weights = brain_data.get_weights()
 model_path ="/home/timtey/Documents/Models_tensorboard/models/Loss_combine/071823/epoch=74-val_loss=-0.69.ckpt" # to change the path for the trained model
-
+#model used for clustering with labeled and tractography fibers
 model= Fly_by_CNN_contrastive_tractography_labeled(radius, ico_lvl, dropout_lvl, batch_size, weights, num_classes, learning_rate=0.0001)
+#model used for classification
+# model= Fly_by_CNN(radius, ico_lvl, dropout_lvl, batch_size, weights, num_classes, learning_rate=0.0001)
+#model used for contrastive learning with Simclr
+# model= Fly_by_CNN_contrastive_labeled(radius, ico_lvl, dropout_lvl, batch_size, weights, num_classes, learning_rate=0.0001)
+
 checkpoint = torch.load(model_path)
 model.load_state_dict(checkpoint['state_dict'])
 for index_csv in range(len(df)):
-    path = f"/CMF/data/timtey/tracts/archives/{df['id'][index_csv]}_tracts/{df['class'][index_csv]}_DTI.vtk"
+    path = f"/CMF/data/timtey/tracts/archives/{df['id'][index_csv]}_tracts/{df['class'][index_csv]}_DTI.vtk"    # path used for clustering with labeled and tractography fibers
+    # path = f"/CMF/data/timtey/tracts/archives/{df['id'][index_csv]}_tracts/{df['class'][index_csv]}.vtp"    # path used for classification and contrastive learning with Simclr
     # create a dataloader for this part to load and create the list of all the fibers as tubes
     bundle = utils.ReadSurf(path)
     L = []
@@ -89,7 +106,11 @@ for index_csv in range(len(df)):
         L.append(fiber_tf)
     fibers = min(df['num_cells'])
 
+    #Network used for clustering with labeled and tractography fibers
     brain_data=Bundles_DataModule_tractography_labeled_fibers(L, fibers, index_csv, path_data, batch_size, path_train_final, path_valid_final, path_test_final, path_tractography_train, path_tractography_valid, path_tractography_test, tractography_list_vtk, num_workers=num_workers)
+    #Network used for classification and contrastive learning with Simclr
+    # brain_data=Bundles_Dataset_contrastive_labeled(L, fibers, index_csv, batch_size, path_train_final, path_valid_final, path_test_final, num_workers=num_workers)
+    
     trainer.test(model, brain_data)
 
 # This part is to add if you want to do a classification, it will give you the accuracy of the classification test for each bundle and also the global accuracy, it also creates the confusion matrix

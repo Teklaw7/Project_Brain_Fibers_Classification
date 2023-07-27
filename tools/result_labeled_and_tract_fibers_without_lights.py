@@ -8,7 +8,7 @@ import matplotlib.colors as colors
 from library import utils_lib as utils
 import vtk
 
-liste = os.listdir("/CMF/data/timtey/results_contrastive_learning_071823_best")
+liste = os.listdir("/CMF/data/timtey/RESULTS/results_contrastive_learning_071823_best")
 
 l_colors = colors.ListedColormap ( np.random.rand (57,3))
 
@@ -16,7 +16,7 @@ matrix2 = [] #should be shape = (56*100,128)
 matrix_1 = []
 matrix_2 = []
 for i in range(len(liste)):
-    matrix = torch.load(f"/CMF/data/timtey/results_contrastive_learning_071823_best/{liste[i]}")
+    matrix = torch.load(f"/CMF/data/timtey/RESULTS/results_contrastive_learning_071823_best/{liste[i]}")
     matrix_bundle = matrix[:matrix.shape[0]//2]
     matrix_tract = matrix[matrix.shape[0]//2:]
     matrix2.append(matrix)

@@ -7,12 +7,12 @@ import matplotlib.colors as colors
 import pandas as pd
 
 lights = pd.read_pickle(r'/CMF/data/timtey/Lights/lights_57_3d_on_sphere.pickle')
-liste = os.listdir("/CMF/data/timtey/results_contrastive_learning_062723")
+liste = os.listdir("/CMF/data/timtey/RESULTS/results_contrastive_learning_062723")
 l_colors = colors.ListedColormap ( np.random.rand (57,3))
 lights = torch.tensor(lights)
 matrix2 = []
 for i in range(len(liste)):
-    matrix = torch.load(f"/CMF/data/timtey/results_contrastive_learning_062723/{liste[i]}")
+    matrix = torch.load(f"/CMF/data/timtey/RESULTS/results_contrastive_learning_062723/{liste[i]}")
     matrix2.append(matrix)
 MATR_Labeled = torch.cat(matrix2, dim=0)
 Data_lab = MATR_Labeled[:,-1]

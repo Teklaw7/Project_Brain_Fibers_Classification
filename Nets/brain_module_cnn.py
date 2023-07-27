@@ -202,7 +202,7 @@ class IcosahedronConv2d(nn.Module):
 
 
 class Fly_by_CNN(pl.LightningModule):
-    def __init__(self, contrastive, radius, ico_lvl, dropout_lvl, batch_size, weights, num_classes, verts_left, faces_left, verts_right, faces_right, learning_rate=0.001):
+    def __init__(self, radius, ico_lvl, dropout_lvl, batch_size, weights, num_classes, learning_rate=0.001):
         super().__init__()
         self.save_hyperparameters()
         self.model = models.resnet18(pretrained=True)
@@ -211,7 +211,6 @@ class Fly_by_CNN(pl.LightningModule):
         self.train_acc = torchmetrics.Accuracy(task="multiclass", num_classes=57)
         self.val_acc = torchmetrics.Accuracy(task="multiclass", num_classes=57)
         self.test_acc = torchmetrics.Accuracy(task="multiclass", num_classes=57)
-        self.contrastive = contrastive
         self.radius = radius
         self.ico_lvl = ico_lvl
         self.dropout_lvl = dropout_lvl
@@ -219,10 +218,6 @@ class Fly_by_CNN(pl.LightningModule):
         self.batch_size = batch_size
         self.weights = weights
         self.num_classes = num_classes
-        self.verts_left = verts_left
-        self.faces_left = faces_left
-        self.verts_right = verts_right
-        self.faces_right = faces_right
         ico_sphere = utils.CreateIcosahedron(self.radius, ico_lvl)
         ico_sphere_verts, ico_sphere_faces, self.ico_sphere_edges = utils.PolyDataToTensors(ico_sphere)
         self.ico_sphere_verts = ico_sphere_verts
