@@ -45,27 +45,27 @@ class Bundles_Dataset_contrastive_tractography_labeled(Dataset):    #Dataset use
         
         sample_id, sample_class, sample_label = sample_row[self.column_id], sample_row[self.column_class], sample_row[self.column_label]
         sample_x_min, sample_x_max, sample_y_min, sample_y_max, sample_z_min, sample_z_max = sample_row[self.column_x_min], sample_row[self.column_x_max], sample_row[self.column_y_min], sample_row[self.column_y_max], sample_row[self.column_z_min], sample_row[self.column_z_max]
-        path_cc1 = f"/CMF/data/timtey/tracts/archives/{sample_id}_tracts/{sample_class}_DTI.vtk"
-        cc1 = utils.ReadSurf(path_cc1)
-        n = randint(0,cc1.GetNumberOfCells()-1)
+        path_sample = f"/CMF/data/timtey/tracts/archives/{sample_id}_tracts/{sample_class}_DTI.vtk"
+        bundle = utils.ReadSurf(path_sample)
+        n = randint(0,bundle.GetNumberOfCells()-1)
         name = [sample_id, sample_label, n]
-        cc1_extract = utils.ExtractFiber(cc1,n)
-        cc1_tf=vtk.vtkTriangleFilter()
-        cc1_tf.SetInputData(cc1_extract)
-        cc1_tf.Update()
-        cc1_extract_tf = cc1_tf.GetOutput()
+        fiber_extract = utils.ExtractFiber(bundle,n)
+        triangle_filter=vtk.vtkTriangleFilter()
+        triangle_filter.SetInputData(fiber_extract)
+        triangle_filter.Update()
+        fiber_extract_tf = triangle_filter.GetOutput()
         
-        verts, faces, edges = utils.PolyDataToTensors(cc1_extract_tf)
-        verts_fiber_bounds = cc1_extract_tf.GetBounds()
+        verts, faces, edges = utils.PolyDataToTensors(fiber_extract_tf)
+        verts_fiber_bounds = fiber_extract_tf.GetBounds()
         mean_v, scale_factor_v = get_mean_scale_factor(verts_fiber_bounds)
         sample_min_max = [sample_x_min, sample_x_max, sample_y_min, sample_y_max, sample_z_min, sample_z_max]
         mean_s, scale_factor_s = get_mean_scale_factor(sample_min_max)
 
-        TubeNormals = torch.tensor(vtk_to_numpy(cc1_extract_tf.GetPointData().GetScalars("TubeNormals")))
-        FA = torch.tensor(vtk_to_numpy(cc1_extract_tf.GetPointData().GetScalars("FA"))).unsqueeze(1)
-        MD = torch.tensor(vtk_to_numpy(cc1_extract_tf.GetPointData().GetScalars("MD"))).unsqueeze(1)
-        AD = torch.tensor(vtk_to_numpy(cc1_extract_tf.GetPointData().GetScalars("AD"))).unsqueeze(1)
-        RD = torch.tensor(vtk_to_numpy(cc1_extract_tf.GetPointData().GetScalars("RD"))).unsqueeze(1)
+        TubeNormals = torch.tensor(vtk_to_numpy(fiber_extract_tf.GetPointData().GetScalars("TubeNormals")))
+        FA = torch.tensor(vtk_to_numpy(fiber_extract_tf.GetPointData().GetScalars("FA"))).unsqueeze(1)
+        MD = torch.tensor(vtk_to_numpy(fiber_extract_tf.GetPointData().GetScalars("MD"))).unsqueeze(1)
+        AD = torch.tensor(vtk_to_numpy(fiber_extract_tf.GetPointData().GetScalars("AD"))).unsqueeze(1)
+        RD = torch.tensor(vtk_to_numpy(fiber_extract_tf.GetPointData().GetScalars("RD"))).unsqueeze(1)
 
         vertex_features = torch.cat([TubeNormals, FA, MD, AD, RD], dim=1)
         faces_pid0 = faces[:,0:1]
